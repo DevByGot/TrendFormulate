@@ -31,13 +31,17 @@
       margin-bottom: 1.25rem;
     }
     .hero h1 {
-      font-size: clamp(2.25rem, 5vw, 3.75rem);
+      font-size: clamp(1.5rem, 3.5vw, 2.75rem);
       font-style: italic;
       font-weight: 300;
       color: var(--text);
-      line-height: 1.1;
+      line-height: 1.15;
       margin-bottom: 0.875rem;
       letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    @media (max-width: 600px) {
+      .hero h1 { white-space: normal; }
     }
     .hero h1 em {
       font-style: normal;
@@ -46,9 +50,13 @@
     .hero-sub {
       font-size: 1rem;
       color: var(--text-muted);
-      max-width: 440px;
+      max-width: 700px;
       margin: 0 auto 1.5rem;
       line-height: 1.65;
+      white-space: nowrap;
+    }
+    @media (max-width: 720px) {
+      .hero-sub { white-space: normal; max-width: 440px; }
     }
     .hero-ornament {
       display: flex;
@@ -416,7 +424,6 @@
         <i data-lucide="flask-conical" style="width:18px;height:18px;color:#fff;"></i>
       </div>
       <span class="logo-text">TrendFormulate</span>
-      <span class="version-tag">OS v1.0</span>
     </div>
 
     <div class="live-counter">
@@ -431,14 +438,13 @@
 
     <!-- ─── Hero ─────────────────────────────────────────────── -->
     <div class="hero">
-      <h1>Where <em>indie beauty</em><br>meets intelligent R&D</h1>
+      <h1>Where <em>indie beauty</em> meets intelligent R&D</h1>
       <p class="hero-sub">
         From trend detection to factory selection — every department your brand needs, powered by AI.
       </p>
       <a href="#departments" class="scroll-cta">
         Explore the AI Departments <i data-lucide="chevrons-down" style="width:16px;height:16px;"></i>
       </a>
-      <span class="scroll-cta-hint">6 departments · one seamless workflow</span>
       <div class="hero-ornament">✦</div>
     </div>
 
