@@ -284,9 +284,13 @@
 
   <script>
     // ─── Groq configuration ────────────────────────────────────────────────────
-    // GROQ_API_KEY is loaded from ../../assets/config.js (gitignored)
-    const GROQ_MODEL   = "llama3-8b-8192";
-    const GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions";
+    // When served via Vercel (HTTP/HTTPS), calls the /api/groq proxy so the key
+    // stays server-side. When opened as a local file (file://), calls Groq
+    // directly using GROQ_API_KEY from ../../assets/config.js (gitignored).
+    const GROQ_MODEL    = "llama3-8b-8192";
+    const GROQ_DIRECT   = "https://api.groq.com/openai/v1/chat/completions";
+    const ON_SERVER     = window.location.protocol !== "file:";
+    const GROQ_ENDPOINT = ON_SERVER ? "/api/groq" : GROQ_DIRECT;
 
     const SYSTEM_PROMPT = `You are an expert cosmetic trend analyst for an indie beauty brand.
 A user left a social media comment about their skincare routine.
@@ -339,12 +343,15 @@ Rules:
 
     // ─── Groq AI call with retry on 429 ───────────────────────────────────────
     async function callGroq(commentText, retrying = false) {
-      const response = await fetch(GROQ_URL, {
+      // When served via Vercel the proxy handles auth; locally we pass the key directly
+      const headers = { "Content-Type": "application/json" };
+      if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
+        headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
+      }
+
+      const response = await fetch(GROQ_ENDPOINT, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${GROQ_API_KEY}`
-        },
+        headers,
         body: JSON.stringify({
           model: GROQ_MODEL,
           temperature: 0.3,
