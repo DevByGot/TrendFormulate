@@ -287,7 +287,7 @@
     // When served via Vercel (HTTP/HTTPS), calls the /api/groq proxy so the key
     // stays server-side. When opened as a local file (file://), calls Groq
     // directly using GROQ_API_KEY from ../../assets/config.js (gitignored).
-    const GROQ_MODEL    = "llama-3.1-8b-instant";
+    const GROQ_MODEL    = "llama-3.3-70b-versatile";
     const GROQ_DIRECT   = "https://api.groq.com/openai/v1/chat/completions";
     const ON_SERVER     = window.location.protocol !== "file:" &&
                           window.location.hostname !== "localhost" &&
