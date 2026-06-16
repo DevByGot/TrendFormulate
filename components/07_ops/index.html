@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manufacturer Selector — TrendFormulate</title>
+  <title>AI Supply Chain Architect — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
@@ -19,9 +19,7 @@
     }
 
     /* ── Sliders ─────────────────────────────────────────────── */
-    .slider-row {
-      margin-bottom: 1.25rem;
-    }
+    .slider-row { margin-bottom: 1.25rem; }
     .slider-header {
       display: flex;
       justify-content: space-between;
@@ -32,19 +30,15 @@
       font-size: 0.8125rem;
       font-weight: 500;
       color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
     }
     .slider-value {
       font-size: 0.875rem;
       font-weight: 700;
-      color: var(--accent);
-      min-width: 2.5rem;
+      min-width: 2rem;
       text-align: right;
-    }
-    .slider-track-wrap {
-      position: relative;
-    }
-    input[type="range"].slider-accent {
-      background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--pct, 50%), var(--surface-2) var(--pct, 50%));
     }
     .weight-display {
       margin-top: 1rem;
@@ -54,15 +48,8 @@
       display: flex;
       gap: 0.5rem;
     }
-    .weight-chip {
-      flex: 1;
-      text-align: center;
-    }
-    .weight-chip-value {
-      font-size: 0.9375rem;
-      font-weight: 700;
-      color: var(--text);
-    }
+    .weight-chip { flex: 1; text-align: center; }
+    .weight-chip-value { font-size: 0.9375rem; font-weight: 700; color: var(--text); }
     .weight-chip-label {
       font-size: 0.6875rem;
       text-transform: uppercase;
@@ -70,247 +57,448 @@
       color: var(--text-muted);
       margin-top: 0.1rem;
     }
-    .weight-sum-warning {
-      font-size: 0.75rem;
-      color: var(--warning);
+
+    /* ── Formula description ─────────────────────────────────── */
+    .formula-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      padding: 0.6rem 0.75rem;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      border-left: 2px solid var(--accent);
       margin-top: 0.5rem;
-      display: none;
     }
 
-    /* ── Form fields ─────────────────────────────────────────── */
-    .form-row {
-      margin-bottom: 1rem;
+    /* ── Pipeline architecture (empty state) ─────────────────── */
+    .pipeline-empty {
+      border: 1px dashed rgba(196, 120, 138, 0.2);
+      border-radius: var(--radius);
+      padding: 2rem 1.75rem;
+      background: linear-gradient(160deg, rgba(196,120,138,0.02) 0%, transparent 60%);
     }
-
-    /* ── Empty state ─────────────────────────────────────────── */
-    .empty-state {
+    .pipeline-empty-title {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      font-style: italic;
+      color: var(--text-muted);
+      text-align: center;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.01em;
+    }
+    .pipeline-flow {
+      display: grid;
+      grid-template-columns: 1fr 36px 1fr;
+      gap: 0.625rem;
+      align-items: stretch;
+      margin-bottom: 1.25rem;
+    }
+    .pipeline-tier {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.125rem;
       display: flex;
       flex-direction: column;
+      gap: 0.4rem;
+    }
+    .pipeline-tier-label {
+      font-size: 0.5875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 0.1rem;
+    }
+    .pipeline-tier-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .pipeline-tier-engine {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .pipeline-tier-steps {
+      list-style: none;
+      padding: 0;
+      margin: 0.35rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .pipeline-tier-steps li {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      line-height: 1.4;
+    }
+    .pipeline-tier-output {
+      margin-top: auto;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 0.35rem 0.5rem;
+      font-family: 'Courier New', monospace;
+      text-align: center;
+    }
+    .pipeline-arrow {
+      display: flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      padding: 4rem 2rem;
-      border: 1px dashed rgba(196, 120, 138, 0.25);
-      border-radius: var(--radius);
       color: var(--text-muted);
-      gap: 0.75rem;
+    }
+    .pipeline-db {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 0.625rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 1.25rem;
+    }
+    .pipeline-cta {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
     }
 
-    /* ── Recommendation banner ───────────────────────────────── */
-    .rec-banner {
-      background: linear-gradient(135deg, rgba(196, 120, 138, 0.18) 0%, rgba(196, 120, 138, 0.06) 100%);
-      border: 1px solid rgba(196, 120, 138, 0.4);
-      border-radius: var(--radius);
+    /* ── Loading ─────────────────────────────────────────────── */
+    .loading-overlay {
       padding: 1.5rem;
+      animation: fadeIn 0.25s ease;
+    }
+    .loading-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .loading-title { font-size: 0.9375rem; font-weight: 600; color: var(--text); }
+    .loading-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .loading-phase { margin-bottom: 1rem; }
+    .loading-phase-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.75rem;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.5rem;
+    }
+    .phase-badge {
+      font-size: 0.5875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+    }
+    .phase-1-badge { background: rgba(79,152,163,0.15); color: #4f98a3; }
+    .phase-2-badge { background: rgba(109,170,69,0.15); color: #6daa45; }
+    .loading-phase-title { font-size: 0.8125rem; font-weight: 600; color: var(--text); }
+    .loading-steps-list {
+      padding-left: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .loading-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      opacity: 0.35;
+      transition: opacity 0.3s ease, color 0.3s ease;
+      padding: 0.225rem 0;
+    }
+    .loading-step.active { opacity: 1; color: var(--text); }
+    .loading-step.done   { opacity: 1; color: var(--success); }
+
+    /* ── Tier result cards ───────────────────────────────────── */
+    .tier-card {
+      border-radius: var(--radius);
+      padding: 1.25rem;
       margin-bottom: 1rem;
       animation: slideIn 0.4s ease forwards;
     }
-    .rec-banner-header {
+    .tier-1-card {
+      background: linear-gradient(135deg, rgba(79,152,163,0.07) 0%, rgba(79,152,163,0.02) 100%);
+      border: 1px solid rgba(79,152,163,0.3);
+    }
+    .tier-2-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+    .tier-card-header {
       display: flex;
       align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .tier-num-badge {
+      font-size: 0.5875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }
+    .t1-badge { background: rgba(79,152,163,0.15);  color: #4f98a3; }
+    .t2-badge { background: rgba(109,170,69,0.15);  color: #6daa45; }
+    .tier-card-title { font-size: 0.9375rem; font-weight: 600; color: var(--text); }
+    .tier-card-engine {
+      margin-left: auto;
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    /* ── Tier 1 profile fields ───────────────────────────────── */
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.875rem;
+    }
+    .profile-field {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.7rem;
+    }
+    .profile-field-label {
+      font-size: 0.5875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+    }
+    .profile-field-value {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.625rem; }
+    .chip-row-label {
+      font-size: 0.5875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+    .cert-chip {
+      font-size: 0.6875rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(196,120,138,0.1);
+      color: var(--accent);
+      border: 1px solid rgba(196,120,138,0.2);
+      font-weight: 500;
+    }
+    .cert-chip.hard { background: rgba(196,120,138,0.2); font-weight: 700; }
+    .cap-chip {
+      font-size: 0.6875rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(79,152,163,0.1);
+      color: #4f98a3;
+      border: 1px solid rgba(79,152,163,0.2);
+    }
+    .reg-notes {
+      font-size: 0.7875rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      padding: 0.625rem 0.75rem;
+      background: var(--surface);
+      border-radius: var(--radius-sm);
+      border-left: 2px solid rgba(79,152,163,0.45);
+      margin-bottom: 0.5rem;
+    }
+    .hard-filter-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      font-size: 0.75rem;
+      color: var(--warning);
+      padding: 0.5rem 0.75rem;
+      background: rgba(184,134,46,0.08);
+      border: 1px solid rgba(184,134,46,0.22);
+      border-radius: var(--radius-sm);
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── Score formula display ───────────────────────────────── */
+    .score-formula-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      padding: 0.625rem 0.875rem;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+    .sf-var   { font-weight: 700; color: var(--text); font-style: italic; }
+    .sf-wt    { font-weight: 700; }
+    .sf-cost  { color: #6daa45; }
+    .sf-comp  { color: var(--accent); }
+    .sf-lead  { color: #4f98a3; }
+
+    /* ── Recommendation banner ───────────────────────────────── */
+    .rec-banner {
+      background: linear-gradient(135deg, rgba(196,120,138,0.13) 0%, rgba(196,120,138,0.04) 100%);
+      border: 1px solid rgba(196,120,138,0.35);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .rec-top-row {
+      display: flex;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 1rem;
-      flex-wrap: wrap;
-      margin-bottom: 1rem;
+      margin-bottom: 0.875rem;
     }
     .rec-badge {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.35rem;
       background: var(--accent);
       color: #fff;
-      font-size: 0.6875rem;
+      font-size: 0.6rem;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       padding: 0.2rem 0.6rem;
       border-radius: 999px;
+      margin-bottom: 0.4rem;
     }
+    .rec-name {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .rec-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
     .rec-score-big {
       font-family: var(--font-display);
-      font-size: 2.5rem;
-      color: var(--accent);
+      font-size: 2.25rem;
       line-height: 1;
+      color: var(--accent);
+      text-align: right;
     }
-    .rec-rationale {
-      font-size: 0.875rem;
-      line-height: 1.65;
+    .rec-score-label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-align: right;
+    }
+    .rec-narrative {
+      font-size: 0.8rem;
+      line-height: 1.7;
       color: var(--text-muted);
       background: var(--surface-2);
       border-radius: var(--radius-sm);
       padding: 0.875rem 1rem;
       white-space: pre-line;
-      margin-bottom: 1rem;
+      margin-bottom: 0.875rem;
       font-family: 'Courier New', monospace;
     }
-    .rec-meta {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .rec-meta-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-    }
-    .rec-meta-item .meta-label {
-      font-size: 0.6875rem;
+    .rec-meta { display: flex; gap: 0.875rem; flex-wrap: wrap; }
+    .rec-meta-item { display: flex; flex-direction: column; gap: 0.1rem; }
+    .meta-label {
+      font-size: 0.6rem;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.1em;
       color: var(--text-muted);
     }
-    .rec-meta-item .meta-value {
-      font-size: 0.9375rem;
-      font-weight: 600;
-      color: var(--text);
-    }
+    .meta-value { font-size: 0.9375rem; font-weight: 600; color: var(--text); }
 
     /* ── Factory rank cards ──────────────────────────────────── */
-    .ranked-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
+    .ranked-list { display: flex; flex-direction: column; gap: 0.75rem; }
     .factory-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.125rem 1.25rem;
+      padding: 1rem 1.125rem;
       display: grid;
-      grid-template-columns: 44px 1fr auto;
+      grid-template-columns: 40px 1fr auto;
       gap: 0.875rem;
       align-items: start;
       animation: slideIn 0.35s ease forwards;
     }
-    .factory-card:nth-child(2) { animation-delay: 0.05s; opacity: 0; }
-    .factory-card:nth-child(3) { animation-delay: 0.1s;  opacity: 0; }
-    .factory-card:nth-child(4) { animation-delay: 0.15s; opacity: 0; }
-
+    .factory-card:nth-child(2) { animation-delay: 0.07s; opacity: 0; }
+    .factory-card:nth-child(3) { animation-delay: 0.14s; opacity: 0; }
     .rank-badge {
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 1rem;
+      font-size: 0.9375rem;
       flex-shrink: 0;
     }
-    .rank-1 { background: rgba(212,168,67,0.2); color: #d4a843; }
-    .rank-2 { background: rgba(180,180,180,0.15); color: #aaa; }
-    .rank-3 { background: rgba(180,120,70,0.15); color: #b47846; }
-    .rank-4 { background: var(--surface-2); color: var(--text-muted); }
-
-    .factory-info {}
+    .rank-1 { background: rgba(212,168,67,0.2);  color: #d4a843; }
+    .rank-2 { background: rgba(180,180,180,0.14); color: #999; }
+    .rank-3 { background: rgba(180,120,70,0.15);  color: #b47846; }
     .factory-name {
       font-size: 0.9375rem;
       font-weight: 600;
       color: var(--text);
       margin-bottom: 0.2rem;
     }
-    .factory-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-      margin-bottom: 0.75rem;
-    }
+    .factory-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.6rem; }
     .tag {
       font-size: 0.6875rem;
-      padding: 0.15rem 0.5rem;
+      padding: 0.125rem 0.45rem;
       border-radius: 999px;
       background: var(--surface-2);
       color: var(--text-muted);
       border: 1px solid var(--border);
     }
-
-    /* Mini score bars */
-    .score-bars {
-      display: flex;
-      flex-direction: column;
-      gap: 0.375rem;
-    }
-    .score-bar-row {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-    }
-    .score-bar-label {
-      width: 48px;
-      color: var(--text-muted);
-      font-size: 0.6875rem;
-      flex-shrink: 0;
-    }
+    .tag-warn { color: var(--warning); border-color: rgba(184,134,46,0.3); background: rgba(184,134,46,0.08); }
+    .tag-ok   { color: var(--success); border-color: rgba(94,158,71,0.3);  background: rgba(94,158,71,0.08); }
+    .score-bars { display: flex; flex-direction: column; gap: 0.3rem; }
+    .score-bar-row { display: flex; align-items: center; gap: 0.5rem; }
+    .score-bar-label { width: 62px; color: var(--text-muted); font-size: 0.6875rem; flex-shrink: 0; }
     .score-bar-track {
-      flex: 1;
-      height: 5px;
-      background: var(--surface-2);
-      border-radius: 3px;
-      overflow: hidden;
+      flex: 1; height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden;
     }
-    .score-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.6s ease;
-    }
-    .fill-speed { background: #4f98a3; }
-    .fill-cost  { background: #6daa45; }
-    .fill-cert  { background: #d4a843; }
-    .score-bar-val {
-      width: 30px;
-      text-align: right;
-      color: var(--text);
-      font-weight: 600;
-      font-size: 0.6875rem;
-    }
+    .score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.65s ease; }
+    .fill-cost   { background: #6daa45; }
+    .fill-comply { background: var(--accent); }
+    .fill-lead   { background: #4f98a3; }
+    .score-bar-val { width: 28px; text-align: right; color: var(--text); font-weight: 600; font-size: 0.6875rem; }
+    .factory-total-score { text-align: right; flex-shrink: 0; }
+    .total-score-num { font-family: var(--font-display); font-size: 1.625rem; line-height: 1; color: var(--text); }
+    .total-score-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
 
-    .factory-total-score {
-      text-align: right;
-      flex-shrink: 0;
-    }
-    .total-score-num {
-      font-family: var(--font-display);
-      font-size: 1.75rem;
-      line-height: 1;
-      color: var(--text);
-    }
-    .total-score-label {
-      font-size: 0.625rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-    }
-
-    /* ── Loading ─────────────────────────────────────────────── */
-    .loading-overlay {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      padding: 4rem 2rem;
-      text-align: center;
-    }
-    .loading-steps {
-      font-size: 0.8125rem;
-      color: var(--text-muted);
-      text-align: left;
-      width: 100%;
-      max-width: 280px;
-    }
-    .loading-step {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.3rem 0;
-      opacity: 0.4;
-      transition: opacity 0.3s;
-    }
-    .loading-step.done { opacity: 1; color: var(--success); }
-    .loading-step.active { opacity: 1; }
-
-    /* ── Result header ───────────────────────────────────────── */
+    /* ── Misc ────────────────────────────────────────────────── */
     .results-header {
       display: flex;
       align-items: center;
@@ -319,13 +507,34 @@
       flex-wrap: wrap;
       gap: 0.75rem;
     }
-
-    /* ── Print styles ────────────────────────────────────────── */
+    details > summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.75rem;
+      user-select: none;
+    }
+    details > summary:hover { color: var(--text); }
+    details > summary::-webkit-details-marker { display: none; }
+    .json-pre {
+      font-size: 0.73rem;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      padding: 0.75rem;
+      font-family: 'Courier New', monospace;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      overflow-x: auto;
+      white-space: pre;
+      border: 1px solid var(--border);
+    }
     @media print {
       .ops-left, .no-print { display: none !important; }
       .ops-layout { grid-template-columns: 1fr; }
-      .rec-banner { border: 1px solid #ccc; background: #f9f9f9; }
-      .factory-card { border: 1px solid #ddd; }
     }
   </style>
 </head>
@@ -350,96 +559,44 @@
     <div style="margin-bottom:1.75rem;">
       <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
         <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
-          <i data-lucide="factory" style="width:18px;height:18px;"></i>
+          <i data-lucide="network" style="width:18px;height:18px;"></i>
         </div>
-        <h1 style="font-size:1.5rem;">AI Contract Manufacturer Selector</h1>
+        <h1 style="font-size:1.5rem;">AI Supply Chain Architect</h1>
         <span class="badge badge-accent">Component 07</span>
       </div>
-      <p style="color:var(--text-muted);font-size:0.875rem;max-width:620px;">
-        Set your launch priorities, describe your formula requirements, and let the scoring algorithm rank all candidate factories — with an AI-generated recommendation and rationale.
+      <p style="color:var(--text-muted);font-size:0.875rem;max-width:700px;">
+        A two-tier autonomous pipeline: a Groq LLM acts as procurement director to extract manufacturing requirements from your formula (Tier 1), then a deterministic scoring matrix ranks all contract manufacturers by weighted criteria (Tier 2).
       </p>
     </div>
 
     <div class="ops-layout">
 
-      <!-- ── LEFT: Config panels ────────────────────────────── -->
+      <!-- ── LEFT: Config ──────────────────────────────────── -->
       <div class="ops-left">
 
-        <!-- Panel 1: Priority Weights -->
-        <div class="card" style="margin-bottom:1rem;">
-          <p class="card-title">Priority Weights</p>
-          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Drag each slider to set how much each criterion matters. Weights are auto-normalised to 100%.</p>
-
-          <div class="slider-row">
-            <div class="slider-header">
-              <span class="slider-label">
-                <i data-lucide="zap" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;color:var(--accent);"></i>
-                Speed to Market
-              </span>
-              <span class="slider-value" id="val-speed">50</span>
-            </div>
-            <input type="range" id="sl-speed" class="slider-accent" min="0" max="100" value="50" />
-          </div>
-
-          <div class="slider-row">
-            <div class="slider-header">
-              <span class="slider-label">
-                <i data-lucide="dollar-sign" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;color:var(--success);"></i>
-                Cost Efficiency
-              </span>
-              <span class="slider-value" id="val-cost">25</span>
-            </div>
-            <input type="range" id="sl-cost" class="slider-accent" min="0" max="100" value="25" />
-          </div>
-
-          <div class="slider-row" style="margin-bottom:0;">
-            <div class="slider-header">
-              <span class="slider-label">
-                <i data-lucide="shield-check" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;color:var(--warning);"></i>
-                Certification Level
-              </span>
-              <span class="slider-value" id="val-cert">25</span>
-            </div>
-            <input type="range" id="sl-cert" class="slider-accent" min="0" max="100" value="25" />
-          </div>
-
-          <div class="weight-display" id="weight-display">
-            <div class="weight-chip">
-              <div class="weight-chip-value" id="norm-speed">50%</div>
-              <div class="weight-chip-label">Speed</div>
-            </div>
-            <div style="width:1px;background:var(--border);"></div>
-            <div class="weight-chip">
-              <div class="weight-chip-value" id="norm-cost">25%</div>
-              <div class="weight-chip-label">Cost</div>
-            </div>
-            <div style="width:1px;background:var(--border);"></div>
-            <div class="weight-chip">
-              <div class="weight-chip-value" id="norm-cert">25%</div>
-              <div class="weight-chip-label">Cert</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Panel 2: Formula Context -->
+        <!-- Formula Context -->
         <div class="card" style="margin-bottom:1rem;">
           <p class="card-title">Formula Context</p>
 
           <div class="form-row">
-            <label for="formula-select">My formula is</label>
+            <label for="formula-select">Product formula</label>
             <select id="formula-select">
               <option value="Glass Skin Serum">Glass Skin Serum</option>
               <option value="Bakuchiol Night Cream">Bakuchiol Night Cream</option>
               <option value="Zinc SPF 30">Zinc SPF 30</option>
+              <option value="Peptide Eye Cream">Peptide Eye Cream</option>
+              <option value="Vitamin C Brightening Serum">Vitamin C Brightening Serum</option>
             </select>
           </div>
 
-          <div class="form-row">
+          <div class="formula-desc" id="formula-desc"></div>
+
+          <div class="form-row" style="margin-top:0.875rem;">
             <label for="target-market">Target market</label>
             <select id="target-market">
               <option value="EU">European Union</option>
               <option value="US">United States</option>
-              <option value="Both">EU + US (both)</option>
+              <option value="EU + US">EU + US (dual launch)</option>
               <option value="Global">Global</option>
             </select>
           </div>
@@ -448,10 +605,61 @@
             <label for="launch-date">Target launch date</label>
             <input type="date" id="launch-date" class="input" />
           </div>
+        </div>
 
-          <div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.25rem;">
-            <input type="checkbox" id="eu-compliance" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;" />
-            <label for="eu-compliance" style="margin:0;cursor:pointer;font-size:0.8125rem;color:var(--text);">Require EU GMP / Ecocert certification</label>
+        <!-- Priority Weights -->
+        <div class="card" style="margin-bottom:1rem;">
+          <p class="card-title">Priority Weights</p>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Drag each slider to weight the scoring criteria. Values auto-normalise to 100%.</p>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-label" style="color:#6daa45;">
+                <i data-lucide="dollar-sign" style="width:13px;height:13px;flex-shrink:0;"></i>
+                Cost Efficiency &nbsp;<span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">(W<sub>cost</sub>)</span>
+              </span>
+              <span class="slider-value" id="val-cost" style="color:#6daa45;">25</span>
+            </div>
+            <input type="range" id="sl-cost" min="0" max="100" value="25" />
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-label" style="color:var(--accent);">
+                <i data-lucide="shield-check" style="width:13px;height:13px;flex-shrink:0;"></i>
+                Compliance &nbsp;<span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">(W<sub>compliance</sub>)</span>
+              </span>
+              <span class="slider-value" id="val-comply" style="color:var(--accent);">50</span>
+            </div>
+            <input type="range" id="sl-comply" min="0" max="100" value="50" />
+          </div>
+
+          <div class="slider-row" style="margin-bottom:0;">
+            <div class="slider-header">
+              <span class="slider-label" style="color:#4f98a3;">
+                <i data-lucide="clock" style="width:13px;height:13px;flex-shrink:0;"></i>
+                Lead Time &nbsp;<span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">(W<sub>lead</sub>)</span>
+              </span>
+              <span class="slider-value" id="val-lead" style="color:#4f98a3;">25</span>
+            </div>
+            <input type="range" id="sl-lead" min="0" max="100" value="25" />
+          </div>
+
+          <div class="weight-display">
+            <div class="weight-chip">
+              <div class="weight-chip-value" id="norm-cost" style="color:#6daa45;">25%</div>
+              <div class="weight-chip-label">Cost</div>
+            </div>
+            <div style="width:1px;background:var(--border);"></div>
+            <div class="weight-chip">
+              <div class="weight-chip-value" id="norm-comply" style="color:var(--accent);">50%</div>
+              <div class="weight-chip-label">Compliance</div>
+            </div>
+            <div style="width:1px;background:var(--border);"></div>
+            <div class="weight-chip">
+              <div class="weight-chip-value" id="norm-lead" style="color:#4f98a3;">25%</div>
+              <div class="weight-chip-label">Lead Time</div>
+            </div>
           </div>
         </div>
 
@@ -460,181 +668,496 @@
           <i data-lucide="play-circle" style="width:16px;height:16px;"></i>
           Run Analysis
         </button>
-
-        <!-- Factory count info -->
         <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:0.75rem;">
-          Evaluating <strong style="color:var(--text);">4 certified factories</strong> across 3 regions
+          Evaluating <strong style="color:var(--text);">6 certified facilities</strong> across 4 regions
         </p>
 
       </div><!-- /ops-left -->
 
-      <!-- ── RIGHT: Results panel ────────────────────────────── -->
+      <!-- ── RIGHT: Results panel ──────────────────────────── -->
       <div id="results-panel">
-        <div class="empty-state">
-          <i data-lucide="bar-chart-horizontal" style="width:36px;height:36px;color:var(--text-muted);"></i>
-          <div>
-            <p style="font-size:0.9375rem;color:var(--text);margin-bottom:0.25rem;">No analysis yet</p>
-            <p style="font-size:0.8125rem;">Configure your priorities on the left, then click <strong>Run Analysis</strong>.</p>
+
+        <!-- Empty state: pipeline architecture diagram -->
+        <div class="pipeline-empty">
+          <p class="pipeline-empty-title">Autonomous Supply Chain Pipeline</p>
+
+          <div class="pipeline-flow">
+            <!-- Tier 1 -->
+            <div class="pipeline-tier" style="border-color:rgba(79,152,163,0.35);">
+              <div class="pipeline-tier-label" style="color:#4f98a3;">Tier 1</div>
+              <div class="pipeline-tier-name">AI Semantic Extraction</div>
+              <div class="pipeline-tier-engine">
+                <i data-lucide="sparkles" style="width:11px;height:11px;color:#4f98a3;flex-shrink:0;"></i>
+                Groq LLM · Procurement Director
+              </div>
+              <ul class="pipeline-tier-steps">
+                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#4f98a3;flex-shrink:0;"></i>Ingredient chemistry scan</li>
+                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#4f98a3;flex-shrink:0;"></i>Certification requirement extraction</li>
+                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#4f98a3;flex-shrink:0;"></i>Batch tier classification</li>
+                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#4f98a3;flex-shrink:0;"></i>Capability profiling</li>
+              </ul>
+              <div class="pipeline-tier-output">{ Requirements JSON }</div>
+            </div>
+
+            <!-- Arrow -->
+            <div class="pipeline-arrow">
+              <i data-lucide="arrow-right" style="width:18px;height:18px;"></i>
+            </div>
+
+            <!-- Tier 2 -->
+            <div class="pipeline-tier" style="border-color:rgba(109,170,69,0.35);">
+              <div class="pipeline-tier-label" style="color:#6daa45;">Tier 2</div>
+              <div class="pipeline-tier-name">Deterministic Scoring</div>
+              <div class="pipeline-tier-engine">
+                <i data-lucide="calculator" style="width:11px;height:11px;color:#6daa45;flex-shrink:0;"></i>
+                Multi-Criteria Matrix
+              </div>
+              <ul class="pipeline-tier-steps">
+                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#6daa45;flex-shrink:0;"></i>Hard-filter compliance rules</li>
+                <li style="font-family:'Courier New',monospace;font-size:0.68rem;"><i data-lucide="circle-dot" style="width:10px;height:10px;color:#6daa45;flex-shrink:0;"></i>Score = &Sigma;(W<sub>i</sub> &times; S<sub>i</sub>)</li>
+                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#6daa45;flex-shrink:0;"></i>Multi-criteria candidate ranking</li>
+                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#6daa45;flex-shrink:0;"></i>Automated narrative report</li>
+              </ul>
+              <div class="pipeline-tier-output">Ranked Top 3 + Report</div>
+            </div>
           </div>
+
+          <!-- DB row -->
+          <div class="pipeline-db">
+            <i data-lucide="database" style="width:14px;height:14px;color:var(--text-muted);flex-shrink:0;"></i>
+            <span>Factory Database &mdash; 6 certified CMs &middot; 4 regions (Asia, Europe, North America)</span>
+          </div>
+
+          <p class="pipeline-cta">
+            Configure priorities on the left, then click <strong>Run Analysis</strong> to activate the pipeline.
+          </p>
         </div>
-      </div>
+
+      </div><!-- /results-panel -->
 
     </div><!-- /ops-layout -->
-
   </div>
 
   <script>
     lucide.createIcons();
 
-    /* ─── Set default launch date (today + 90 days) ─────────── */
+    /* ─── Default launch date (today + 90 days) ─────────────── */
     const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + 90);
     document.getElementById('launch-date').value = defaultDate.toISOString().split('T')[0];
 
-    /* ─── Slider logic ──────────────────────────────────────── */
-    const slSpeed = document.getElementById('sl-speed');
-    const slCost  = document.getElementById('sl-cost');
-    const slCert  = document.getElementById('sl-cert');
-
-    function updateSliderBackground(el) {
-      const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
-      el.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--surface-2) ${pct}%)`;
-    }
-
-    function updateWeightDisplay() {
-      const s = parseInt(slSpeed.value);
-      const c = parseInt(slCost.value);
-      const r = parseInt(slCert.value);
-      const total = s + c + r;
-
-      document.getElementById('val-speed').textContent = s;
-      document.getElementById('val-cost').textContent  = c;
-      document.getElementById('val-cert').textContent  = r;
-
-      if (total === 0) {
-        document.getElementById('norm-speed').textContent = '—';
-        document.getElementById('norm-cost').textContent  = '—';
-        document.getElementById('norm-cert').textContent  = '—';
-      } else {
-        document.getElementById('norm-speed').textContent = Math.round(s/total*100) + '%';
-        document.getElementById('norm-cost').textContent  = Math.round(c/total*100) + '%';
-        document.getElementById('norm-cert').textContent  = Math.round(r/total*100) + '%';
+    /* ─── Formula definitions ────────────────────────────────── */
+    const FORMULAS = {
+      "Glass Skin Serum": {
+        desc: "Water-based serum: 2% niacinamide, 1% hyaluronic acid, centella asiatica extract, plant-derived squalane. No synthetic fragrance. Clean beauty positioning."
+      },
+      "Bakuchiol Night Cream": {
+        desc: "Natural retinol alternative: 1% bakuchiol, sea buckthorn oil, rosehip CO₂ extract, organic shea butter. Full USDA Organic ingredient stack."
+      },
+      "Zinc SPF 30": {
+        desc: "Mineral sunscreen: 20% non-nano zinc oxide, cyclopentasiloxane, vitamin E. FDA OTC drug (21 CFR 352). Dual US/EU launch planned."
+      },
+      "Peptide Eye Cream": {
+        desc: "Multi-peptide complex: Argireline 5%, Matrixyl 3000, caffeine, ceramide NP. Heat-sensitive actives — pharma-grade clean-room manufacturing required."
+      },
+      "Vitamin C Brightening Serum": {
+        desc: "15% L-ascorbic acid at pH 3.5 with ferulic acid and vitamin E. Highly oxidation-sensitive — requires N₂ blanket filling and amber glass packaging."
       }
+    };
 
-      updateSliderBackground(slSpeed);
-      updateSliderBackground(slCost);
-      updateSliderBackground(slCert);
+    /* ─── Fallback profiles (when Groq API is unavailable) ───── */
+    const FALLBACK_PROFILES = {
+      "Glass Skin Serum": {
+        batch_tier: "pilot",
+        recommended_moq: 500,
+        emulsification_method: "cold-mix",
+        required_certifications: ["ISO 22716"],
+        preferred_regions: ["Asia", "Europe"],
+        special_capabilities: ["cold_mix", "botanical_extracts"],
+        regulatory_notes: "Clean beauty formulation compliant with EU Cosmetics Regulation 1223/2009 and US FDA voluntary guidelines. No OTC classification required. Cold-mix emulsification is recommended to preserve centella asiatica and hyaluronic acid bioactives.",
+        hard_filter_certifications: []
+      },
+      "Bakuchiol Night Cream": {
+        batch_tier: "pilot",
+        recommended_moq: 500,
+        emulsification_method: "hot-mix",
+        required_certifications: ["Ecocert", "COSMOS"],
+        preferred_regions: ["Europe", "Asia"],
+        special_capabilities: ["botanical_extracts", "organic_handling"],
+        regulatory_notes: "Organic ingredient stack demands a COSMOS or Ecocert-certified contract manufacturer. Sea buckthorn and rosehip CO₂ extracts require cold-chain handling during formulation to preserve bioactive integrity. EU COSMOS standard applies.",
+        hard_filter_certifications: ["Ecocert"]
+      },
+      "Zinc SPF 30": {
+        batch_tier: "mid",
+        recommended_moq: 1000,
+        emulsification_method: "hot-mix",
+        required_certifications: ["FDA Registered", "cGMP"],
+        preferred_regions: ["North America"],
+        special_capabilities: ["sunscreen_otc", "mineral_uv"],
+        regulatory_notes: "Classified as OTC drug under FDA 21 CFR 352. Requires an FDA-registered facility with full cGMP compliance. For EU dual launch: verify zinc oxide compliance under Annex VI (Entry 30 — max 25% ZnO). Manufacturer must hold FDA OTC capability.",
+        hard_filter_certifications: ["FDA Registered"]
+      },
+      "Peptide Eye Cream": {
+        batch_tier: "pilot",
+        recommended_moq: 500,
+        emulsification_method: "cold-mix",
+        required_certifications: ["ISO 22716", "EU GMP"],
+        preferred_regions: ["Europe", "North America"],
+        special_capabilities: ["peptide_formulation", "clean_room"],
+        regulatory_notes: "Peptide actives (Argireline, Matrixyl) are heat-labile — cold-mix emulsification is mandatory. High-value formula demands clean-room manufacturing (ISO Class 7 or better) to prevent microbial and cross-contamination. EU GMP compliance recommended for premium positioning.",
+        hard_filter_certifications: []
+      },
+      "Vitamin C Brightening Serum": {
+        batch_tier: "pilot",
+        recommended_moq: 500,
+        emulsification_method: "cold-mix",
+        required_certifications: ["ISO 22716"],
+        preferred_regions: ["Asia", "Europe", "North America"],
+        special_capabilities: ["cold_mix"],
+        regulatory_notes: "L-Ascorbic acid is acutely oxidation-sensitive. Manufacturing must use nitrogen (N₂) blanket filling, maintain a pH-controlled environment (target pH 3.5 ± 0.1), and specify amber glass packaging. Absolutely zero heat exposure during formulation.",
+        hard_filter_certifications: []
+      }
+    };
+
+    /* ─── Show formula description on select ─────────────────── */
+    const formulaSel  = document.getElementById('formula-select');
+    const formulaDesc = document.getElementById('formula-desc');
+
+    function updateFormulaDesc() {
+      const f = FORMULAS[formulaSel.value];
+      formulaDesc.textContent = f ? f.desc : '';
+    }
+    formulaSel.addEventListener('change', updateFormulaDesc);
+    updateFormulaDesc();
+
+    /* ─── Slider logic ───────────────────────────────────────── */
+    const slCost   = document.getElementById('sl-cost');
+    const slComply = document.getElementById('sl-comply');
+    const slLead   = document.getElementById('sl-lead');
+
+    const SL_COLORS = { cost: '#6daa45', comply: '#c4788a', lead: '#4f98a3' };
+
+    function setSliderBg(el, color) {
+      const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+      el.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${pct}%, var(--surface-2) ${pct}%)`;
     }
 
-    [slSpeed, slCost, slCert].forEach(sl => sl.addEventListener('input', updateWeightDisplay));
-    updateWeightDisplay();
+    function updateWeights() {
+      const c = parseInt(slCost.value);
+      const o = parseInt(slComply.value);
+      const l = parseInt(slLead.value);
+      const sum = c + o + l;
 
-    /* ─── Factory scoring algorithm ─────────────────────────── */
-    function scoreFactories(factories, weights) {
-      const total = weights.speed + weights.cost + weights.cert;
+      document.getElementById('val-cost').textContent   = c;
+      document.getElementById('val-comply').textContent = o;
+      document.getElementById('val-lead').textContent   = l;
+
+      const pct = (v) => (sum === 0 ? '—' : Math.round(v / sum * 100) + '%');
+      document.getElementById('norm-cost').textContent   = pct(c);
+      document.getElementById('norm-comply').textContent = pct(o);
+      document.getElementById('norm-lead').textContent   = pct(l);
+
+      setSliderBg(slCost,   SL_COLORS.cost);
+      setSliderBg(slComply, SL_COLORS.comply);
+      setSliderBg(slLead,   SL_COLORS.lead);
+    }
+
+    [slCost, slComply, slLead].forEach(sl => sl.addEventListener('input', updateWeights));
+    updateWeights();
+
+    /* ─── Tier 1: Groq LLM — extract manufacturing profile ────── */
+    async function extractProfile(formulaName, market, launchDate) {
+      const formulaData = FORMULAS[formulaName];
+
+      const systemPrompt = `You are an expert cosmetic manufacturing procurement director. Analyze the provided beauty formula and extract structured manufacturing requirements.
+Return ONLY a valid JSON object — no markdown, no explanation, no code fences.
+
+Use exactly this schema:
+{
+  "batch_tier": "pilot",
+  "recommended_moq": 500,
+  "emulsification_method": "cold-mix",
+  "required_certifications": [],
+  "preferred_regions": [],
+  "special_capabilities": [],
+  "regulatory_notes": "string",
+  "hard_filter_certifications": []
+}
+
+batch_tier options: "pilot" (500–5k units), "mid" (5k–100k units), "commercial" (100k+ units)
+emulsification_method options: "cold-mix", "hot-mix", "both"
+special_capabilities allowed values: cold_mix, hot_mix, botanical_extracts, mineral_uv, sunscreen_otc, peptide_formulation, clean_room, organic_handling, fill_and_pack
+hard_filter_certifications: certifications that are absolutely non-negotiable for regulatory or quality reasons (empty array if none strictly required)`;
+
+      const userPrompt = `Formula: ${formulaName}
+Description: ${formulaData.desc}
+Target Market: ${market}
+Target Launch Date: ${launchDate}
+
+Extract the manufacturing requirements profile.`;
+
+      try {
+        const res = await fetch('/api/groq', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user',   content: userPrompt   }
+            ],
+            temperature: 0.2,
+            max_tokens:  450
+          })
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data    = await res.json();
+        const content = data.choices?.[0]?.message?.content || '';
+        const clean   = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        return JSON.parse(clean);
+
+      } catch (err) {
+        console.warn('Groq API unavailable — using fallback profile:', err.message);
+        return FALLBACK_PROFILES[formulaName] || FALLBACK_PROFILES['Glass Skin Serum'];
+      }
+    }
+
+    /* ─── Tier 2: Deterministic scoring ──────────────────────── */
+    function adjustedCompliance(factory, profile) {
+      let score = factory.compliance_score;
+
+      /* Hard-filter penalty: each missing required cert deducts 40 pts */
+      const hardFilters = profile.hard_filter_certifications || [];
+      hardFilters.forEach(req => {
+        const has = factory.certifications.some(c => c.toLowerCase().includes(req.toLowerCase()));
+        if (!has) score -= 40;
+      });
+
+      /* Capability match: +4 per matching required capability */
+      const requiredCaps = profile.special_capabilities || [];
+      requiredCaps.forEach(cap => {
+        if (factory.capabilities.includes(cap)) score += 4;
+        else score -= 5;
+      });
+
+      return Math.max(0, Math.min(100, score));
+    }
+
+    function scoreFactories(factories, weights, profile) {
+      const total = weights.cost + weights.comply + weights.lead;
+      if (total === 0) return factories.map(f => ({ ...f, sCost: 0, sComply: 0, sLead: 0, totalScore: 0 }));
+
       const w = {
-        speed: weights.speed / total,
-        cost:  weights.cost  / total,
-        cert:  weights.cert  / total
+        cost:   weights.cost   / total,
+        comply: weights.comply / total,
+        lead:   weights.lead   / total
       };
 
-      const maxDelivery = Math.max(...factories.map(f => f.delivery_days));
-      const maxCost     = Math.max(...factories.map(f => f.cost_per_unit));
+      const maxCost = Math.max(...factories.map(f => f.cost_per_unit));
+      const maxLead = Math.max(...factories.map(f => f.lead_time_days));
 
-      return factories.map(factory => {
-        const speedScore = (1 - factory.delivery_days / maxDelivery) * 100;
-        const costScore  = (1 - factory.cost_per_unit  / maxCost)    * 100;
-        const certScore  = factory.cert_score;
-        const totalScore = (speedScore * w.speed) + (costScore * w.cost) + (certScore * w.cert);
+      return factories.map(f => {
+        const sCost     = (1 - f.cost_per_unit  / maxCost) * 100;
+        const sComply   = adjustedCompliance(f, profile);
+        const sLead     = (1 - f.lead_time_days / maxLead) * 100;
+        const composite = (sCost * w.cost) + (sComply * w.comply) + (sLead * w.lead);
 
         return {
-          ...factory,
-          speedScore: parseFloat(speedScore.toFixed(1)),
-          costScore:  parseFloat(costScore.toFixed(1)),
-          certScore:  parseFloat(certScore.toFixed(1)),
-          totalScore: parseFloat(totalScore.toFixed(1))
+          ...f,
+          sCost:      parseFloat(sCost.toFixed(1)),
+          sComply:    parseFloat(sComply.toFixed(1)),
+          sLead:      parseFloat(sLead.toFixed(1)),
+          totalScore: parseFloat(composite.toFixed(1))
         };
       }).sort((a, b) => b.totalScore - a.totalScore);
     }
 
-    /* ─── Generate written rationale ────────────────────────── */
-    function generateRationale(ranked, weights, formula, market) {
+    /* ─── Narrative generator (deterministic) ────────────────── */
+    function buildNarrative(ranked, weights, profile, formulaName, market) {
       const top    = ranked[0];
       const runner = ranked[1];
-      const launchDate = new Date();
-      launchDate.setDate(launchDate.getDate() + parseInt(top.delivery_days));
-      const launchStr = launchDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-      const total = weights.speed + weights.cost + weights.cert;
-      const wSpeed = Math.round(weights.speed / total * 100);
-      const wCost  = Math.round(weights.cost  / total * 100);
-      const wCert  = Math.round(weights.cert  / total * 100);
+      const total  = weights.cost + weights.comply + weights.lead;
+      const wC = Math.round(weights.cost   / total * 100);
+      const wO = Math.round(weights.comply / total * 100);
+      const wL = Math.round(weights.lead   / total * 100);
 
-      const costDiff = ((top.cost_per_unit - runner.cost_per_unit) / runner.cost_per_unit * 100).toFixed(0);
-      const costNote = costDiff > 0
-        ? `Despite a ${Math.abs(costDiff)}% higher unit cost than ${runner.name},`
-        : `With a ${Math.abs(costDiff)}% lower unit cost than ${runner.name},`;
+      const topPriority = wO >= wC && wO >= wL ? `Compliance (${wO}%)`
+        : wC >= wO && wC >= wL               ? `Cost Efficiency (${wC}%)`
+                                              : `Lead Time (${wL}%)`;
 
-      return `RECOMMENDATION: ${top.name}  (#1 · Score ${top.totalScore})
+      const costDiffPct = ((top.cost_per_unit - runner.cost_per_unit) / runner.cost_per_unit * 100);
+      const costNote = Math.abs(costDiffPct) < 2
+        ? `at a comparable unit cost to ${runner.name}`
+        : costDiffPct > 0
+          ? `at a ${Math.abs(costDiffPct).toFixed(0)}% unit cost premium over ${runner.name}`
+          : `at a ${Math.abs(costDiffPct).toFixed(0)}% unit cost saving vs. ${runner.name}`;
 
-${costNote} ${top.name} is the optimal choice for your ${formula} launch${market !== 'Global' ? ' targeting ' + market : ''}.
+      const hardFilters = profile.hard_filter_certifications || [];
+      const meetsHard = hardFilters.length === 0 ||
+        hardFilters.every(cert => top.certifications.some(c => c.toLowerCase().includes(cert.toLowerCase())));
 
-With delivery in ${top.delivery_days} days vs. ${runner.delivery_days} days for the next-best option, and ${top.certification} certification, it delivers on your highest priorities: Speed (${wSpeed}%), Cost (${wCost}%), Certification (${wCert}%).
+      const hardNote = meetsHard && hardFilters.length > 0
+        ? `It satisfies every Tier 1 hard-filter requirement (${hardFilters.join(', ')}).`
+        : !meetsHard
+          ? `⚠ Hard-filter gap detected — verify ${hardFilters.join(', ')} compliance before signing.`
+          : '';
 
-Estimated launch date: ${launchStr}
-Estimated unit cost at ${top.moq.toLocaleString()} MOQ: $${(top.cost_per_unit * top.moq).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      const launchEst = new Date();
+      launchEst.setDate(launchEst.getDate() + parseInt(top.lead_time_days));
+      const launchStr = launchEst.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+      const totalCost = (top.cost_per_unit * top.moq).toLocaleString(undefined,
+        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      return `RECOMMENDATION: ${top.name}  (#1 · Composite Score ${top.totalScore}/100)
+
+${top.name} (${top.country}) is the optimal contract manufacturer for your ${formulaName}${market !== 'Global' ? ' targeting ' + market : ''} launch, ${costNote}.
+
+Your highest-weighted criterion is ${topPriority}. ${top.name} ranks first by combining a compliance score of ${top.sComply}/100, a lead time of ${top.lead_time_days} days, and a unit cost of $${top.cost_per_unit.toFixed(2)}. ${hardNote}
+
+Certifications on file: ${top.certifications.join(' · ')}
+MOQ: ${top.moq.toLocaleString()} units  ·  Lead time: ${top.lead_time_days} days  ·  Est. production start-to-shelf: ${launchStr}
+Total production budget at MOQ: $${totalCost}`;
     }
 
-    /* ─── Load factory data ─────────────────────────────────── */
-    async function loadFactories() {
-      const res = await fetch('../../data/factories.json');
-      return res.json();
-    }
+    /* ─── Render Tier 1 card ─────────────────────────────────── */
+    function renderTier1(profile, formulaName) {
+      const hardFilters = profile.hard_filter_certifications || [];
 
-    /* ─── Render results ────────────────────────────────────── */
-    function renderResults(ranked, weights, formula, market) {
-      const panel = document.getElementById('results-panel');
-      const top = ranked[0];
-      const rationale = generateRationale(ranked, weights, formula, market);
+      const certChips = (profile.required_certifications || []).map(c => {
+        const isHard = hardFilters.some(h => h.toLowerCase() === c.toLowerCase());
+        return `<span class="cert-chip${isHard ? ' hard' : ''}" title="${isHard ? 'Hard requirement — non-negotiable' : ''}">${c}${isHard ? ' ★' : ''}</span>`;
+      }).join('');
 
-      const medals = ['#1', '#2', '#3', '#4'];
-      const rankClasses = ['rank-1', 'rank-2', 'rank-3', 'rank-4'];
+      const capChips = (profile.special_capabilities || []).map(c =>
+        `<span class="cap-chip">${c.replace(/_/g, '\u00a0')}</span>`
+      ).join('');
 
-      /* EU compliance filter note */
-      const euRequired = document.getElementById('eu-compliance').checked;
-      const euNote = euRequired
-        ? `<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;font-size:0.8125rem;padding:0.6rem 0.875rem;background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:var(--radius-sm);color:var(--warning);">
-            <i data-lucide="info" style="width:14px;height:14px;flex-shrink:0;"></i>
-            EU compliance required — factories without EU GMP / Ecocert are shown but flagged.
-          </div>`
-        : '';
+      const hardWarning = hardFilters.length > 0 ? `
+        <div class="hard-filter-warning">
+          <i data-lucide="alert-triangle" style="width:14px;height:14px;flex-shrink:0;margin-top:1px;"></i>
+          <span>Hard filter active: <strong>${hardFilters.join(', ')}</strong> — factories without this certification receive a &minus;40 pt compliance penalty in the Tier 2 matrix.</span>
+        </div>` : '';
 
-      /* Top recommendation */
-      const recHTML = `
-        <div class="rec-banner">
-          <div class="rec-banner-header">
-            <div>
-              <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">
-                <span class="rec-badge"><i data-lucide="star" style="width:11px;height:11px;"></i> AI Recommendation</span>
-              </div>
-              <div style="font-family:var(--font-display);font-size:1.375rem;color:var(--text);">${top.name}</div>
-              <div style="font-size:0.8125rem;color:var(--text-muted);">${top.region} · ${top.certification}</div>
+      const jsonStr = JSON.stringify(profile, null, 2);
+
+      return `
+        <div class="tier-card tier-1-card">
+          <div class="tier-card-header">
+            <span class="tier-num-badge t1-badge">Tier 1</span>
+            <span class="tier-card-title">AI Manufacturing Profile</span>
+            <span class="tier-card-engine">
+              <i data-lucide="sparkles" style="width:12px;height:12px;"></i>
+              Groq LLM &middot; ${formulaName}
+            </span>
+          </div>
+
+          <div class="profile-grid">
+            <div class="profile-field">
+              <div class="profile-field-label">Batch Tier</div>
+              <div class="profile-field-value">${profile.batch_tier || '—'}</div>
             </div>
-            <div style="text-align:right;">
-              <div class="rec-score-big">${top.totalScore}</div>
-              <div style="font-size:0.6875rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">Overall Score</div>
+            <div class="profile-field">
+              <div class="profile-field-label">Recommended MOQ</div>
+              <div class="profile-field-value">${(profile.recommended_moq || 0).toLocaleString()} units</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-field-label">Emulsification</div>
+              <div class="profile-field-value">${profile.emulsification_method || '—'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-field-label">Preferred Regions</div>
+              <div class="profile-field-value" style="font-size:0.75rem;">${(profile.preferred_regions || []).join(', ') || '—'}</div>
             </div>
           </div>
 
-          <div class="rec-rationale">${rationale}</div>
+          ${certChips ? `
+            <div style="margin-bottom:0.625rem;">
+              <div class="chip-row-label">Required Certifications</div>
+              <div class="chip-row">${certChips}</div>
+            </div>` : ''}
+
+          ${capChips ? `
+            <div style="margin-bottom:0.625rem;">
+              <div class="chip-row-label">Required Capabilities</div>
+              <div class="chip-row">${capChips}</div>
+            </div>` : ''}
+
+          ${profile.regulatory_notes
+            ? `<div class="reg-notes">${profile.regulatory_notes}</div>`
+            : ''}
+
+          ${hardWarning}
+
+          <details>
+            <summary>
+              <i data-lucide="code-2" style="width:12px;height:12px;"></i>
+              View raw requirements JSON
+              <i data-lucide="chevron-down" style="width:12px;height:12px;margin-left:auto;"></i>
+            </summary>
+            <pre class="json-pre">${jsonStr}</pre>
+          </details>
+        </div>`;
+    }
+
+    /* ─── Render Tier 2 card ─────────────────────────────────── */
+    function renderTier2(ranked, weights, profile, formulaName, market) {
+      const top3 = ranked.slice(0, 3);
+      const top  = ranked[0];
+
+      const total = weights.cost + weights.comply + weights.lead;
+      const wC = (weights.cost   / total * 100).toFixed(0);
+      const wO = (weights.comply / total * 100).toFixed(0);
+      const wL = (weights.lead   / total * 100).toFixed(0);
+
+      const formulaBar = `
+        <div class="score-formula-bar">
+          <span class="sf-var">Score</span>
+          <span>=</span>
+          <span class="sf-wt sf-cost">(${wC}%</span>
+          <span style="font-size:0.7rem;">&times;</span>
+          <span class="sf-var sf-cost">S<sub>cost</sub>)</span>
+          <span>+</span>
+          <span class="sf-wt sf-comp">(${wO}%</span>
+          <span style="font-size:0.7rem;">&times;</span>
+          <span class="sf-var sf-comp">S<sub>compliance</sub>)</span>
+          <span>+</span>
+          <span class="sf-wt sf-lead">(${wL}%</span>
+          <span style="font-size:0.7rem;">&times;</span>
+          <span class="sf-var sf-lead">S<sub>lead</sub>)</span>
+        </div>`;
+
+      const narrative = buildNarrative(ranked, weights, profile, formulaName, market);
+
+      const recBanner = `
+        <div class="rec-banner">
+          <div class="rec-top-row">
+            <div>
+              <div style="margin-bottom:0.35rem;">
+                <span class="rec-badge">
+                  <i data-lucide="star" style="width:10px;height:10px;"></i> AI Recommendation
+                </span>
+              </div>
+              <div class="rec-name">${top.name}</div>
+              <div class="rec-sub">${top.country} &middot; ${top.region} &middot; ${top.certifications.slice(0,2).join(' &middot; ')}</div>
+            </div>
+            <div>
+              <div class="rec-score-big">${top.totalScore}</div>
+              <div class="rec-score-label">/ 100</div>
+            </div>
+          </div>
+
+          <div class="rec-narrative">${narrative}</div>
 
           <div class="rec-meta">
             <div class="rec-meta-item">
-              <span class="meta-label">Delivery</span>
-              <span class="meta-value">${top.delivery_days} days</span>
+              <span class="meta-label">Lead Time</span>
+              <span class="meta-value">${top.lead_time_days} days</span>
             </div>
             <div class="rec-meta-item">
-              <span class="meta-label">Min. Order</span>
+              <span class="meta-label">MOQ</span>
               <span class="meta-value">${top.moq.toLocaleString()} units</span>
             </div>
             <div class="rec-meta-item">
@@ -642,47 +1165,55 @@ Estimated unit cost at ${top.moq.toLocaleString()} MOQ: $${(top.cost_per_unit * 
               <span class="meta-value">$${top.cost_per_unit.toFixed(2)}</span>
             </div>
             <div class="rec-meta-item">
-              <span class="meta-label">Cert Score</span>
-              <span class="meta-value">${top.cert_score}/100</span>
+              <span class="meta-label">Compliance</span>
+              <span class="meta-value">${top.sComply}/100</span>
+            </div>
+            <div class="rec-meta-item">
+              <span class="meta-label">Max Capacity</span>
+              <span class="meta-value">${(top.max_capacity || 0).toLocaleString()}</span>
             </div>
           </div>
-        </div>
-      `;
+        </div>`;
 
-      /* All ranked factory cards */
-      const cardsHTML = ranked.map((f, i) => {
-        const euMismatch = euRequired && !f.certification.toLowerCase().includes('eu') && !f.certification.toLowerCase().includes('ecocert');
-        const warningTag = euMismatch
-          ? `<span class="tag" style="color:var(--warning);border-color:rgba(212,168,67,0.3);">EU not confirmed</span>`
-          : '';
+      const medals     = ['#1', '#2', '#3'];
+      const rankClass  = ['rank-1', 'rank-2', 'rank-3'];
+      const hardFilters = profile.hard_filter_certifications || [];
+
+      const cardsHTML = top3.map((f, i) => {
+        const missingHard = hardFilters.filter(cert =>
+          !f.certifications.some(c => c.toLowerCase().includes(cert.toLowerCase()))
+        );
+        const complianceTag = missingHard.length > 0
+          ? `<span class="tag tag-warn"><i data-lucide="alert-triangle" style="width:9px;height:9px;vertical-align:-1px;margin-right:2px;"></i>${missingHard.join(', ')} missing</span>`
+          : `<span class="tag tag-ok"><i data-lucide="check" style="width:9px;height:9px;vertical-align:-1px;margin-right:2px;"></i>Filter compliant</span>`;
 
         return `
-          <div class="factory-card animate-in" style="${i > 0 ? `opacity:0;animation-delay:${i*0.07}s` : ''}">
-            <div class="rank-badge ${rankClasses[i]}">${medals[i]}</div>
-            <div class="factory-info">
+          <div class="factory-card" ${i > 0 ? `style="opacity:0;animation-delay:${i*0.1}s"` : ''}>
+            <div class="rank-badge ${rankClass[i]}">${medals[i]}</div>
+            <div>
               <div class="factory-name">${f.name}</div>
               <div class="factory-tags">
-                <span class="tag">${f.region}</span>
+                <span class="tag">${f.country}</span>
                 <span class="tag">${f.moq.toLocaleString()} MOQ</span>
                 <span class="tag">$${f.cost_per_unit.toFixed(2)}/unit</span>
-                <span class="tag">${f.delivery_days}d lead time</span>
-                ${warningTag}
+                <span class="tag">${f.lead_time_days}d lead</span>
+                ${complianceTag}
               </div>
               <div class="score-bars">
                 <div class="score-bar-row">
-                  <span class="score-bar-label">Speed</span>
-                  <div class="score-bar-track"><div class="score-bar-fill fill-speed" style="width:${f.speedScore}%"></div></div>
-                  <span class="score-bar-val">${f.speedScore}</span>
-                </div>
-                <div class="score-bar-row">
                   <span class="score-bar-label">Cost</span>
-                  <div class="score-bar-track"><div class="score-bar-fill fill-cost" style="width:${f.costScore}%"></div></div>
-                  <span class="score-bar-val">${f.costScore}</span>
+                  <div class="score-bar-track"><div class="score-bar-fill fill-cost" style="width:${f.sCost}%"></div></div>
+                  <span class="score-bar-val">${f.sCost}</span>
                 </div>
                 <div class="score-bar-row">
-                  <span class="score-bar-label">Cert</span>
-                  <div class="score-bar-track"><div class="score-bar-fill fill-cert" style="width:${f.certScore}%"></div></div>
-                  <span class="score-bar-val">${f.certScore}</span>
+                  <span class="score-bar-label">Compliance</span>
+                  <div class="score-bar-track"><div class="score-bar-fill fill-comply" style="width:${Math.min(f.sComply, 100)}%"></div></div>
+                  <span class="score-bar-val">${f.sComply}</span>
+                </div>
+                <div class="score-bar-row">
+                  <span class="score-bar-label">Lead Time</span>
+                  <div class="score-bar-track"><div class="score-bar-fill fill-lead" style="width:${f.sLead}%"></div></div>
+                  <span class="score-bar-val">${f.sLead}</span>
                 </div>
               </div>
             </div>
@@ -690,92 +1221,163 @@ Estimated unit cost at ${top.moq.toLocaleString()} MOQ: $${(top.cost_per_unit * 
               <div class="total-score-num">${f.totalScore}</div>
               <div class="total-score-label">Score</div>
             </div>
-          </div>
-        `;
+          </div>`;
       }).join('');
 
-      panel.innerHTML = `
-        <div class="results-header no-print">
-          <div>
-            <p class="card-title" style="margin:0;">Analysis Results</p>
-            <p style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.2rem;">Ranked ${ranked.length} factories · ${formula}</p>
+      return `
+        <div class="tier-card tier-2-card">
+          <div class="tier-card-header">
+            <span class="tier-num-badge t2-badge">Tier 2</span>
+            <span class="tier-card-title">Deterministic Scoring Matrix</span>
+            <span class="tier-card-engine">
+              <i data-lucide="calculator" style="width:12px;height:12px;"></i>
+              Algorithm &middot; ${ranked.length} factories ranked
+            </span>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="downloadReport()" style="font-size:0.8125rem;">
-            <i data-lucide="download" style="width:14px;height:14px;"></i> Download Report
-          </button>
-        </div>
-        ${euNote}
-        ${recHTML}
-        <p class="card-title" style="margin-bottom:0.75rem;">All Factories Ranked</p>
-        <div class="ranked-list">${cardsHTML}</div>
-      `;
 
-      lucide.createIcons();
+          ${formulaBar}
+          ${recBanner}
+
+          <p class="card-title" style="margin-bottom:0.75rem;font-size:0.8125rem;">Top 3 Ranked Facilities</p>
+          <div class="ranked-list">${cardsHTML}</div>
+        </div>`;
     }
 
-    /* ─── Run Analysis ──────────────────────────────────────── */
+    /* ─── Load factory data ───────────────────────────────────── */
+    async function loadFactories() {
+      const res = await fetch('../../data/factories.json');
+      return res.json();
+    }
+
+    /* ─── Run Analysis ────────────────────────────────────────── */
     document.getElementById('run-btn').addEventListener('click', async () => {
       const panel = document.getElementById('results-panel');
       const btn   = document.getElementById('run-btn');
 
       btn.disabled = true;
-      btn.innerHTML = `<span class="spinner"></span> Analysing...`;
+      btn.innerHTML = `<span class="spinner"></span> Analysing…`;
 
-      /* Show loading steps */
+      /* ── Loading UI ───────────────────────────────────────── */
       panel.innerHTML = `
         <div class="card loading-overlay">
-          <span class="spinner" style="width:24px;height:24px;border-width:3px;"></span>
-          <div class="loading-steps" id="loading-steps">
-            <div class="loading-step" id="step-1"><i data-lucide="loader" style="width:13px;height:13px;"></i> Loading factory database...</div>
-            <div class="loading-step" id="step-2"><i data-lucide="sliders-horizontal" style="width:13px;height:13px;"></i> Normalising priority weights...</div>
-            <div class="loading-step" id="step-3"><i data-lucide="calculator" style="width:13px;height:13px;"></i> Scoring all candidates...</div>
-            <div class="loading-step" id="step-4"><i data-lucide="sparkles" style="width:13px;height:13px;"></i> Generating recommendation...</div>
+          <div class="loading-header">
+            <span class="spinner" style="width:22px;height:22px;border-width:3px;flex-shrink:0;"></span>
+            <div>
+              <div class="loading-title">Autonomous Pipeline Running</div>
+              <div class="loading-sub">Processing formula through the two-tier system…</div>
+            </div>
           </div>
-        </div>
-      `;
+
+          <div class="loading-phase">
+            <div class="loading-phase-header">
+              <span class="phase-badge phase-1-badge">Tier 1</span>
+              <span class="loading-phase-title">AI Semantic Extraction &middot; Groq LLM</span>
+            </div>
+            <div class="loading-steps-list">
+              <div class="loading-step active" id="s1"><i data-lucide="loader" style="width:13px;height:13px;flex-shrink:0;"></i> Sending formula to procurement LLM…</div>
+              <div class="loading-step" id="s2"><i data-lucide="test-tube-2" style="width:13px;height:13px;flex-shrink:0;"></i> Parsing ingredient chemistry…</div>
+              <div class="loading-step" id="s3"><i data-lucide="shield" style="width:13px;height:13px;flex-shrink:0;"></i> Extracting certification requirements…</div>
+              <div class="loading-step" id="s4"><i data-lucide="layers" style="width:13px;height:13px;flex-shrink:0;"></i> Profiling batch tier &amp; capabilities…</div>
+              <div class="loading-step" id="s5"><i data-lucide="check-circle-2" style="width:13px;height:13px;flex-shrink:0;"></i> Manufacturing profile generated</div>
+            </div>
+          </div>
+
+          <div class="loading-phase">
+            <div class="loading-phase-header">
+              <span class="phase-badge phase-2-badge">Tier 2</span>
+              <span class="loading-phase-title">Deterministic Scoring Matrix</span>
+            </div>
+            <div class="loading-steps-list">
+              <div class="loading-step" id="s6"><i data-lucide="database" style="width:13px;height:13px;flex-shrink:0;"></i> Loading factory database (6 CMs)…</div>
+              <div class="loading-step" id="s7"><i data-lucide="filter" style="width:13px;height:13px;flex-shrink:0;"></i> Applying hard-filter compliance rules…</div>
+              <div class="loading-step" id="s8"><i data-lucide="calculator" style="width:13px;height:13px;flex-shrink:0;"></i> Computing weighted scores: &Sigma;(W<sub>i</sub> &times; S<sub>i</sub>)…</div>
+              <div class="loading-step" id="s9"><i data-lucide="bar-chart-3" style="width:13px;height:13px;flex-shrink:0;"></i> Ranking all candidates…</div>
+              <div class="loading-step" id="s10"><i data-lucide="file-text" style="width:13px;height:13px;flex-shrink:0;"></i> Compiling recommendation report…</div>
+            </div>
+          </div>
+        </div>`;
       lucide.createIcons();
 
-      const step = (id, delay) => new Promise(r => setTimeout(() => {
-        const el = document.getElementById(id);
-        if (el) el.className = 'loading-step done';
-        r();
-      }, delay));
+      /* ── Step animation helpers ───────────────────────────── */
+      const tick   = (ms)     => new Promise(r => setTimeout(r, ms));
+      const done   = (id)     => { const e = document.getElementById(id); if (e) e.className = 'loading-step done'; };
+      const active = (id)     => { const e = document.getElementById(id); if (e) e.className = 'loading-step active'; };
 
       try {
-        const factories = await loadFactories();
-        await step('step-1', 400);
+        const formulaName = document.getElementById('formula-select').value;
+        const market      = document.getElementById('target-market').value;
+        const launchDate  = document.getElementById('launch-date').value;
 
         const weights = {
-          speed: parseInt(slSpeed.value),
-          cost:  parseInt(slCost.value),
-          cert:  parseInt(slCert.value)
+          cost:   parseInt(slCost.value),
+          comply: parseInt(slComply.value),
+          lead:   parseInt(slLead.value)
         };
 
-        if (weights.speed + weights.cost + weights.cert === 0) {
-          panel.innerHTML = `<div class="card" style="color:var(--error);text-align:center;padding:2rem;">At least one weight must be greater than 0.</div>`;
+        if (weights.cost + weights.comply + weights.lead === 0) {
+          panel.innerHTML = `<div class="card" style="color:var(--error);text-align:center;padding:2rem;">
+            At least one priority weight must be greater than zero.
+          </div>`;
           btn.disabled = false;
           btn.innerHTML = `<i data-lucide="play-circle" style="width:16px;height:16px;"></i> Run Analysis`;
           lucide.createIcons();
           return;
         }
 
-        await step('step-2', 800);
+        /* ── Tier 1: fire API call, animate steps in parallel ── */
+        const profilePromise = extractProfile(formulaName, market, launchDate);
 
-        const formula = document.getElementById('formula-select').value;
-        const market  = document.getElementById('target-market').value;
+        await tick(350);  done('s1'); active('s2');
+        await tick(380);  done('s2'); active('s3');
+        await tick(400);  done('s3'); active('s4');
 
-        const ranked = scoreFactories(factories, weights);
-        await step('step-3', 1300);
-        await step('step-4', 1750);
+        const profile = await profilePromise;   /* await actual result */
 
-        await new Promise(r => setTimeout(r, 400));
+        done('s4'); active('s5');
+        await tick(280); done('s5');
 
-        renderResults(ranked, weights, formula, market);
+        /* ── Tier 2: load DB and score ─────────────────────── */
+        active('s6');
+        const factories = await loadFactories();
+        await tick(260); done('s6');
+
+        active('s7');
+        await tick(380); done('s7');
+
+        active('s8');
+        const ranked = scoreFactories(factories, weights, profile);
+        await tick(420); done('s8');
+
+        active('s9');
+        await tick(360); done('s9');
+
+        active('s10');
+        await tick(360); done('s10');
+
+        await tick(280);
+
+        /* ── Render results ─────────────────────────────────── */
+        panel.innerHTML = `
+          <div class="results-header no-print">
+            <div>
+              <p class="card-title" style="margin:0;">Analysis Complete</p>
+              <p style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.2rem;">
+                Two-tier pipeline &middot; ${formulaName} &middot; ${market}
+              </p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="window.print()" style="font-size:0.8125rem;">
+              <i data-lucide="printer" style="width:14px;height:14px;"></i> Export Report
+            </button>
+          </div>
+          ${renderTier1(profile, formulaName)}
+          ${renderTier2(ranked, weights, profile, formulaName, market)}`;
+
+        lucide.createIcons();
 
       } catch (err) {
         panel.innerHTML = `<div class="card" style="color:var(--error);padding:2rem;">
-          <strong>Error loading factory data.</strong><br/>
-          <span style="font-size:0.8125rem;color:var(--text-muted);">Make sure the file <code>data/factories.json</code> is accessible.</span>
+          <strong>Pipeline error.</strong><br/>
+          <span style="font-size:0.8125rem;color:var(--text-muted);">${err.message}</span>
         </div>`;
       }
 
@@ -783,11 +1385,6 @@ Estimated unit cost at ${top.moq.toLocaleString()} MOQ: $${(top.cost_per_unit * 
       btn.innerHTML = `<i data-lucide="play-circle" style="width:16px;height:16px;"></i> Run Analysis`;
       lucide.createIcons();
     });
-
-    /* ─── Download report ───────────────────────────────────── */
-    function downloadReport() {
-      window.print();
-    }
   </script>
   <script src="../../assets/chat-bubble.js"></script>
 </body>
