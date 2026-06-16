@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales Agent — TrendFormulate</title>
+  <link rel="stylesheet" href="../../assets/style.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div style="width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+        <i data-lucide="flask-conical" style="width:17px;height:17px;color:#fff;"></i>
+      </div>
+      <span class="logo-text">TrendFormulate</span>
+      <span class="version-tag">OS v1.0</span>
+    </div>
+    <a href="../../index.html" class="navbar-back">
+      <i data-lucide="arrow-left" style="width:15px;height:15px;"></i> Dashboard
+    </a>
+  </nav>
+
+  <div class="page-wrapper">
+
+    <div style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
+        <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
+          <i data-lucide="bot" style="width:18px;height:18px;"></i>
+        </div>
+        <h1 style="font-size:1.5rem;">AI Waitlist Nurturing Agent</h1>
+        <span class="badge badge-accent">Component 04</span>
+      </div>
+      <p style="color:var(--text-muted);font-size:0.875rem;max-width:600px;">
+        A B2B sales chatbot that qualifies inbound leads from indie beauty founders.
+        Uses keyword-intent matching. No API required.
+      </p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         👇 YOUR COMPONENT CODE GOES BELOW THIS LINE
+         Owner: [Your Name]
+         Data:  INTENTS constant + getResponse() function (defined below)
+         ═══════════════════════════════════════════════════════ -->
+
+    <div class="card" style="text-align:center;padding:3rem;border-style:dashed;border-color:rgba(79,152,163,0.3);">
+      <i data-lucide="code-2" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:1rem;"></i>
+      <p style="color:var(--text-muted);font-size:0.9375rem;">
+        Component 04 — Sales Chatbot<br/>
+        <span style="font-size:0.8125rem;">Build your chat UI here. The <code>getResponse()</code> engine is ready to use below.</span>
+      </p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         👆 YOUR COMPONENT CODE ENDS ABOVE THIS LINE
+         ═══════════════════════════════════════════════════════ -->
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // ─── Intent map (from blueprint) ────────────────────────
+    const INTENTS = [
+      {
+        keywords: ["hi", "hello", "hey", "start"],
+        response: "Hi! I'm Forma, TrendFormulate's AI sales agent 👋 I'm here to help you understand how our platform can get your first product to market faster. What's the biggest bottleneck in your current product development process?"
+      },
+      {
+        keywords: ["eu", "regulation", "compliance", "lawyer", "legal"],
+        response: "Great question! Our core Formulation Agent features an automated safety guardrail layer that cross-references all formulations against EU Annex V regulations in real-time — eliminating the need for upfront compliance consulting. What is your target launch market: EU, US, or both?"
+      },
+      {
+        keywords: ["price", "cost", "pricing", "how much", "expensive"],
+        response: "TrendFormulate operates on a usage-based model — you pay per formula generated, not per seat. Early waitlist founders lock in our Founder Rate. What's your estimated monthly formula volume?"
+      },
+      {
+        keywords: ["factory", "manufacture", "production", "supplier"],
+        response: "Our Ops module automatically matches your formula to certified contract manufacturers based on your speed-to-market priority, minimum order quantity, and certification level. Would you like a walkthrough of how the scoring works?"
+      },
+      {
+        keywords: ["timeline", "launch", "when", "how long"],
+        response: "From trend detection to a production-ready formula sheet, TrendFormulate compresses what takes a traditional R&D lab 3–6 months into under 48 hours. What's your target shelf date?"
+      }
+    ];
+
+    const FALLBACK = "That's a great point to explore. Can you tell me more about your current team size and R&D setup? That'll help me show you the most relevant part of our platform.";
+
+    // Lead scoring keywords (hidden from user, for demo presenter panel)
+    const LEAD_SCORE_KEYWORDS = ["eu", "launch", "price", "factory", "timeline", "formula", "moq"];
+
+    let leadScore = 0;
+    let exchangeCount = 0;
+
+    function getResponse(input) {
+      const lower = input.toLowerCase();
+
+      // Update hidden lead score
+      for (const kw of LEAD_SCORE_KEYWORDS) {
+        if (lower.includes(kw)) leadScore += 10;
+      }
+      leadScore = Math.min(leadScore, 100);
+      exchangeCount++;
+
+      for (const intent of INTENTS) {
+        if (intent.keywords.some(k => lower.includes(k))) {
+          return intent.response;
+        }
+      }
+      return FALLBACK;
+    }
+
+    // Quick reply suggestions
+    const QUICK_REPLIES = [
+      "Tell me about compliance",
+      "How does pricing work?",
+      "Show me the factory selector",
+      "How fast can I launch?"
+    ];
+  </script>
+</body>
+</html>

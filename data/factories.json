@@ -1,0 +1,42 @@
+[
+  {
+    "id": "A",
+    "name": "GreenLab Korea",
+    "cost_per_unit": 1.00,
+    "delivery_days": 60,
+    "certification": "ISO 22716 + Ecocert",
+    "moq": 500,
+    "region": "Asia",
+    "cert_score": 95
+  },
+  {
+    "id": "B",
+    "name": "SpeedForm EU",
+    "cost_per_unit": 1.80,
+    "delivery_days": 14,
+    "certification": "EU GMP",
+    "moq": 1000,
+    "region": "Europe",
+    "cert_score": 80
+  },
+  {
+    "id": "C",
+    "name": "NaturaCo USA",
+    "cost_per_unit": 2.20,
+    "delivery_days": 21,
+    "certification": "FDA Registered + Leaping Bunny",
+    "moq": 300,
+    "region": "North America",
+    "cert_score": 90
+  },
+  {
+    "id": "D",
+    "name": "ChemBase India",
+    "cost_per_unit": 0.60,
+    "delivery_days": 90,
+    "certification": "Basic GMP",
+    "moq": 5000,
+    "region": "Asia",
+    "cert_score": 55
+  }
+]

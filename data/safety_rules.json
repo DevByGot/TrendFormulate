@@ -1,0 +1,26 @@
+[
+  {
+    "ingredient": "Phenoxyethanol",
+    "max_allowed": 1.0,
+    "regulation": "EU Annex V / FDA",
+    "violation_message": "Phenoxyethanol cannot exceed 1% in leave-on products."
+  },
+  {
+    "ingredient": "Polyglutamic Acid",
+    "recommended_max": 5.0,
+    "optimal": 3.0,
+    "note": "Highly effective at 3%; above 5% adds cost without benefit."
+  },
+  {
+    "ingredient": "Zinc Oxide",
+    "max_allowed": 25.0,
+    "regulation": "EU Annex VI",
+    "violation_message": "Zinc Oxide cannot exceed 25% in sunscreen products (EU Annex VI)."
+  },
+  {
+    "ingredient": "Bakuchiol",
+    "recommended_max": 2.0,
+    "optimal": 0.5,
+    "note": "Effective at 0.5%; concentrations above 2% may cause skin sensitivity."
+  }
+]

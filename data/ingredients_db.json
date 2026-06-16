@@ -1,0 +1,12 @@
+[
+  { "name": "Water", "inci": "Aqua", "max_pct": 95, "type": "base" },
+  { "name": "Polyglutamic Acid", "inci": "Sodium Polyglutamate", "max_pct": 5, "optimal_pct": 3, "type": "active" },
+  { "name": "Phenoxyethanol", "inci": "Phenoxyethanol", "max_pct": 1, "type": "preservative", "regulation": "EU Annex V" },
+  { "name": "Centella Asiatica", "inci": "Centella Asiatica Extract", "max_pct": 10, "type": "active" },
+  { "name": "Niacinamide", "inci": "Niacinamide", "max_pct": 10, "type": "active", "known_sensitivity": true },
+  { "name": "Glycerin", "inci": "Glycerin", "max_pct": 30, "type": "humectant" },
+  { "name": "Squalane", "inci": "Squalane", "max_pct": 15, "type": "emollient" },
+  { "name": "Bakuchiol", "inci": "Bakuchiol", "max_pct": 2, "optimal_pct": 0.5, "type": "active" },
+  { "name": "Hyaluronic Acid", "inci": "Sodium Hyaluronate", "max_pct": 2, "optimal_pct": 0.1, "type": "humectant" },
+  { "name": "Zinc Oxide", "inci": "Zinc Oxide", "max_pct": 25, "type": "sunscreen", "regulation": "EU Annex VI" }
+]

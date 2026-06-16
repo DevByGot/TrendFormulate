@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrendFormulate OS</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* Dashboard-specific styles */
+    .trend-banner {
+      background: linear-gradient(90deg, rgba(79,152,163,0.12) 0%, rgba(79,152,163,0.05) 100%);
+      border: 1px solid rgba(79,152,163,0.25);
+      border-radius: var(--radius);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.5rem 0;
+      font-size: 0.875rem;
+    }
+    .trend-banner strong { color: var(--accent); }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+    }
+    .stat-card .stat-value {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    .stat-card .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .dept-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: border-color 0.2s, transform 0.2s;
+      text-decoration: none;
+    }
+    .dept-card:hover {
+      border-color: rgba(79,152,163,0.4);
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
+
+    .dept-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .dept-icon {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .dept-icon .icon-wrap {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+
+    .dept-meta {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .dept-meta span { color: var(--text); }
+
+    .dept-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.25rem;
+    }
+
+    .launch-btn {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--accent);
+      background: rgba(79,152,163,0.1);
+      border: 1px solid rgba(79,152,163,0.2);
+      border-radius: var(--radius-sm);
+      padding: 0.35rem 0.85rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .launch-btn:hover {
+      background: rgba(79,152,163,0.2);
+      text-decoration: none;
+    }
+
+    /* Ticker */
+    .ticker-bar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 0.6rem 0;
+      overflow: hidden;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+    .ticker-track {
+      display: flex;
+      gap: 3rem;
+      animation: ticker 30s linear infinite;
+      white-space: nowrap;
+    }
+    .ticker-track:hover { animation-play-state: paused; }
+    .ticker-item {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .ticker-item .dot { color: var(--accent); }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    .main-content { padding-bottom: 3.5rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div style="width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+        <i data-lucide="flask-conical" style="width:17px;height:17px;color:#fff;"></i>
+      </div>
+      <span class="logo-text">TrendFormulate</span>
+      <span class="version-tag">OS v1.0</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <span style="font-size:0.8125rem;color:var(--text-muted);">Formulas generated today:</span>
+      <span id="formula-counter" style="font-size:0.9375rem;font-weight:600;color:var(--accent);">1,247</span>
+    </div>
+  </nav>
+
+  <div class="main-content page-wrapper">
+
+    <!-- Trend Alert Banner -->
+    <div class="trend-banner">
+      <i data-lucide="flame" style="width:18px;height:18px;color:var(--accent);flex-shrink:0;"></i>
+      <div>
+        🔥 <strong>Trending now:</strong> Glass Skin Alternatives
+        <span style="margin-left:0.5rem;padding:0.1rem 0.5rem;background:rgba(109,170,69,0.15);border-radius:999px;font-size:0.75rem;color:var(--success);">+340% search volume this week</span>
+        &nbsp;·&nbsp; Bakuchiol replacing retinol in 68% of new formulas &nbsp;·&nbsp; Reef-safe SPF requests up 220%
+      </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-formulas">1,247</div>
+        <div class="stat-label">Formulas Generated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">5</div>
+        <div class="stat-label">Trends Detected</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">$4.80</div>
+        <div class="stat-label">Total R&D Cost</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">4</div>
+        <div class="stat-label">Factories Evaluated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">100%</div>
+        <div class="stat-label">EU Compliance Rate</div>
+      </div>
+    </div>
+
+    <!-- Department Grid -->
+    <p class="section-title">AI Departments</p>
+    <div class="bento-grid">
+
+      <!-- Component 1 -->
+      <div class="dept-card">
+        <div class="dept-card-header">
+          <div class="dept-icon">
+            <div class="icon-wrap"><i data-lucide="message-circle" style="width:16px;height:16px;"></i></div>
+            Sentiment Engine
+          </div>
+          <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
+        </div>
+        <div class="dept-meta">
+          Latest: <span>5 comments analyzed</span><br/>
+          Result: <span>Glass Skin trend detected · High confidence</span>
+        </div>
+        <div class="dept-footer">
+          <span style="font-size:0.75rem;color:var(--text-muted);">Trend → Ingredient mapping</span>
+          <a href="components/01_sentiment/index.html" class="launch-btn">Launch →</a>
+        </div>
+      </div>
+
+      <!-- Component 2 -->
+      <div class="dept-card">
+        <div class="dept-card-header">
+          <div class="dept-icon">
+            <div class="icon-wrap"><i data-lucide="flask-conical" style="width:16px;height:16px;"></i></div>
+            R&D Formulation
+          </div>
+          <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
+        </div>
+        <div class="dept-meta">
+          Latest: <span>Glass Skin Serum v1.2</span><br/>
+          Safety: <span style="color:var(--success);">EU & FDA Compliant ✓</span>
+        </div>
+        <div class="dept-footer">
+          <span style="font-size:0.75rem;color:var(--text-muted);">Formulation + Safety Guardrail</span>
+          <a href="components/02_formulation/index.html" class="launch-btn">Launch →</a>
+        </div>
+      </div>
+
+      <!-- Component 3 -->
+      <div class="dept-card">
+        <div class="dept-card-header">
+          <div class="dept-icon">
+            <div class="icon-wrap"><i data-lucide="video" style="width:16px;height:16px;"></i></div>
+            Marketing Engine
+          </div>
+          <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
+        </div>
+        <div class="dept-meta">
+          Latest: <span>TikTok script generated</span><br/>
+          Tone: <span>Science-Forward · 30s storyboard ready</span>
+        </div>
+        <div class="dept-footer">
+          <span style="font-size:0.75rem;color:var(--text-muted);">TikTok Content Engine</span>
+          <a href="components/03_marketing/index.html" class="launch-btn">Launch →</a>
+        </div>
+      </div>
+
+      <!-- Component 4 -->
+      <div class="dept-card">
+        <div class="dept-card-header">
+          <div class="dept-icon">
+            <div class="icon-wrap"><i data-lucide="bot" style="width:16px;height:16px;"></i></div>
+            Sales Agent
+          </div>
+          <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
+        </div>
+        <div class="dept-meta">
+          Latest: <span>3 leads qualified today</span><br/>
+          Status: <span>Chatbot online · Lead score tracking</span>
+        </div>
+        <div class="dept-footer">
+          <span style="font-size:0.75rem;color:var(--text-muted);">Waitlist Nurturing Chatbot</span>
+          <a href="components/04_sales/index.html" class="launch-btn">Launch →</a>
+        </div>
+      </div>
+
+      <!-- Component 5 -->
+      <div class="dept-card">
+        <div class="dept-card-header">
+          <div class="dept-icon">
+            <div class="icon-wrap"><i data-lucide="users" style="width:16px;height:16px;"></i></div>
+            HR & Talent
+          </div>
+          <span class="badge badge-warning"><span class="status-dot pending"></span>Ready</span>
+        </div>
+        <div class="dept-meta">
+          Latest: <span>1 skill gap detected</span><br/>
+          Result: <span>JD for Peptide Chemist generated</span>
+        </div>
+        <div class="dept-footer">
+          <span style="font-size:0.75rem;color:var(--text-muted);">JD Generator + Skill-Gap Analyzer</span>
+          <a href="components/05_hr/index.html" class="launch-btn">Launch →</a>
+        </div>
+      </div>
+
+      <!-- Component 6 -->
+      <div class="dept-card">
+        <div class="dept-card-header">
+          <div class="dept-icon">
+            <div class="icon-wrap"><i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i></div>
+            Finance / CFO
+          </div>
+          <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
+        </div>
+        <div class="dept-meta">
+          Latest: <span>100 formulas simulated</span><br/>
+          Saving: <span style="color:var(--success);">$1,499,995 vs. traditional lab</span>
+        </div>
+        <div class="dept-footer">
+          <span style="font-size:0.75rem;color:var(--text-muted);">Unit Economics Simulator</span>
+          <a href="components/06_finance/index.html" class="launch-btn">Launch →</a>
+        </div>
+      </div>
+
+      <!-- Component 7 -->
+      <div class="dept-card">
+        <div class="dept-card-header">
+          <div class="dept-icon">
+            <div class="icon-wrap"><i data-lucide="factory" style="width:16px;height:16px;"></i></div>
+            Operations
+          </div>
+          <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
+        </div>
+        <div class="dept-meta">
+          Latest: <span>4 factories evaluated</span><br/>
+          Pick: <span>SpeedForm EU — Score 84.2</span>
+        </div>
+        <div class="dept-footer">
+          <span style="font-size:0.75rem;color:var(--text-muted);">Contract Manufacturer Selector</span>
+          <a href="components/07_ops/index.html" class="launch-btn">Launch →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker-bar">
+    <div class="ticker-track" id="ticker">
+      <span class="ticker-item"><span class="dot">●</span> TikTok trend detected: Bakuchiol</span>
+      <span class="ticker-item"><span class="dot">●</span> New factory certified: GreenLab Korea</span>
+      <span class="ticker-item"><span class="dot">●</span> Formula #1,247 generated — Glass Skin Serum v1.2</span>
+      <span class="ticker-item"><span class="dot">●</span> Safety check passed: Phenoxyethanol auto-corrected to 1%</span>
+      <span class="ticker-item"><span class="dot">●</span> Lead qualified: Indie founder — EU market, 500 MOQ</span>
+      <span class="ticker-item"><span class="dot">●</span> Skill gap detected: Peptide Chemist JD generated</span>
+      <span class="ticker-item"><span class="dot">●</span> TikTok trend detected: Bakuchiol</span>
+      <span class="ticker-item"><span class="dot">●</span> New factory certified: GreenLab Korea</span>
+      <span class="ticker-item"><span class="dot">●</span> Formula #1,247 generated — Glass Skin Serum v1.2</span>
+      <span class="ticker-item"><span class="dot">●</span> Safety check passed: Phenoxyethanol auto-corrected to 1%</span>
+      <span class="ticker-item"><span class="dot">●</span> Lead qualified: Indie founder — EU market, 500 MOQ</span>
+      <span class="ticker-item"><span class="dot">●</span> Skill gap detected: Peptide Chemist JD generated</span>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    // Formula counter ticks up every 3 seconds
+    let count = 1247;
+    setInterval(() => {
+      count += Math.floor(Math.random() * 3) + 1;
+      const formatted = count.toLocaleString();
+      document.getElementById('formula-counter').textContent = formatted;
+      document.getElementById('stat-formulas').textContent = formatted;
+    }, 3000);
+  </script>
+</body>
+</html>
