@@ -1,7 +1,4 @@
 {
-  "version": 2,
-  "buildCommand": null,
-  "outputDirectory": ".",
   "functions": {
     "api/groq.js": {
       "runtime": "nodejs20.x"
