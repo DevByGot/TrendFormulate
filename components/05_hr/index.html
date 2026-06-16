@@ -6,9 +6,310 @@
   <title>HR & Talent — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ── Step wizard ─────────────────────────────────────── */
+    .steps-header {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 2rem;
+    }
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex: 1;
+    }
+    .step-indicator:not(:last-child)::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      margin: 0 0.5rem;
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .step-indicator.active .step-num {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .step-indicator.done .step-num {
+      background: var(--success);
+      border-color: var(--success);
+      color: #fff;
+    }
+    .step-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+      transition: color 0.2s;
+    }
+    .step-indicator.active .step-label { color: var(--text); }
+    .step-indicator.done .step-label   { color: var(--success); }
+
+    /* ── Chip toggles ────────────────────────────────────── */
+    .chip-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.85rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--border);
+      background: var(--surface-2);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s;
+    }
+    .chip:hover {
+      border-color: rgba(79,152,163,0.4);
+      color: var(--text);
+    }
+    .chip.selected {
+      background: rgba(79,152,163,0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .chip.selected-formula {
+      background: rgba(212,168,67,0.15);
+      border-color: var(--warning);
+      color: var(--warning);
+    }
+    .chip .chip-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ── 3-column layout ─────────────────────────────────── */
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 900px) {
+      .workflow-grid { grid-template-columns: 1fr; }
+      .steps-header  { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+      .step-indicator::after { display: none; }
+    }
+
+    /* ── Gap analysis bars ───────────────────────────────── */
+    .gap-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.625rem;
+    }
+    .gap-bar-label {
+      font-size: 0.8125rem;
+      width: 155px;
+      flex-shrink: 0;
+      color: var(--text-muted);
+    }
+    .gap-bar-track {
+      flex: 1;
+      height: 8px;
+      background: var(--surface-2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .gap-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    }
+    .gap-bar-fill.covered { background: var(--success); }
+    .gap-bar-fill.missing { background: var(--error); }
+    .gap-bar-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      width: 55px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ── JD card ─────────────────────────────────────────── */
+    .jd-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem 2rem;
+      font-family: var(--font-body);
+    }
+    .jd-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .jd-company {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.375rem;
+    }
+    .jd-title {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      line-height: 1.25;
+    }
+    .jd-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .jd-section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.625rem;
+      margin-top: 1.25rem;
+    }
+    .jd-about {
+      font-size: 0.9rem;
+      line-height: 1.65;
+      color: var(--text-muted);
+    }
+    .jd-list {
+      list-style: none;
+      padding: 0;
+    }
+    .jd-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 0.4rem;
+    }
+    .jd-list li::before {
+      content: '•';
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 0.05rem;
+    }
+    .jd-questions {
+      list-style: none;
+      padding: 0;
+      counter-reset: q;
+    }
+    .jd-questions li {
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 0.75rem;
+      counter-increment: q;
+    }
+    .jd-questions li::before {
+      content: counter(q) '.';
+      color: var(--accent);
+      font-weight: 600;
+      flex-shrink: 0;
+      min-width: 16px;
+    }
+    .jd-footer {
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+      margin-top: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .jd-stamp {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Scanning animation ──────────────────────────────── */
+    .scanning-line {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      padding: 0.4rem 0;
+      animation: slideIn 0.3s ease forwards;
+    }
+    .scan-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* ── CTA area ─────────────────────────────────────────── */
+    .generate-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin: 1.5rem 0;
+      flex-wrap: wrap;
+    }
+
+    /* ── Summary pill ─────────────────────────────────────── */
+    .summary-pills {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .summary-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--surface-2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .summary-pill.green { background: rgba(109,170,69,0.12); color: var(--success); border-color: rgba(109,170,69,0.25); }
+    .summary-pill.red   { background: rgba(221,105,116,0.12); color: var(--error);   border-color: rgba(221,105,116,0.25); }
+    .summary-pill.blue  { background: rgba(79,152,163,0.12);  color: var(--accent);  border-color: rgba(79,152,163,0.25); }
+  </style>
 </head>
 <body>
 
+  <!-- Navbar -->
   <nav class="navbar">
     <div class="navbar-brand">
       <div style="width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;">
@@ -24,7 +325,8 @@
 
   <div class="page-wrapper">
 
-    <div style="margin-bottom:1.5rem;">
+    <!-- Page title -->
+    <div style="margin-bottom:2rem;">
       <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
         <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
           <i data-lucide="users" style="width:18px;height:18px;"></i>
@@ -32,43 +334,147 @@
         <h1 style="font-size:1.5rem;">JD Generator + Skill-Gap Analyzer</h1>
         <span class="badge badge-accent">Component 05</span>
       </div>
-      <p style="color:var(--text-muted);font-size:0.875rem;max-width:600px;">
+      <p style="color:var(--text-muted);font-size:0.875rem;max-width:640px;">
         Detects skill gaps between your current team and the formulas the platform is generating,
         then auto-writes a hyper-targeted Job Description.
       </p>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-         👇 YOUR COMPONENT CODE GOES BELOW THIS LINE
-         Owner: [Your Name]
-         Data:  FORMULA_SKILLS + generateJD() defined below
-         ═══════════════════════════════════════════════════════ -->
-
-    <div class="card" style="text-align:center;padding:3rem;border-style:dashed;border-color:rgba(79,152,163,0.3);">
-      <i data-lucide="code-2" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:1rem;"></i>
-      <p style="color:var(--text-muted);font-size:0.9375rem;">
-        Component 05 — HR & Talent<br/>
-        <span style="font-size:0.8125rem;">Build your 3-step UI here. Use <code>FORMULA_SKILLS</code>, <code>detectGaps()</code>, and <code>generateJD()</code>.</span>
-      </p>
+    <!-- Step wizard header -->
+    <div class="steps-header">
+      <div class="step-indicator active" id="step-ind-1">
+        <div class="step-num">1</div>
+        <span class="step-label">Current Team Skills</span>
+      </div>
+      <div class="step-indicator" id="step-ind-2">
+        <div class="step-num">2</div>
+        <span class="step-label">Active Product Roadmap</span>
+      </div>
+      <div class="step-indicator" id="step-ind-3">
+        <div class="step-num">3</div>
+        <span class="step-label">Gap Analysis + JD</span>
+      </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-         👆 YOUR COMPONENT CODE ENDS ABOVE THIS LINE
-         ═══════════════════════════════════════════════════════ -->
+    <!-- ══════════════════════════════════════════════════════
+         STEP 1 + STEP 2 + STEP 3 input panel
+    ══════════════════════════════════════════════════════════ -->
+    <div class="workflow-grid">
 
-  </div>
+      <!-- STEP 1: Team skills -->
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="users" style="width:14px;height:14px;color:var(--accent);"></i>
+          Step 1 — Team Skills
+        </div>
+        <p style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:1rem;">
+          Toggle the skills your current team already covers.
+        </p>
+        <div class="chip-grid" id="team-chips"></div>
+        <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);font-size:0.75rem;color:var(--text-muted);">
+          <span id="team-count">0</span> skill(s) selected
+        </div>
+      </div>
+
+      <!-- STEP 2: Product roadmap -->
+      <div class="card">
+        <div class="card-title" style="display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="flask-conical" style="width:14px;height:14px;color:var(--warning);"></i>
+          Step 2 — Product Roadmap
+        </div>
+        <p style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:1rem;">
+          Select the formulas the platform is currently producing at scale.
+        </p>
+        <div class="chip-grid" id="formula-chips"></div>
+        <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);font-size:0.75rem;color:var(--text-muted);">
+          <span id="formula-count">0</span> formula(s) selected
+        </div>
+      </div>
+
+      <!-- STEP 3: detect button + live preview -->
+      <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
+        <div>
+          <div class="card-title" style="display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="zap" style="width:14px;height:14px;color:var(--accent);"></i>
+            Step 3 — Run Analysis
+          </div>
+          <p style="font-size:0.8125rem;color:var(--text-muted);margin-bottom:1rem;">
+            Detect gaps and auto-generate a targeted JD for the missing expertise.
+          </p>
+          <div id="prereq-hint" style="font-size:0.8125rem;color:var(--text-muted);padding:0.75rem;background:var(--surface-2);border-radius:var(--radius-sm);">
+            Select at least one formula in Step 2 to run the analysis.
+          </div>
+        </div>
+        <div style="margin-top:1.25rem;">
+          <button class="btn btn-primary" id="analyze-btn" disabled style="width:100%;justify-content:center;">
+            <i data-lucide="cpu" style="width:15px;height:15px;"></i>
+            Detect Gaps &amp; Generate JD
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         RESULTS SECTION (hidden until analysis runs)
+    ══════════════════════════════════════════════════════════ -->
+    <div id="results-section" style="display:none;">
+
+      <!-- Scanning animation -->
+      <div id="scan-log" class="card" style="margin-bottom:1.5rem;font-family:monospace;">
+        <div class="card-title">Analysis Log</div>
+        <div id="scan-lines"></div>
+      </div>
+
+      <!-- Summary pills -->
+      <div id="summary-pills-area" class="summary-pills" style="display:none;"></div>
+
+      <!-- Gap chart + JD side by side -->
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:1rem;align-items:start;">
+
+        <!-- Gap chart -->
+        <div class="card" id="gap-chart-card">
+          <div class="card-title" style="display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="bar-chart-2" style="width:14px;height:14px;color:var(--accent);"></i>
+            Skill Coverage
+          </div>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:1rem;">All skills required by active formulas</p>
+          <div id="gap-bars"></div>
+          <div style="margin-top:1rem;display:flex;gap:1rem;font-size:0.75rem;">
+            <span style="display:flex;align-items:center;gap:0.35rem;"><span style="width:10px;height:10px;border-radius:2px;background:var(--success);display:inline-block;"></span>Covered</span>
+            <span style="display:flex;align-items:center;gap:0.35rem;"><span style="width:10px;height:10px;border-radius:2px;background:var(--error);display:inline-block;"></span>Missing</span>
+          </div>
+        </div>
+
+        <!-- JD card -->
+        <div id="jd-output"></div>
+      </div>
+
+    </div>
+
+    <!-- No-gap state -->
+    <div id="no-gap-section" style="display:none;">
+      <div class="card" style="text-align:center;padding:2.5rem;">
+        <i data-lucide="check-circle-2" style="width:36px;height:36px;color:var(--success);margin-bottom:1rem;"></i>
+        <h3 style="color:var(--success);margin-bottom:0.5rem;">No Skill Gaps Detected</h3>
+        <p style="color:var(--text-muted);font-size:0.875rem;max-width:420px;margin:0 auto;">
+          Your current team already covers all the skills required by the selected formulas.
+          You're fully resourced for the active product roadmap.
+        </p>
+      </div>
+    </div>
+
+  </div><!-- /page-wrapper -->
 
   <script>
     lucide.createIcons();
 
-    // ─── All possible skills ─────────────────────────────────
+    /* ─── Data ───────────────────────────────────────────────── */
     const ALL_SKILLS = [
       "Plant Extracts", "Peptides", "Emulsification",
       "Preservative Systems", "Retinoids", "Fermentation",
       "SPF Chemistry", "Regulatory Affairs"
     ];
 
-    // ─── Formula → required skills map (blueprint) ──────────
     const FORMULA_SKILLS = {
       "Peptide Serum":      ["Peptides", "Preservative Systems"],
       "Bakuchiol Cream":    ["Plant Extracts", "Emulsification"],
@@ -76,26 +482,118 @@
       "Fermented Essence":  ["Fermentation", "Plant Extracts"]
     };
 
-    // Detect gap: teamSkills & selectedFormulas → missing skills
-    function detectGaps(teamSkills, selectedFormulas) {
+    const JD_TITLES = {
+      "Peptides":              "Senior Macromolecular Peptide Chemist",
+      "SPF Chemistry":         "Regulatory Cosmetic Chemist — UV Filters",
+      "Fermentation":          "Biotechnology Fermentation Scientist",
+      "Plant Extracts":        "Senior Phytochemistry Formulator",
+      "Emulsification":        "Emulsion Technology Specialist",
+      "Preservative Systems":  "Cosmetic Microbiologist — Preservation",
+      "Regulatory Affairs":    "EU Regulatory Affairs Manager",
+      "Retinoids":             "Retinoid Chemistry & Stability Scientist"
+    };
+
+    /* ─── State ──────────────────────────────────────────────── */
+    let teamSkills    = new Set();
+    let activeFormulas = new Set();
+
+    /* ─── Build chip lists ───────────────────────────────────── */
+    function buildTeamChips() {
+      const el = document.getElementById('team-chips');
+      ALL_SKILLS.forEach(skill => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.dataset.skill = skill;
+        chip.innerHTML = `<i data-lucide="check" class="chip-icon" style="display:none;"></i>${skill}`;
+        chip.addEventListener('click', () => toggleTeamSkill(skill, chip));
+        el.appendChild(chip);
+      });
+    }
+
+    function buildFormulaChips() {
+      const el = document.getElementById('formula-chips');
+      Object.keys(FORMULA_SKILLS).forEach(formula => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.dataset.formula = formula;
+        chip.innerHTML = `<i data-lucide="flask-conical" class="chip-icon"></i>${formula}`;
+        chip.addEventListener('click', () => toggleFormula(formula, chip));
+        el.appendChild(chip);
+      });
+    }
+
+    function toggleTeamSkill(skill, chip) {
+      if (teamSkills.has(skill)) {
+        teamSkills.delete(skill);
+        chip.classList.remove('selected');
+        chip.querySelector('.chip-icon').style.display = 'none';
+      } else {
+        teamSkills.add(skill);
+        chip.classList.add('selected');
+        chip.querySelector('.chip-icon').style.display = '';
+      }
+      document.getElementById('team-count').textContent = teamSkills.size;
+      updateStepIndicators();
+      lucide.createIcons();
+    }
+
+    function toggleFormula(formula, chip) {
+      if (activeFormulas.has(formula)) {
+        activeFormulas.delete(formula);
+        chip.classList.remove('selected-formula');
+      } else {
+        activeFormulas.add(formula);
+        chip.classList.add('selected-formula');
+      }
+      document.getElementById('formula-count').textContent = activeFormulas.size;
+      updateAnalyzeButton();
+      updateStepIndicators();
+    }
+
+    function updateAnalyzeButton() {
+      const btn = document.getElementById('analyze-btn');
+      const hint = document.getElementById('prereq-hint');
+      if (activeFormulas.size > 0) {
+        btn.disabled = false;
+        hint.style.display = 'none';
+      } else {
+        btn.disabled = true;
+        hint.style.display = '';
+      }
+    }
+
+    function updateStepIndicators() {
+      const i1 = document.getElementById('step-ind-1');
+      const i2 = document.getElementById('step-ind-2');
+      const i3 = document.getElementById('step-ind-3');
+
+      if (teamSkills.size > 0) {
+        i1.classList.remove('active');
+        i1.classList.add('done');
+      } else {
+        i1.classList.add('active');
+        i1.classList.remove('done');
+      }
+
+      if (activeFormulas.size > 0) {
+        i2.classList.add('done');
+        i2.classList.remove('active');
+        i3.classList.add('active');
+      } else {
+        i2.classList.remove('done');
+        if (teamSkills.size > 0) i2.classList.add('active');
+        i3.classList.remove('active');
+      }
+    }
+
+    /* ─── Core logic ─────────────────────────────────────────── */
+    function detectGaps(teamSkillsArr, selectedFormulas) {
       const required = new Set();
       for (const f of selectedFormulas) {
         (FORMULA_SKILLS[f] || []).forEach(s => required.add(s));
       }
-      return [...required].filter(s => !teamSkills.includes(s));
+      return { required: [...required], gaps: [...required].filter(s => !teamSkillsArr.includes(s)) };
     }
-
-    // ─── JD generator (blueprint) ───────────────────────────
-    const JD_TITLES = {
-      "Peptides":          "Senior Macromolecular Peptide Chemist",
-      "SPF Chemistry":     "Regulatory Cosmetic Chemist — UV Filters",
-      "Fermentation":      "Biotechnology Fermentation Scientist",
-      "Plant Extracts":    "Senior Phytochemistry Formulator",
-      "Emulsification":    "Emulsion Technology Specialist",
-      "Preservative Systems": "Cosmetic Microbiologist — Preservation",
-      "Regulatory Affairs": "EU Regulatory Affairs Manager",
-      "Retinoids":         "Retinoid Chemistry & Stability Scientist"
-    };
 
     function generateJD(gapSkills) {
       if (!gapSkills.length) return null;
@@ -104,16 +602,219 @@
         title,
         gapSkills,
         about: `TrendFormulate's AI platform is now generating ${gapSkills.join(", ")}-based formulas at scale. We need a human expert to validate, stress-test, and iterate on AI-proposed formulations before production sign-off.`,
-        required: gapSkills.map(s => `Deep knowledge of ${s} chemistry and safety profiles`),
+        required: gapSkills.map(s => `Deep knowledge of ${s} chemistry and safety profiles`).concat([
+          "Experience reading and interpreting EU Annex or FDA monograph regulations",
+          "Comfortable working alongside AI-generated formula proposals"
+        ]),
         questions: [
           `Walk us through your process for stabilizing a ${gapSkills[0]} compound in a water-based serum at pH 5.5.`,
           "What concentration thresholds do you apply when combining multiple actives to avoid antagonistic interactions?",
-          "How do you assess the difference between a formulation that is "safe" versus "effective" at the regulatory boundary?",
-          "Describe a time an AI or computational chemistry tool produced an unsafe formula recommendation — how did you catch it?",
+          "How do you assess the difference between a formulation that is \u201csafe\u201d versus \u201ceffective\u201d at the regulatory boundary?",
+          "Describe a time an AI or computational chemistry tool produced an unsafe formula recommendation \u2014 how did you catch it?",
           "What preservative system would you pair with a high-water-activity serum targeting EU consumers, and why?"
         ]
       };
     }
+
+    /* ─── Analysis runner ────────────────────────────────────── */
+    async function runAnalysis() {
+      const btn = document.getElementById('analyze-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Analyzing…';
+
+      document.getElementById('results-section').style.display   = 'none';
+      document.getElementById('no-gap-section').style.display    = 'none';
+
+      const scanLines = document.getElementById('scan-lines');
+      scanLines.innerHTML = '';
+      document.getElementById('results-section').style.display = 'block';
+
+      const log = [
+        { icon: 'cpu',       text: 'Initializing skill-gap engine…' },
+        { icon: 'database',  text: `Reading team profile — ${teamSkills.size} skill(s) on file` },
+        { icon: 'layers',    text: `Scanning ${activeFormulas.size} active formula(s): ${[...activeFormulas].join(', ')}` },
+        { icon: 'git-merge', text: 'Cross-referencing FORMULA_SKILLS map…' },
+      ];
+
+      for (const entry of log) {
+        await delay(320);
+        appendScanLine(scanLines, entry.icon, entry.text, 'scanning');
+        lucide.createIcons();
+      }
+
+      const { required, gaps } = detectGaps([...teamSkills], [...activeFormulas]);
+
+      await delay(320);
+
+      if (gaps.length === 0) {
+        appendScanLine(scanLines, 'check-circle-2', 'No gaps detected — team is fully resourced.', 'ok');
+        lucide.createIcons();
+        document.getElementById('results-section').style.display = 'none';
+        document.getElementById('no-gap-section').style.display  = 'block';
+        resetBtn(btn);
+        updateStepIndicators();
+        document.getElementById('step-ind-3').classList.add('done');
+        return;
+      }
+
+      appendScanLine(scanLines, 'alert-triangle', `${gaps.length} gap(s) detected: ${gaps.join(', ')}`, 'warn');
+      await delay(320);
+      appendScanLine(scanLines, 'file-text', `Generating JD for: ${JD_TITLES[gaps[0]] || 'Senior Cosmetic Formulation Scientist'}`, 'ok');
+      lucide.createIcons();
+      await delay(400);
+
+      // Summary pills
+      const pillsArea = document.getElementById('summary-pills-area');
+      pillsArea.style.display = 'flex';
+      pillsArea.innerHTML = `
+        <span class="summary-pill blue"><i data-lucide="layers" style="width:11px;height:11px;"></i> ${required.length} required skill(s)</span>
+        <span class="summary-pill green"><i data-lucide="check" style="width:11px;height:11px;"></i> ${required.length - gaps.length} covered</span>
+        <span class="summary-pill red"><i data-lucide="x" style="width:11px;height:11px;"></i> ${gaps.length} missing</span>
+      `;
+      lucide.createIcons();
+
+      // Gap bars
+      renderGapBars(required, gaps);
+
+      // JD
+      const jd = generateJD(gaps);
+      renderJD(jd);
+
+      resetBtn(btn);
+      updateStepIndicators();
+      document.getElementById('step-ind-3').classList.add('done');
+    }
+
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function appendScanLine(container, icon, text, type) {
+      const line = document.createElement('div');
+      line.className = 'scanning-line';
+      const color = type === 'ok' ? 'var(--success)' : type === 'warn' ? 'var(--warning)' : 'var(--accent)';
+      line.innerHTML = `
+        <span class="scan-dot" style="background:${color};"></span>
+        <i data-lucide="${icon}" style="width:13px;height:13px;color:${color};flex-shrink:0;"></i>
+        <span style="color:${type === 'ok' ? 'var(--text-muted)' : type === 'warn' ? 'var(--warning)' : 'var(--text-muted)'};">${text}</span>
+      `;
+      container.appendChild(line);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function resetBtn(btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="refresh-cw" style="width:15px;height:15px;"></i> Re-run Analysis';
+      lucide.createIcons();
+    }
+
+    /* ─── Gap bar chart ──────────────────────────────────────── */
+    function renderGapBars(required, gaps) {
+      const container = document.getElementById('gap-bars');
+      container.innerHTML = '';
+
+      required.forEach(skill => {
+        const isMissing = gaps.includes(skill);
+        const row = document.createElement('div');
+        row.className = 'gap-bar-row animate-in';
+        row.innerHTML = `
+          <span class="gap-bar-label">${skill}</span>
+          <div class="gap-bar-track">
+            <div class="gap-bar-fill ${isMissing ? 'missing' : 'covered'}" style="width:0%"></div>
+          </div>
+          <span class="gap-bar-badge" style="color:${isMissing ? 'var(--error)' : 'var(--success)'};">
+            ${isMissing ? 'Missing' : 'Covered'}
+          </span>
+        `;
+        container.appendChild(row);
+
+        // Animate bar fill
+        setTimeout(() => {
+          row.querySelector('.gap-bar-fill').style.width = isMissing ? '100%' : '100%';
+        }, 50);
+      });
+    }
+
+    /* ─── JD renderer ────────────────────────────────────────── */
+    function renderJD(jd) {
+      const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const el = document.getElementById('jd-output');
+
+      el.innerHTML = `
+        <div class="jd-card animate-in">
+          <div class="jd-header">
+            <div class="jd-company">TrendFormulate — AI-Native Cosmetics Platform</div>
+            <div class="jd-title">${jd.title}</div>
+            <div class="jd-meta">
+              <span class="badge badge-accent"><i data-lucide="map-pin" style="width:10px;height:10px;"></i> Remote / Hybrid</span>
+              <span class="badge badge-muted"><i data-lucide="briefcase" style="width:10px;height:10px;"></i> Full-time</span>
+              <span class="badge badge-warning"><i data-lucide="zap" style="width:10px;height:10px;"></i> AI-Augmented Role</span>
+            </div>
+          </div>
+
+          <div class="jd-section-title">About the Role</div>
+          <p class="jd-about">${jd.about}</p>
+
+          <div class="jd-section-title">Required Expertise</div>
+          <ul class="jd-list">
+            ${jd.required.map(r => `<li>${r}</li>`).join('')}
+          </ul>
+
+          <div class="jd-section-title">Technical Vetting Questions</div>
+          <ol class="jd-questions">
+            ${jd.questions.map(q => `<li>${q}</li>`).join('')}
+          </ol>
+
+          <div class="jd-footer no-print">
+            <div class="jd-stamp">
+              <i data-lucide="clock" style="width:13px;height:13px;"></i>
+              Generated by TrendFormulate AI · ${today}
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="btn btn-secondary" onclick="copyJD()" id="copy-btn">
+                <i data-lucide="copy" style="width:14px;height:14px;"></i> Copy JD
+              </button>
+              <button class="btn btn-primary" onclick="downloadJD()">
+                <i data-lucide="download" style="width:14px;height:14px;"></i> Download JD
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    /* ─── Export actions ─────────────────────────────────────── */
+    function copyJD() {
+      const jdEl = document.getElementById('jd-output');
+      const text = jdEl.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;"></i> Copied!';
+        lucide.createIcons();
+        setTimeout(() => {
+          btn.innerHTML = '<i data-lucide="copy" style="width:14px;height:14px;"></i> Copy JD';
+          lucide.createIcons();
+        }, 2000);
+      });
+    }
+
+    function downloadJD() {
+      const jdEl = document.getElementById('jd-output');
+      const text = jdEl.innerText;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'TrendFormulate_JD.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    /* ─── Init ───────────────────────────────────────────────── */
+    buildTeamChips();
+    buildFormulaChips();
+    lucide.createIcons();
+
+    document.getElementById('analyze-btn').addEventListener('click', runAnalysis);
   </script>
 </body>
 </html>
