@@ -46,16 +46,6 @@
     }
     .summary-banner-text strong { color: var(--accent); }
 
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.25rem;
-      align-items: start;
-    }
-    @media (max-width: 860px) {
-      .two-col { grid-template-columns: 1fr; }
-    }
-
     .panel-label {
       font-size: 0.6875rem;
       font-weight: 600;
@@ -68,16 +58,177 @@
       gap: 0.4rem;
     }
 
-    /* Comment cards */
-    .comment-card {
+    /* ── Analysis output section (primary) ────────────────────────────────── */
+    #results-section {
+      margin-bottom: 2rem;
+    }
+
+    /* Result cards — grouped by trend */
+    .result-card {
       background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .result-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .result-trend {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      color: var(--text);
+      line-height: 1.25;
+    }
+    .result-pain {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .result-pain span { color: var(--text); }
+    .result-rationale {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+      line-height: 1.5;
+      margin-bottom: 0.875rem;
+      padding-left: 0.625rem;
+      border-left: 2px solid var(--border);
+    }
+    .ingredient-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      margin-bottom: 0.875rem;
+    }
+    .ingredient-pill {
+      font-size: 0.75rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.25rem 0.75rem;
+      color: var(--accent);
+    }
+
+    /* Source comments inside each result card */
+    .source-comments-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.375rem 0;
+      transition: color 0.2s;
+    }
+    .source-comments-toggle:hover { color: var(--accent); }
+    .source-comments-toggle .toggle-chevron {
+      transition: transform 0.2s;
+    }
+    .source-comments-toggle.open .toggle-chevron {
+      transform: rotate(180deg);
+    }
+    .source-comments-list {
+      display: none;
+      border-top: 1px solid var(--border);
+      margin-top: 0.625rem;
+      padding-top: 0.75rem;
+    }
+    .source-comments-list.visible { display: block; }
+    .source-comment-item {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .source-comment-item:last-child { border-bottom: none; }
+    .source-comment-num {
+      flex-shrink: 0;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      padding-top: 0.1rem;
+      min-width: 5rem;
+    }
+    .source-comment-text {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Empty state */
+    .results-empty {
+      background: var(--surface);
+      border: 1px dashed rgba(196, 120, 138, 0.2);
+      border-radius: var(--radius);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* ── Raw comments section (secondary, collapsible) ─────────────────────── */
+    .raw-comments-section {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+    .raw-comments-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 1.25rem;
+      background: var(--surface);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .raw-comments-header:hover { background: var(--surface-2); }
+    .raw-comments-header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+    .raw-chevron {
+      transition: transform 0.2s;
+      color: var(--text-muted);
+    }
+    .raw-comments-section.open .raw-chevron {
+      transform: rotate(180deg);
+    }
+    .raw-comments-body {
+      display: none;
+      padding: 1rem 1.25rem 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .raw-comments-section.open .raw-comments-body { display: block; }
+
+    /* Comment cards inside raw panel */
+    .comment-card {
+      background: var(--surface-2);
       border: 1px solid var(--border);
       border-left: 3px solid var(--border);
       border-radius: var(--radius);
-      padding: 1rem 1.125rem;
-      margin-bottom: 0.75rem;
+      padding: 0.875rem 1rem;
+      margin-bottom: 0.625rem;
       transition: border-left-color 0.4s ease;
     }
+    .comment-card:last-child { margin-bottom: 0; }
     .comment-card.processed {
       border-left-color: var(--accent);
     }
@@ -104,77 +255,6 @@
       transition: color 0.3s;
     }
     .comment-status.done { color: var(--success); }
-
-    /* Result cards */
-    .result-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.125rem 1.25rem;
-      margin-bottom: 0.75rem;
-    }
-    .result-card-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 0.5rem;
-      margin-bottom: 0.625rem;
-    }
-    .result-trend {
-      font-family: var(--font-display);
-      font-size: 1.0625rem;
-      color: var(--text);
-      line-height: 1.25;
-    }
-    .result-pain {
-      font-size: 0.8125rem;
-      color: var(--text-muted);
-      margin-bottom: 0.5rem;
-    }
-    .result-pain span { color: var(--text); }
-    .result-rationale {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-style: italic;
-      line-height: 1.5;
-      margin-bottom: 0.75rem;
-      padding-left: 0.625rem;
-      border-left: 2px solid var(--border);
-    }
-    .ingredient-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.375rem;
-      margin-bottom: 0.75rem;
-    }
-    .ingredient-pill {
-      font-size: 0.75rem;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 0.2rem 0.625rem;
-      color: var(--accent);
-    }
-    .result-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .result-ref {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    /* Empty state for results column */
-    .results-empty {
-      background: var(--surface);
-      border: 1px dashed rgba(196, 120, 138, 0.2);
-      border-radius: var(--radius);
-      padding: 3rem 1.5rem;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 0.875rem;
-    }
 
     /* Error notice */
     .error-notice {
@@ -253,40 +333,37 @@
       </div>
     </div>
 
-    <!-- Two-column grid -->
-    <div class="two-col">
+    <!-- ── Primary: Analysis output ──────────────────────────────────────── -->
+    <div id="results-section">
+      <div class="panel-label">
+        <i data-lucide="zap" style="width:12px;height:12px;"></i>
+        Analysis Output
+      </div>
+      <div id="results-panel">
+        <div class="results-empty" id="results-empty">
+          <i data-lucide="scan-search" style="width:24px;height:24px;margin-bottom:0.625rem;display:block;margin-left:auto;margin-right:auto;opacity:0.4;"></i>
+          Run the analysis to see grouped trend results here
+        </div>
+      </div>
+    </div>
 
-      <!-- Left: raw comments -->
-      <div>
-        <div class="panel-label">
+    <!-- ── Secondary: Raw comments (collapsible) ──────────────────────── -->
+    <div class="raw-comments-section" id="raw-comments-section">
+      <div class="raw-comments-header" id="raw-comments-toggle">
+        <div class="raw-comments-header-left">
           <i data-lucide="inbox" style="width:12px;height:12px;"></i>
           Raw Comments — <span id="comment-count">0</span> loaded
         </div>
+        <i data-lucide="chevron-down" class="raw-chevron" style="width:14px;height:14px;"></i>
+      </div>
+      <div class="raw-comments-body">
         <div id="comments-panel"></div>
       </div>
-
-      <!-- Right: analysis results -->
-      <div>
-        <div class="panel-label">
-          <i data-lucide="zap" style="width:12px;height:12px;"></i>
-          Analysis Output
-        </div>
-        <div id="results-panel">
-          <div class="results-empty" id="results-empty">
-            <i data-lucide="arrow-left" style="width:20px;height:20px;margin-bottom:0.5rem;display:block;margin-left:auto;margin-right:auto;"></i>
-            Run the analysis to see results here
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 
   <script>
     // ─── Groq configuration ────────────────────────────────────────────────────
-    // When served via Vercel (HTTP/HTTPS), calls the /api/groq proxy so the key
-    // stays server-side. When opened as a local file (file://), calls Groq
-    // directly using GROQ_API_KEY from ../../assets/config.js (gitignored).
     const GROQ_MODEL    = "llama-3.3-70b-versatile";
     const GROQ_DIRECT   = "https://api.groq.com/openai/v1/chat/completions";
     const ON_SERVER     = window.location.protocol !== "file:" &&
@@ -345,12 +422,10 @@ Rules:
 
     // ─── Groq AI call with retry on 429 ───────────────────────────────────────
     async function callGroq(commentText, retrying = false) {
-      // When served via Vercel the proxy handles auth; locally we pass the key directly
       const headers = { "Content-Type": "application/json" };
       if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
         headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
       }
-
       const response = await fetch(GROQ_ENDPOINT, {
         method: "POST",
         headers,
@@ -364,33 +439,22 @@ Rules:
           ]
         })
       });
-
       if (response.status === 429 && !retrying) {
-        // Rate limited — wait 2 s then retry once
         await new Promise(r => setTimeout(r, 2000));
         return callGroq(commentText, true);
       }
-
-      if (!response.ok) {
-        throw new Error(`Groq API error: ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
       const data = await response.json();
       return data.choices[0].message.content.trim();
     }
 
-    // ─── Main AI analysis: calls Groq, falls back to keyword on any failure ───
+    // ─── Main AI analysis ─────────────────────────────────────────────────────
     async function analyzeCommentAI(text) {
       try {
-        const raw = await callGroq(text);
-
-        // Strip accidental markdown fences if model adds them
+        const raw     = await callGroq(text);
         const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
         const parsed  = JSON.parse(cleaned);
-
-        // Validate expected fields
         if (!parsed.trend || !Array.isArray(parsed.ingredients)) throw new Error("Invalid schema");
-
         return {
           trend:       parsed.trend      || "Unknown",
           pain_point:  parsed.pain_point || "unknown",
@@ -413,7 +477,7 @@ Rules:
       URL.revokeObjectURL(url);
     }
 
-    // ─── Render: left panel comments ──────────────────────────────────────────
+    // ─── Render: raw comments panel ───────────────────────────────────────────
     function renderComments() {
       const panel = document.getElementById("comments-panel");
       document.getElementById("comment-count").textContent = COMMENTS.length;
@@ -434,39 +498,120 @@ Rules:
       lucide.createIcons();
     }
 
-    // ─── Render: one result card ───────────────────────────────────────────────
-    function renderResultCard(comment, result, index) {
-      const badgeClass = result.confidence === "High"
+    // ─── Trend groups: in-memory state ────────────────────────────────────────
+    // groups is a Map: trendKey → { trend, confidence, pain_points[], ingredients[], rationale, sources[] }
+    let trendGroups = new Map();
+    const CONFIDENCE_RANK = { High: 3, Medium: 2, Low: 1 };
+
+    function upsertGroup(result, commentObj) {
+      const key = result.trend.trim().toLowerCase();
+      if (!trendGroups.has(key)) {
+        trendGroups.set(key, {
+          trend:        result.trend,
+          confidence:   result.confidence,
+          pain_points:  [],
+          ingredients:  [],
+          rationale:    result.rationale,
+          sources:      []
+        });
+      }
+      const g = trendGroups.get(key);
+
+      // Keep highest confidence + its rationale
+      if ((CONFIDENCE_RANK[result.confidence] || 0) > (CONFIDENCE_RANK[g.confidence] || 0)) {
+        g.confidence = result.confidence;
+        g.rationale  = result.rationale;
+      }
+
+      // Merge pain points (deduplicated)
+      if (result.pain_point && !g.pain_points.includes(result.pain_point)) {
+        g.pain_points.push(result.pain_point);
+      }
+
+      // Merge ingredients (deduplicated)
+      result.ingredients.forEach(ing => {
+        if (!g.ingredients.includes(ing)) g.ingredients.push(ing);
+      });
+
+      g.sources.push({ id: commentObj.id, text: commentObj.text });
+      return key;
+    }
+
+    // ─── Render: one grouped result card ──────────────────────────────────────
+    function renderGroupCard(group, cardId) {
+      const badgeClass = group.confidence === "High"
         ? "badge-success"
-        : result.confidence === "Medium"
+        : group.confidence === "Medium"
           ? "badge-warning"
           : "badge-error";
 
-      const pills = result.ingredients.length
-        ? result.ingredients.map(i => `<span class="ingredient-pill">${i}</span>`).join("")
+      const pills = group.ingredients.length
+        ? group.ingredients.map(i => `<span class="ingredient-pill">${i}</span>`).join("")
         : `<span style="font-size:0.75rem;color:var(--text-muted);">No ingredients mapped</span>`;
 
-      const rationaleHTML = result.rationale
-        ? `<div class="result-rationale">${result.rationale}</div>`
+      const rationaleHTML = group.rationale
+        ? `<div class="result-rationale">${group.rationale}</div>`
         : "";
+
+      const painHTML = group.pain_points.length
+        ? group.pain_points.map(p => `<div class="result-pain">Pain point: <span>${p}</span></div>`).join("")
+        : "";
+
+      const sourceCount = group.sources.length;
+      const sourcesHTML = group.sources.map(s => `
+        <div class="source-comment-item">
+          <span class="source-comment-num">Comment #${s.id}</span>
+          <span class="source-comment-text">${s.text}</span>
+        </div>`).join("");
 
       const card = document.createElement("div");
       card.className = "result-card animate-in";
-      card.style.animationDelay = `${index * 0.08}s`;
+      card.id = cardId;
       card.innerHTML = `
         <div class="result-card-header">
-          <div class="result-trend">${result.trend}</div>
-          <span class="badge ${badgeClass}">${result.confidence} confidence</span>
+          <div class="result-trend">${group.trend}</div>
+          <span class="badge ${badgeClass}">${group.confidence} confidence</span>
         </div>
-        <div class="result-pain">
-          Pain point: <span>${result.pain_point}</span>
-        </div>
+        ${painHTML}
         ${rationaleHTML}
         <div class="ingredient-pills">${pills}</div>
-        <div class="result-footer">
-          <span class="result-ref">Source: Comment #${comment.id}</span>
+        <button class="source-comments-toggle" onclick="toggleSources(this)">
+          <i data-lucide="message-circle" style="width:12px;height:12px;"></i>
+          ${sourceCount} source comment${sourceCount !== 1 ? "s" : ""}
+          <i data-lucide="chevron-down" class="toggle-chevron" style="width:12px;height:12px;margin-left:0.15rem;"></i>
+        </button>
+        <div class="source-comments-list">
+          ${sourcesHTML}
         </div>`;
       return card;
+    }
+
+    // ─── Update an existing grouped card in-place ──────────────────────────────
+    function refreshGroupCard(key, group) {
+      const cardId  = `group-${key.replace(/\s+/g, "-")}`;
+      const existing = document.getElementById(cardId);
+      const updated  = renderGroupCard(group, cardId);
+      if (existing) {
+        // Preserve open/closed state of sources list
+        const wasOpen = existing.querySelector(".source-comments-list")?.classList.contains("visible");
+        existing.replaceWith(updated);
+        if (wasOpen) {
+          const toggle = updated.querySelector(".source-comments-toggle");
+          const list   = updated.querySelector(".source-comments-list");
+          if (toggle) toggle.classList.add("open");
+          if (list)   list.classList.add("visible");
+        }
+      } else {
+        document.getElementById("results-panel").appendChild(updated);
+      }
+      lucide.createIcons();
+    }
+
+    // ─── Toggle source comments list ──────────────────────────────────────────
+    function toggleSources(btn) {
+      btn.classList.toggle("open");
+      const list = btn.nextElementSibling;
+      if (list) list.classList.toggle("visible");
     }
 
     // ─── Main analysis flow ────────────────────────────────────────────────────
@@ -480,25 +625,25 @@ Rules:
       const errorNotice   = document.getElementById("error-notice");
       const errorText     = document.getElementById("error-text");
 
-      // Reset UI
+      // Reset
       analyzeBtn.style.display = "none";
       scanningState.classList.add("visible");
       errorNotice.classList.remove("visible");
       document.getElementById("summary-banner").classList.remove("visible");
       analysisResults = [];
+      trendGroups     = new Map();
+      resultsPanel.innerHTML = "";
 
       COMMENTS.forEach(c => {
         const card   = document.getElementById(`comment-${c.id}`);
         const status = document.getElementById(`comment-status-${c.id}`);
         if (card)   card.classList.remove("processed");
         if (status) {
-          status.className  = "comment-status";
-          status.innerHTML  = `<i data-lucide="clock" style="width:11px;height:11px;"></i> Awaiting analysis…`;
+          status.className = "comment-status";
+          status.innerHTML = `<i data-lucide="clock" style="width:11px;height:11px;"></i> Awaiting analysis…`;
         }
       });
       lucide.createIcons();
-
-      resultsPanel.innerHTML = "";
 
       const scanPhrases = [
         "Connecting to AI…",
@@ -515,10 +660,8 @@ Rules:
 
       let anyKeywordFallback = false;
 
-      // Process comments sequentially with 500 ms gap (rate-limit safety)
       for (let i = 0; i < COMMENTS.length; i++) {
         const c = COMMENTS[i];
-
         scanLabel.textContent = `Analysing comment ${i + 1} of ${COMMENTS.length}…`;
 
         const result = await analyzeCommentAI(c.text);
@@ -526,7 +669,7 @@ Rules:
 
         analysisResults.push({ id: c.id, text: c.text, ...result });
 
-        // Highlight comment card
+        // Update raw comment card
         const commentCard = document.getElementById(`comment-${c.id}`);
         const statusEl    = document.getElementById(`comment-status-${c.id}`);
         if (commentCard) commentCard.classList.add("processed");
@@ -535,12 +678,11 @@ Rules:
           statusEl.innerHTML = `<i data-lucide="check-circle" style="width:11px;height:11px;"></i> ${result.trend}`;
         }
 
-        // Add result card
-        const card = renderResultCard(c, result, i);
-        resultsPanel.appendChild(card);
-        lucide.createIcons();
+        // Upsert into trend groups and re-render that group card
+        const key   = upsertGroup(result, c);
+        const group = trendGroups.get(key);
+        refreshGroupCard(key, group);
 
-        // 500 ms gap before next call
         if (i < COMMENTS.length - 1) {
           await new Promise(r => setTimeout(r, 500));
         }
@@ -548,7 +690,6 @@ Rules:
 
       clearInterval(phraseInterval);
 
-      // Show fallback warning if any comment fell back to keywords
       if (anyKeywordFallback) {
         errorText.textContent = "AI unavailable for some comments — keyword matching was used as fallback.";
         errorNotice.classList.add("visible");
@@ -558,7 +699,6 @@ Rules:
       scanningState.classList.remove("visible");
       scanLabel.textContent = "Scanning comments…";
 
-      // Persist results to localStorage so Component 02 can read them
       try {
         localStorage.setItem("tf_c1_results", JSON.stringify(analysisResults));
       } catch(e) {}
@@ -571,10 +711,10 @@ Rules:
 
     // ─── Summary banner ────────────────────────────────────────────────────────
     function showSummary() {
-      const detected = analysisResults.filter(r => r.trend !== "Unclassified").length;
-      const total    = analysisResults.length;
+      const uniqueTrends = trendGroups.size;
+      const total        = analysisResults.length;
       document.getElementById("summary-text").innerHTML =
-        `<strong>${detected} trend${detected !== 1 ? "s" : ""}</strong> detected across <strong>${total} comment${total !== 1 ? "s" : ""}</strong> — results saved for Component 02`;
+        `<strong>${uniqueTrends} unique trend${uniqueTrends !== 1 ? "s" : ""}</strong> detected across <strong>${total} comment${total !== 1 ? "s" : ""}</strong> — results saved for Component 02`;
       document.getElementById("summary-banner").classList.add("visible");
     }
 
@@ -592,6 +732,11 @@ Rules:
         rationale:           r.rationale || ""
       }));
       exportJSON(payload, "trendformulate_sentiment_mapping.json");
+    });
+
+    document.getElementById("raw-comments-toggle").addEventListener("click", () => {
+      document.getElementById("raw-comments-section").classList.toggle("open");
+      lucide.createIcons();
     });
 
     // ─── Init ──────────────────────────────────────────────────────────────────
