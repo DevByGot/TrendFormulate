@@ -7,421 +7,693 @@
   <link rel="stylesheet" href="assets/style.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
-    /* ─── Dashboard-specific styles ──────────────────────────── */
+    /* ─── Page chrome ─────────────────────────────────────────── */
+    .main-content { padding-bottom: 4rem; }
 
-    .hero-greeting {
+    /* ─── Hero ────────────────────────────────────────────────── */
+    .hero {
       text-align: center;
-      padding: 2.25rem 1rem 1.5rem;
+      padding: 3.5rem 1rem 2.5rem;
     }
-    .hero-greeting .eyebrow {
-      font-size: 0.75rem;
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.7rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.16em;
       color: var(--accent);
-      margin-bottom: 0.5rem;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-mid);
+      border-radius: var(--radius-pill);
+      padding: 0.3rem 1rem;
+      margin-bottom: 1.25rem;
     }
-    .hero-greeting h1 {
-      font-size: 2.25rem;
+    .hero h1 {
+      font-size: clamp(2.25rem, 5vw, 3.75rem);
+      font-style: italic;
+      font-weight: 300;
       color: var(--text);
-      margin-bottom: 0.5rem;
+      line-height: 1.1;
+      margin-bottom: 0.875rem;
+      letter-spacing: -0.01em;
     }
-    .hero-greeting p {
-      font-size: 0.9375rem;
+    .hero h1 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    .hero-sub {
+      font-size: 1rem;
       color: var(--text-muted);
-      max-width: 480px;
-      margin: 0 auto;
+      max-width: 440px;
+      margin: 0 auto 1.5rem;
+      line-height: 1.65;
     }
-
-    .trend-banner {
-      background: linear-gradient(90deg, rgba(196,120,138,0.09) 0%, rgba(212,170,140,0.06) 100%);
-      border: 1px solid rgba(196,120,138,0.22);
-      border-radius: var(--radius);
-      padding: 0.8rem 1.25rem;
+    .hero-ornament {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      margin: 0.75rem 0 1.75rem;
-      font-size: 0.875rem;
+      gap: 1rem;
+      justify-content: center;
+      color: var(--text-faint);
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      margin-top: 1rem;
     }
-    .trend-banner strong { color: var(--accent); }
+    .hero-ornament::before,
+    .hero-ornament::after {
+      content: '';
+      display: block;
+      width: 80px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-strong));
+    }
+    .hero-ornament::after {
+      background: linear-gradient(90deg, var(--border-strong), transparent);
+    }
 
+    /* ─── Trend Banner ────────────────────────────────────────── */
+    .trend-banner {
+      background: linear-gradient(100deg, rgba(196,120,138,0.07) 0%, rgba(222,175,148,0.05) 100%);
+      border: 1px solid var(--accent-mid);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 0.875rem 1.375rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.875rem;
+      margin-bottom: 2.5rem;
+      font-size: 0.875rem;
+      line-height: 1.6;
+    }
+    .trend-banner strong { color: var(--accent); font-weight: 600; }
+    .trend-banner .trend-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.18rem 0.6rem;
+      background: var(--success-soft);
+      border-radius: var(--radius-pill);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--success);
+      white-space: nowrap;
+      margin-left: 0.375rem;
+    }
+    .trend-banner .trend-sep {
+      margin: 0 0.5rem;
+      color: var(--text-faint);
+    }
+
+    /* ─── Stats Row ───────────────────────────────────────────── */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.875rem;
+      margin-bottom: 3rem;
+    }
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
     }
 
     .stat-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.1rem 1.25rem;
+      padding: 1.25rem 1.25rem 1.125rem;
       box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
       position: relative;
       overflow: hidden;
+      transition: box-shadow 0.2s, transform 0.2s;
     }
-    .stat-card::before {
+    .stat-card:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-2px);
+    }
+    .stat-card::after {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, var(--accent), rgba(212,170,140,0.7));
-      border-radius: var(--radius) var(--radius) 0 0;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), rgba(222,165,130,0.6));
+      border-radius: 0 0 var(--radius) var(--radius);
+      opacity: 0;
+      transition: opacity 0.2s;
     }
-    .stat-card .stat-value {
-      font-family: var(--font-display);
-      font-size: 1.85rem;
-      color: var(--text);
-      line-height: 1;
-      margin-bottom: 0.3rem;
-    }
-    .stat-card .stat-label {
-      font-size: 0.73rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-    }
+    .stat-card:hover::after { opacity: 1; }
 
-    .section-title {
-      font-size: 0.72rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-muted);
-      margin-bottom: 1rem;
+    .stat-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent-soft);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: center;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
     }
-    .section-title::after {
-      content: '';
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 2.1rem;
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+
+    /* ─── Section Title ───────────────────────────────────────── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .section-header-text {}
+    .section-header h2 {
+      font-family: var(--font-display);
+      font-size: 1.625rem;
+      font-style: italic;
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1;
+    }
+    .section-header p {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+    .section-header-line {
       flex: 1;
       height: 1px;
       background: var(--border);
     }
 
-    .bento-grid {
+    /* ─── Department Grid ─────────────────────────────────────── */
+    .dept-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.125rem;
       margin-bottom: 2rem;
+    }
+    @media (max-width: 680px) {
+      .dept-grid { grid-template-columns: 1fr; }
     }
 
     .dept-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.25rem 1.5rem;
+      padding: 1.625rem;
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
-      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-      text-decoration: none;
+      gap: 0;
+      transition: box-shadow 0.22s, transform 0.22s, border-color 0.22s;
       box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+    .dept-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 3px;
+      background: transparent;
+      border-radius: var(--radius) 0 0 var(--radius);
+      transition: background 0.22s;
     }
     .dept-card:hover {
-      border-color: rgba(196,120,138,0.4);
-      transform: translateY(-3px);
       box-shadow: var(--shadow-lg);
-      text-decoration: none;
+      transform: translateY(-3px);
+      border-color: rgba(196,120,138,0.3);
+    }
+    .dept-card:hover::before {
+      background: linear-gradient(180deg, var(--accent), rgba(222,165,130,0.7));
     }
 
-    .dept-card-header {
+    /* Card top row: icon + badge */
+    .dept-card-top {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
+      margin-bottom: 1.125rem;
     }
-
-    .dept-icon {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      font-size: 0.9375rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-    .dept-icon .icon-wrap {
-      width: 36px;
-      height: 36px;
-      border-radius: var(--radius-sm);
-      background: rgba(196,120,138,0.1);
+    .dept-icon-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-mid);
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--accent);
+      flex-shrink: 0;
     }
 
-    .dept-meta {
-      font-size: 0.8125rem;
+    /* Card body */
+    .dept-name {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-style: italic;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 0.2rem;
+      line-height: 1.2;
+    }
+    .dept-subtitle {
+      font-size: 0.775rem;
+      font-weight: 500;
       color: var(--text-muted);
-      line-height: 1.55;
+      letter-spacing: 0.01em;
+      margin-bottom: 1rem;
     }
-    .dept-meta span { color: var(--text); }
 
-    .dept-footer {
+    /* Meta rows */
+    .dept-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      padding: 0.875rem 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.125rem;
+      flex: 1;
+    }
+    .dept-meta-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.625rem;
+      font-size: 0.8125rem;
+    }
+    .meta-key {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-faint);
+      width: 46px;
+      flex-shrink: 0;
+    }
+    .meta-val { color: var(--text); font-weight: 400; }
+    .meta-val.good { color: var(--success); }
+
+    /* Launch button */
+    .dept-launch {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-top: 0.25rem;
-    }
-
-    .launch-btn {
-      font-size: 0.8125rem;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.65rem 1rem;
+      border-radius: var(--radius-pill);
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
       font-weight: 500;
-      color: var(--accent);
-      background: rgba(196,120,138,0.09);
-      border: 1px solid rgba(196,120,138,0.22);
-      border-radius: var(--radius-sm);
-      padding: 0.375rem 0.875rem;
-      cursor: pointer;
       text-decoration: none;
-      transition: background 0.15s, box-shadow 0.15s;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+      box-shadow: 0 2px 10px rgba(196,120,138,0.22);
+      letter-spacing: 0.01em;
     }
-    .launch-btn:hover {
-      background: rgba(196,120,138,0.18);
-      box-shadow: 0 2px 8px rgba(196,120,138,0.15);
+    .dept-launch:hover {
+      background: var(--accent-hover);
+      box-shadow: var(--shadow-accent);
+      transform: scale(1.01);
       text-decoration: none;
+      color: #fff;
     }
+    .dept-launch:active { transform: scale(0.99); }
 
-    /* Ticker */
+    /* ─── Ticker ──────────────────────────────────────────────── */
     .ticker-bar {
-      background: rgba(255,255,255,0.88);
-      backdrop-filter: blur(8px);
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-top: 1px solid var(--border);
-      padding: 0.6rem 0;
+      padding: 0 0;
       overflow: hidden;
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
+      height: 38px;
+      display: flex;
+      align-items: center;
     }
     .ticker-track {
       display: flex;
-      gap: 3rem;
-      animation: ticker 30s linear infinite;
+      gap: 4rem;
+      animation: ticker 32s linear infinite;
       white-space: nowrap;
+      align-items: center;
     }
     .ticker-track:hover { animation-play-state: paused; }
     .ticker-item {
-      font-size: 0.75rem;
+      font-size: 0.74rem;
+      font-weight: 400;
       color: var(--text-muted);
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
     }
-    .ticker-item .dot { color: var(--accent); }
+    .ticker-item .dot {
+      color: var(--accent);
+      font-size: 0.6rem;
+    }
 
     @keyframes ticker {
       from { transform: translateX(0); }
       to   { transform: translateX(-50%); }
     }
 
-    .main-content { padding-bottom: 3.5rem; }
+    /* ─── Navbar live counter ─────────────────────────────────── */
+    .live-counter {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      padding: 0.35rem 0.875rem;
+    }
+    .live-counter .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(196,120,138,0.2);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .live-counter .count-label {
+      font-size: 0.775rem;
+      color: var(--text-muted);
+    }
+    .live-counter .count-num {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .live-counter .count-unit {
+      font-size: 0.7rem;
+      color: var(--text-faint);
+      letter-spacing: 0.04em;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Navbar -->
+  <!-- ─── Navbar ──────────────────────────────────────────────── -->
   <nav class="navbar">
     <div class="navbar-brand">
-      <div style="width:34px;height:34px;background:linear-gradient(135deg,#c4788a,#d4967a);border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(196,120,138,0.3);">
-        <i data-lucide="flask-conical" style="width:17px;height:17px;color:#fff;"></i>
+      <div style="width:38px;height:38px;background:linear-gradient(135deg,#c4788a 0%,#d49678 100%);border-radius:10px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(196,120,138,0.35);flex-shrink:0;">
+        <i data-lucide="flask-conical" style="width:18px;height:18px;color:#fff;"></i>
       </div>
       <span class="logo-text">TrendFormulate</span>
       <span class="version-tag">OS v1.0</span>
     </div>
-    <div style="display:flex;align-items:center;gap:1rem;">
-      <span style="font-size:0.8125rem;color:var(--text-muted);">Formulas generated today</span>
-      <span id="formula-counter" style="font-size:0.9375rem;font-weight:600;color:var(--accent);background:rgba(196,120,138,0.1);padding:0.2rem 0.7rem;border-radius:999px;">1,247</span>
+
+    <div class="live-counter">
+      <div class="live-dot"></div>
+      <span class="count-label">Formulas today</span>
+      <span id="formula-counter" class="count-num">1,247</span>
+      <span class="count-unit">generated</span>
     </div>
   </nav>
 
   <div class="main-content page-wrapper">
 
-    <!-- Hero Greeting -->
-    <div class="hero-greeting">
-      <p class="eyebrow">✦ Your AI beauty lab</p>
-      <h1>Welcome back, founder ✨</h1>
-      <p>Everything your indie brand needs — from trend detection to factory pick — all in one beautiful workspace.</p>
+    <!-- ─── Hero ─────────────────────────────────────────────── -->
+    <div class="hero">
+      <div class="hero-tag">
+        <i data-lucide="sparkles" style="width:11px;height:11px;"></i>
+        Your AI Beauty Lab
+      </div>
+      <h1>Where <em>indie beauty</em><br>meets intelligent R&D</h1>
+      <p class="hero-sub">
+        From trend detection to factory selection — every department your brand needs, powered by AI.
+      </p>
+      <div class="hero-ornament">✦</div>
     </div>
 
-    <!-- Trend Alert Banner -->
+    <!-- ─── Trend Banner ──────────────────────────────────────── -->
     <div class="trend-banner">
-      <i data-lucide="sparkles" style="width:18px;height:18px;color:var(--accent);flex-shrink:0;"></i>
+      <i data-lucide="trending-up" style="width:18px;height:18px;color:var(--accent);flex-shrink:0;margin-top:1px;"></i>
       <div>
         <strong>Trending this week:</strong> Glass Skin Alternatives
-        <span style="margin-left:0.5rem;padding:0.15rem 0.55rem;background:rgba(111,163,86,0.12);border-radius:999px;font-size:0.75rem;color:var(--success);">+340% search volume</span>
-        &nbsp;·&nbsp; Bakuchiol replacing retinol in 68% of new formulas &nbsp;·&nbsp; Reef-safe SPF requests up 220%
+        <span class="trend-badge">+340% search volume</span>
+        <span class="trend-sep">·</span>
+        Bakuchiol replacing retinol in 68% of new formulas
+        <span class="trend-sep">·</span>
+        Reef-safe SPF requests up 220%
       </div>
     </div>
 
-    <!-- Stats Row -->
+    <!-- ─── Stats Row ─────────────────────────────────────────── -->
     <div class="stats-row">
       <div class="stat-card">
+        <div class="stat-icon">
+          <i data-lucide="flask-conical" style="width:16px;height:16px;"></i>
+        </div>
         <div class="stat-value" id="stat-formulas">1,247</div>
         <div class="stat-label">Formulas Generated</div>
       </div>
       <div class="stat-card">
+        <div class="stat-icon">
+          <i data-lucide="trending-up" style="width:16px;height:16px;"></i>
+        </div>
         <div class="stat-value">5</div>
         <div class="stat-label">Trends Detected</div>
       </div>
       <div class="stat-card">
+        <div class="stat-icon">
+          <i data-lucide="coins" style="width:16px;height:16px;"></i>
+        </div>
         <div class="stat-value">$4.80</div>
         <div class="stat-label">Total R&D Cost</div>
       </div>
       <div class="stat-card">
+        <div class="stat-icon">
+          <i data-lucide="factory" style="width:16px;height:16px;"></i>
+        </div>
         <div class="stat-value">4</div>
         <div class="stat-label">Factories Evaluated</div>
       </div>
       <div class="stat-card">
+        <div class="stat-icon">
+          <i data-lucide="shield-check" style="width:16px;height:16px;"></i>
+        </div>
         <div class="stat-value">100%</div>
         <div class="stat-label">EU Compliance Rate</div>
       </div>
     </div>
 
-    <!-- Department Grid -->
-    <p class="section-title">AI Departments</p>
-    <div class="bento-grid">
+    <!-- ─── Section Header ────────────────────────────────────── -->
+    <div class="section-header">
+      <div class="section-header-text">
+        <h2>AI Departments</h2>
+        <p>Seven specialists, one seamless workflow</p>
+      </div>
+      <div class="section-header-line"></div>
+    </div>
 
-      <!-- Component 1 -->
+    <!-- ─── Department Grid ───────────────────────────────────── -->
+    <div class="dept-grid">
+
+      <!-- 01 Sentiment -->
       <div class="dept-card">
-        <div class="dept-card-header">
-          <div class="dept-icon">
-            <div class="icon-wrap"><i data-lucide="message-circle" style="width:16px;height:16px;"></i></div>
-            Sentiment Engine
+        <div class="dept-card-top">
+          <div class="dept-icon-circle">
+            <i data-lucide="message-circle" style="width:20px;height:20px;"></i>
           </div>
           <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
         </div>
+        <p class="dept-name">Sentiment Engine</p>
+        <p class="dept-subtitle">Trend → Ingredient mapping</p>
         <div class="dept-meta">
-          Latest: <span>5 comments analyzed</span><br/>
-          Result: <span>Glass Skin trend detected · High confidence</span>
+          <div class="dept-meta-row">
+            <span class="meta-key">Latest</span>
+            <span class="meta-val">5 comments analyzed</span>
+          </div>
+          <div class="dept-meta-row">
+            <span class="meta-key">Result</span>
+            <span class="meta-val">Glass Skin trend · High confidence</span>
+          </div>
         </div>
-        <div class="dept-footer">
-          <span style="font-size:0.75rem;color:var(--text-muted);">Trend → Ingredient mapping</span>
-          <a href="components/01_sentiment/index.html" class="launch-btn">Launch →</a>
-        </div>
+        <a href="components/01_sentiment/index.html" class="dept-launch">
+          Open Department <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </a>
       </div>
 
-      <!-- Component 2 -->
+      <!-- 02 Formulation -->
       <div class="dept-card">
-        <div class="dept-card-header">
-          <div class="dept-icon">
-            <div class="icon-wrap"><i data-lucide="flask-conical" style="width:16px;height:16px;"></i></div>
-            R&D Formulation
+        <div class="dept-card-top">
+          <div class="dept-icon-circle">
+            <i data-lucide="flask-conical" style="width:20px;height:20px;"></i>
           </div>
           <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
         </div>
+        <p class="dept-name">R&D Formulation</p>
+        <p class="dept-subtitle">Formulation + Safety Guardrail</p>
         <div class="dept-meta">
-          Latest: <span>Glass Skin Serum v1.2</span><br/>
-          Safety: <span style="color:var(--success);">EU & FDA Compliant ✓</span>
+          <div class="dept-meta-row">
+            <span class="meta-key">Latest</span>
+            <span class="meta-val">Glass Skin Serum v1.2</span>
+          </div>
+          <div class="dept-meta-row">
+            <span class="meta-key">Safety</span>
+            <span class="meta-val good">EU & FDA Compliant ✓</span>
+          </div>
         </div>
-        <div class="dept-footer">
-          <span style="font-size:0.75rem;color:var(--text-muted);">Formulation + Safety Guardrail</span>
-          <a href="components/02_formulation/index.html" class="launch-btn">Launch →</a>
-        </div>
+        <a href="components/02_formulation/index.html" class="dept-launch">
+          Open Department <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </a>
       </div>
 
-      <!-- Component 3 -->
+      <!-- 03 Marketing -->
       <div class="dept-card">
-        <div class="dept-card-header">
-          <div class="dept-icon">
-            <div class="icon-wrap"><i data-lucide="video" style="width:16px;height:16px;"></i></div>
-            Marketing Engine
+        <div class="dept-card-top">
+          <div class="dept-icon-circle">
+            <i data-lucide="video" style="width:20px;height:20px;"></i>
           </div>
           <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
         </div>
+        <p class="dept-name">Marketing Engine</p>
+        <p class="dept-subtitle">TikTok Content Engine</p>
         <div class="dept-meta">
-          Latest: <span>TikTok script generated</span><br/>
-          Tone: <span>Science-Forward · 30s storyboard ready</span>
+          <div class="dept-meta-row">
+            <span class="meta-key">Latest</span>
+            <span class="meta-val">TikTok script generated</span>
+          </div>
+          <div class="dept-meta-row">
+            <span class="meta-key">Tone</span>
+            <span class="meta-val">Science-Forward · 30s storyboard</span>
+          </div>
         </div>
-        <div class="dept-footer">
-          <span style="font-size:0.75rem;color:var(--text-muted);">TikTok Content Engine</span>
-          <a href="components/03_marketing/index.html" class="launch-btn">Launch →</a>
-        </div>
+        <a href="components/03_marketing/index.html" class="dept-launch">
+          Open Department <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </a>
       </div>
 
-      <!-- Component 4 -->
+      <!-- 04 Sales -->
       <div class="dept-card">
-        <div class="dept-card-header">
-          <div class="dept-icon">
-            <div class="icon-wrap"><i data-lucide="bot" style="width:16px;height:16px;"></i></div>
-            Sales Agent
+        <div class="dept-card-top">
+          <div class="dept-icon-circle">
+            <i data-lucide="bot" style="width:20px;height:20px;"></i>
           </div>
           <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
         </div>
+        <p class="dept-name">Sales Agent</p>
+        <p class="dept-subtitle">Waitlist Nurturing Chatbot</p>
         <div class="dept-meta">
-          Latest: <span>3 leads qualified today</span><br/>
-          Status: <span>Chatbot online · Lead score tracking</span>
+          <div class="dept-meta-row">
+            <span class="meta-key">Latest</span>
+            <span class="meta-val">3 leads qualified today</span>
+          </div>
+          <div class="dept-meta-row">
+            <span class="meta-key">Status</span>
+            <span class="meta-val">Chatbot online · Lead score tracking</span>
+          </div>
         </div>
-        <div class="dept-footer">
-          <span style="font-size:0.75rem;color:var(--text-muted);">Waitlist Nurturing Chatbot</span>
-          <a href="components/04_sales/index.html" class="launch-btn">Launch →</a>
-        </div>
+        <a href="components/04_sales/index.html" class="dept-launch">
+          Open Department <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </a>
       </div>
 
-      <!-- Component 5 -->
+      <!-- 05 HR -->
       <div class="dept-card">
-        <div class="dept-card-header">
-          <div class="dept-icon">
-            <div class="icon-wrap"><i data-lucide="users" style="width:16px;height:16px;"></i></div>
-            HR & Talent
+        <div class="dept-card-top">
+          <div class="dept-icon-circle">
+            <i data-lucide="users" style="width:20px;height:20px;"></i>
           </div>
           <span class="badge badge-warning"><span class="status-dot pending"></span>Ready</span>
         </div>
+        <p class="dept-name">HR & Talent</p>
+        <p class="dept-subtitle">JD Generator + Skill-Gap Analyzer</p>
         <div class="dept-meta">
-          Latest: <span>1 skill gap detected</span><br/>
-          Result: <span>JD for Peptide Chemist generated</span>
+          <div class="dept-meta-row">
+            <span class="meta-key">Latest</span>
+            <span class="meta-val">1 skill gap detected</span>
+          </div>
+          <div class="dept-meta-row">
+            <span class="meta-key">Result</span>
+            <span class="meta-val">JD for Peptide Chemist generated</span>
+          </div>
         </div>
-        <div class="dept-footer">
-          <span style="font-size:0.75rem;color:var(--text-muted);">JD Generator + Skill-Gap Analyzer</span>
-          <a href="components/05_hr/index.html" class="launch-btn">Launch →</a>
-        </div>
+        <a href="components/05_hr/index.html" class="dept-launch">
+          Open Department <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </a>
       </div>
 
-      <!-- Component 6 -->
+      <!-- 06 Finance -->
       <div class="dept-card">
-        <div class="dept-card-header">
-          <div class="dept-icon">
-            <div class="icon-wrap"><i data-lucide="bar-chart-2" style="width:16px;height:16px;"></i></div>
-            Finance / CFO
+        <div class="dept-card-top">
+          <div class="dept-icon-circle">
+            <i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i>
           </div>
           <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
         </div>
+        <p class="dept-name">Finance / CFO</p>
+        <p class="dept-subtitle">Unit Economics Simulator</p>
         <div class="dept-meta">
-          Latest: <span>100 formulas simulated</span><br/>
-          Saving: <span style="color:var(--success);">$1,499,995 vs. traditional lab</span>
+          <div class="dept-meta-row">
+            <span class="meta-key">Latest</span>
+            <span class="meta-val">100 formulas simulated</span>
+          </div>
+          <div class="dept-meta-row">
+            <span class="meta-key">Saving</span>
+            <span class="meta-val good">$1,499,995 vs. traditional lab</span>
+          </div>
         </div>
-        <div class="dept-footer">
-          <span style="font-size:0.75rem;color:var(--text-muted);">Unit Economics Simulator</span>
-          <a href="components/06_finance/index.html" class="launch-btn">Launch →</a>
-        </div>
+        <a href="components/06_finance/index.html" class="dept-launch">
+          Open Department <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </a>
       </div>
 
-      <!-- Component 7 -->
+      <!-- 07 Ops -->
       <div class="dept-card">
-        <div class="dept-card-header">
-          <div class="dept-icon">
-            <div class="icon-wrap"><i data-lucide="factory" style="width:16px;height:16px;"></i></div>
-            Operations
+        <div class="dept-card-top">
+          <div class="dept-icon-circle">
+            <i data-lucide="factory" style="width:20px;height:20px;"></i>
           </div>
           <span class="badge badge-success"><span class="status-dot active"></span>Active</span>
         </div>
+        <p class="dept-name">Operations</p>
+        <p class="dept-subtitle">Contract Manufacturer Selector</p>
         <div class="dept-meta">
-          Latest: <span>4 factories evaluated</span><br/>
-          Pick: <span>SpeedForm EU — Score 84.2</span>
+          <div class="dept-meta-row">
+            <span class="meta-key">Latest</span>
+            <span class="meta-val">4 factories evaluated</span>
+          </div>
+          <div class="dept-meta-row">
+            <span class="meta-key">Pick</span>
+            <span class="meta-val">SpeedForm EU — Score 84.2</span>
+          </div>
         </div>
-        <div class="dept-footer">
-          <span style="font-size:0.75rem;color:var(--text-muted);">Contract Manufacturer Selector</span>
-          <a href="components/07_ops/index.html" class="launch-btn">Launch →</a>
-        </div>
+        <a href="components/07_ops/index.html" class="dept-launch">
+          Open Department <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </a>
       </div>
 
     </div>
   </div>
 
-  <!-- Ticker -->
+  <!-- ─── Ticker ────────────────────────────────────────────────── -->
   <div class="ticker-bar">
     <div class="ticker-track" id="ticker">
       <span class="ticker-item"><span class="dot">✦</span> TikTok trend detected: Bakuchiol</span>
@@ -429,20 +701,21 @@
       <span class="ticker-item"><span class="dot">✦</span> Formula #1,247 generated — Glass Skin Serum v1.2</span>
       <span class="ticker-item"><span class="dot">✦</span> Safety check passed: Phenoxyethanol auto-corrected to 1%</span>
       <span class="ticker-item"><span class="dot">✦</span> Lead qualified: Indie founder — EU market, 500 MOQ</span>
-      <span class="ticker-item"><span class="dot">✦</span> Skill gap detected: Peptide Chemist JD generated</span>
+      <span class="ticker-item"><span class="dot">✦</span> Skill gap closed: Peptide Chemist JD generated</span>
+      <span class="ticker-item"><span class="dot">✦</span> R&D savings: $1.5M vs. traditional lab pipeline</span>
       <span class="ticker-item"><span class="dot">✦</span> TikTok trend detected: Bakuchiol</span>
       <span class="ticker-item"><span class="dot">✦</span> New factory certified: GreenLab Korea</span>
       <span class="ticker-item"><span class="dot">✦</span> Formula #1,247 generated — Glass Skin Serum v1.2</span>
       <span class="ticker-item"><span class="dot">✦</span> Safety check passed: Phenoxyethanol auto-corrected to 1%</span>
       <span class="ticker-item"><span class="dot">✦</span> Lead qualified: Indie founder — EU market, 500 MOQ</span>
-      <span class="ticker-item"><span class="dot">✦</span> Skill gap detected: Peptide Chemist JD generated</span>
+      <span class="ticker-item"><span class="dot">✦</span> Skill gap closed: Peptide Chemist JD generated</span>
+      <span class="ticker-item"><span class="dot">✦</span> R&D savings: $1.5M vs. traditional lab pipeline</span>
     </div>
   </div>
 
   <script>
     lucide.createIcons();
 
-    // Formula counter ticks up every 3 seconds
     let count = 1247;
     setInterval(() => {
       count += Math.floor(Math.random() * 3) + 1;
