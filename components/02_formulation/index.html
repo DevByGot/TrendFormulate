@@ -40,50 +40,23 @@
       color: var(--text-muted);
     }
 
-    /* ── Slider fill ───────────────────────────────────────────── */
-    .slider-row { display: flex; align-items: center; gap: 0.75rem; }
-    .pct-display {
-      min-width: 46px;
-      text-align: right;
-      font-size: 0.875rem;
-      font-weight: 700;
-      color: var(--accent);
-    }
-    .ing-hint {
-      font-size: 0.6875rem;
-      color: var(--text-muted);
-      margin-top: 0.25rem;
-    }
-
-    /* ── Builder ingredient entries ────────────────────────────── */
-    .ing-entries { display: flex; flex-direction: column; gap: 0.375rem; }
-    .ing-entry {
+    /* ── Editable % input in formula table ────────────────────── */
+    .pct-input {
+      width: 64px;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      padding: 0.5rem 0.625rem 0.5rem 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      animation: slideIn 0.2s ease forwards;
-    }
-    .ing-entry-info { flex: 1; min-width: 0; }
-    .ing-entry-name {
-      font-size: 0.8125rem;
-      font-weight: 500;
-      color: var(--text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .ing-entry-meta { font-size: 0.6875rem; color: var(--text-muted); }
-    .ing-entry-pct {
+      color: var(--accent);
+      font-family: var(--font-body);
       font-size: 0.875rem;
       font-weight: 700;
-      color: var(--accent);
-      min-width: 40px;
+      padding: 0.25rem 0.4rem;
       text-align: right;
+      outline: none;
+      transition: border-color 0.15s;
     }
+    .pct-input:focus { border-color: var(--accent); }
+
     .remove-btn {
       background: transparent;
       border: none;
@@ -97,21 +70,6 @@
       flex-shrink: 0;
     }
     .remove-btn:hover { color: var(--error); background: rgba(221,105,116,0.12); }
-
-    /* ── Total indicator ───────────────────────────────────────── */
-    .total-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.5rem 0.75rem;
-      border-radius: var(--radius-sm);
-      font-size: 0.8125rem;
-      font-weight: 600;
-      transition: all 0.25s;
-    }
-    .total-bar.ok  { background: rgba(109,170,69,0.1);  color: var(--success); border: 1px solid rgba(109,170,69,0.2); }
-    .total-bar.low { background: rgba(212,168,67,0.08); color: var(--warning); border: 1px solid rgba(212,168,67,0.2); }
-    .total-bar.over{ background: rgba(221,105,116,0.08);color: var(--error);   border: 1px solid rgba(221,105,116,0.2);}
 
     /* ── Formula table ─────────────────────────────────────────── */
     .formula-table {
@@ -333,34 +291,15 @@
         <div>
           <label for="ing-select">Select Ingredient</label>
           <select id="ing-select"></select>
-          <p id="ing-hint" class="ing-hint">Optimal: — &nbsp;|&nbsp; Max: —</p>
-        </div>
-
-        <!-- Percentage slider -->
-        <div>
-          <label>Percentage &nbsp;<span id="pct-label" style="color:var(--accent);font-weight:700;">3.0%</span></label>
-          <div class="slider-row">
-            <input id="pct-slider" type="range" min="0.5" max="95" step="0.5" value="3" style="flex:1;" />
-          </div>
         </div>
 
         <button class="btn btn-primary" id="add-btn" onclick="addIngredient()">
           <i data-lucide="plus" style="width:15px;height:15px;"></i> Add to Formula
         </button>
 
-        <hr style="margin:0;" />
-
-        <!-- Current formula entries -->
-        <div>
-          <p class="panel-title" style="margin-bottom:0.5rem;">Current Composition</p>
-          <div id="ing-entries" class="ing-entries"></div>
-        </div>
-
-        <!-- Total indicator -->
-        <div id="total-bar" class="total-bar low">
-          <span>Total</span>
-          <span id="total-val">0.0%</span>
-        </div>
+        <p style="font-size:0.75rem;color:var(--text-muted);line-height:1.5;">
+          Ingredients are added with a suggested starting %. Edit each percentage directly in the Formula Draft table.
+        </p>
       </div>
 
       <!-- ═══════════════════════════════════════════════════
@@ -467,8 +406,6 @@
     /* ── Init ────────────────────────────────────────────────────── */
     function init() {
       populateSelect();
-      setupSlider();
-      renderIngEntries();
       renderFormulaTable();
     }
 
@@ -481,100 +418,69 @@
         opt.textContent = ing.name + ' — ' + ing.inci;
         sel.appendChild(opt);
       });
-      sel.addEventListener('change', onIngSelectChange);
-      onIngSelectChange(); // set hint for default selection
-    }
-
-    function onIngSelectChange() {
-      const sel = document.getElementById('ing-select');
-      const ing = INGREDIENTS_DB.find(i => i.name === sel.value);
-      if (!ing) return;
-      const def = ing.optimal_pct ?? Math.min(5, ing.max_pct * 0.5, 10);
-      document.getElementById('pct-slider').value = def;
-      updateSlider();
-      const hint = document.getElementById('ing-hint');
-      const optText = ing.optimal_pct != null ? `Optimal: ${ing.optimal_pct}%` : 'Optimal: —';
-      hint.textContent = `${optText}  |  Max: ${ing.max_pct}%${ing.regulation ? '  |  ' + ing.regulation : ''}`;
-    }
-
-    /* ── Slider ──────────────────────────────────────────────────── */
-    function setupSlider() {
-      const slider = document.getElementById('pct-slider');
-      slider.addEventListener('input', updateSlider);
-      updateSlider();
-    }
-
-    function updateSlider() {
-      const slider = document.getElementById('pct-slider');
-      const v = parseFloat(slider.value);
-      document.getElementById('pct-label').textContent = v.toFixed(1) + '%';
-      const pct = ((v - parseFloat(slider.min)) / (parseFloat(slider.max) - parseFloat(slider.min))) * 100;
-      slider.style.background = `linear-gradient(to right, var(--accent) ${pct}%, var(--surface-2) ${pct}%)`;
     }
 
     /* ── Add ingredient ──────────────────────────────────────────── */
     function addIngredient() {
       const name = document.getElementById('ing-select').value;
-      const pct = parseFloat(document.getElementById('pct-slider').value);
       const ing = INGREDIENTS_DB.find(i => i.name === name);
       if (!ing) return;
 
-      const existing = formula.findIndex(f => f.name === name);
-      if (existing !== -1) {
-        formula[existing].pct = pct;
-      } else {
-        formula.push({ name: ing.name, inci: ing.inci, pct, type: ing.type });
+      if (formula.findIndex(f => f.name === name) !== -1) {
+        // Already present — just flash the row instead of duplicating
+        const inputs = document.querySelectorAll('.pct-input');
+        const rows = document.querySelectorAll('.formula-table tbody tr');
+        const idx = formula.findIndex(f => f.name === name);
+        if (rows[idx]) {
+          rows[idx].style.transition = 'background 0.15s';
+          rows[idx].style.background = 'rgba(79,152,163,0.12)';
+          setTimeout(() => { rows[idx].style.background = ''; }, 600);
+        }
+        return;
       }
 
+      const defaultPct = ing.optimal_pct ?? Math.min(5, Math.round(ing.max_pct * 0.3 * 10) / 10, 10);
+      formula.push({ name: ing.name, inci: ing.inci, pct: defaultPct, type: ing.type });
+
       resetAudit();
-      renderIngEntries();
       renderFormulaTable();
+    }
+
+    /* ── Update a single ingredient's % ─────────────────────────── */
+    function updatePct(name, rawVal) {
+      const val = parseFloat(rawVal);
+      if (isNaN(val) || val < 0) return;
+      const idx = formula.findIndex(f => f.name === name);
+      if (idx === -1) return;
+      formula[idx].pct = Math.round(val * 10) / 10;
+      resetAudit();
+      refreshTotals();
+    }
+
+    /* ── Refresh just the tfoot totals (no full re-render) ───────── */
+    function refreshTotals() {
+      const total = formula.reduce((s, f) => s + f.pct, 0);
+      const isOk  = Math.abs(total - 100) < 0.05;
+      const isOver = total > 100.05;
+
+      const totalCell = document.querySelector('.formula-table tfoot .tfoot-row td:nth-child(2)');
+      const hintCell  = document.querySelector('.formula-table tfoot .tfoot-row td:nth-child(3)');
+      if (totalCell) {
+        totalCell.className = isOk ? 'total-ok' : 'total-warn';
+        totalCell.textContent = isOk ? '✓ 100.0' : total.toFixed(1);
+      }
+      if (hintCell) {
+        hintCell.textContent = isOk ? 'Ready to audit ↓' : (isOver ? 'Over 100% — reduce an ingredient' : 'Must equal 100% to run audit');
+      }
+      const auditBtn = document.getElementById('audit-btn');
+      if (auditBtn) auditBtn.disabled = !isOk;
     }
 
     /* ── Remove ingredient ───────────────────────────────────────── */
     function removeIngredient(name) {
       formula = formula.filter(f => f.name !== name);
       resetAudit();
-      renderIngEntries();
       renderFormulaTable();
-    }
-
-    /* ── Render builder entries ──────────────────────────────────── */
-    function renderIngEntries() {
-      const container = document.getElementById('ing-entries');
-      if (formula.length === 0) {
-        container.innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:0.75rem 0;">No ingredients yet.</p>';
-        updateTotalBar();
-        return;
-      }
-      container.innerHTML = '';
-      formula.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'ing-entry';
-        div.innerHTML = `
-          <div class="ing-entry-info">
-            <div class="ing-entry-name">${item.name}</div>
-            <div class="ing-entry-meta">${item.inci} &middot; ${cap(item.type)}</div>
-          </div>
-          <span class="ing-entry-pct">${item.pct.toFixed(1)}%</span>
-          <button class="remove-btn" onclick="removeIngredient('${escQ(item.name)}')" title="Remove">
-            <i data-lucide="x" style="width:13px;height:13px;"></i>
-          </button>`;
-        container.appendChild(div);
-      });
-      lucide.createIcons();
-      updateTotalBar();
-    }
-
-    /* ── Total bar ───────────────────────────────────────────────── */
-    function updateTotalBar() {
-      const total = formula.reduce((s, f) => s + f.pct, 0);
-      const bar  = document.getElementById('total-bar');
-      const val  = document.getElementById('total-val');
-      val.textContent = total.toFixed(1) + '%';
-      const isOk   = Math.abs(total - 100) < 0.05;
-      const isOver = total > 100.05;
-      bar.className = 'total-bar ' + (isOk ? 'ok' : isOver ? 'over' : 'low');
     }
 
     /* ── Render formula table ────────────────────────────────────── */
@@ -607,7 +513,18 @@
       const rows = formula.map(item => `
         <tr>
           <td style="font-weight:500;">${item.inci}</td>
-          <td style="font-weight:700;color:var(--accent);">${item.pct.toFixed(1)}</td>
+          <td>
+            <input
+              type="number"
+              class="pct-input"
+              value="${item.pct}"
+              min="0.1"
+              max="99.9"
+              step="0.1"
+              onchange="updatePct('${escQ(item.name)}', this.value)"
+              oninput="updatePct('${escQ(item.name)}', this.value)"
+            />
+          </td>
           <td>${cap(item.type)}</td>
           <td>
             <button class="remove-btn" onclick="removeIngredient('${escQ(item.name)}')" title="Remove ${escQ(item.name)}">
@@ -740,7 +657,6 @@
         formula[waterIdx].pct = Math.max(0, parseFloat((formula[waterIdx].pct + surplus).toFixed(1)));
       }
       resetAudit();
-      renderIngEntries();
       renderFormulaTable();
       runAudit();
     }
