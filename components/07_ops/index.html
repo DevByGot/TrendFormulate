@@ -6,6 +6,328 @@
   <title>Manufacturer Selector — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ── Layout ─────────────────────────────────────────────── */
+    .ops-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .ops-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── Sliders ─────────────────────────────────────────────── */
+    .slider-row {
+      margin-bottom: 1.25rem;
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.4rem;
+    }
+    .slider-label {
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .slider-value {
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 2.5rem;
+      text-align: right;
+    }
+    .slider-track-wrap {
+      position: relative;
+    }
+    input[type="range"].slider-accent {
+      background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--pct, 50%), var(--surface-2) var(--pct, 50%));
+    }
+    .weight-display {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      display: flex;
+      gap: 0.5rem;
+    }
+    .weight-chip {
+      flex: 1;
+      text-align: center;
+    }
+    .weight-chip-value {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .weight-chip-label {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+    .weight-sum-warning {
+      font-size: 0.75rem;
+      color: var(--warning);
+      margin-top: 0.5rem;
+      display: none;
+    }
+
+    /* ── Form fields ─────────────────────────────────────────── */
+    .form-row {
+      margin-bottom: 1rem;
+    }
+
+    /* ── Empty state ─────────────────────────────────────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 4rem 2rem;
+      border: 1px dashed rgba(79,152,163,0.25);
+      border-radius: var(--radius);
+      color: var(--text-muted);
+      gap: 0.75rem;
+    }
+
+    /* ── Recommendation banner ───────────────────────────────── */
+    .rec-banner {
+      background: linear-gradient(135deg, rgba(79,152,163,0.18) 0%, rgba(79,152,163,0.06) 100%);
+      border: 1px solid rgba(79,152,163,0.4);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      animation: slideIn 0.4s ease forwards;
+    }
+    .rec-banner-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .rec-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }
+    .rec-score-big {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .rec-rationale {
+      font-size: 0.875rem;
+      line-height: 1.65;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.2);
+      border-radius: var(--radius-sm);
+      padding: 0.875rem 1rem;
+      white-space: pre-line;
+      margin-bottom: 1rem;
+      font-family: 'Courier New', monospace;
+    }
+    .rec-meta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .rec-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .rec-meta-item .meta-label {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+    .rec-meta-item .meta-value {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    /* ── Factory rank cards ──────────────────────────────────── */
+    .ranked-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .factory-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.125rem 1.25rem;
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 0.875rem;
+      align-items: start;
+      animation: slideIn 0.35s ease forwards;
+    }
+    .factory-card:nth-child(2) { animation-delay: 0.05s; opacity: 0; }
+    .factory-card:nth-child(3) { animation-delay: 0.1s;  opacity: 0; }
+    .factory-card:nth-child(4) { animation-delay: 0.15s; opacity: 0; }
+
+    .rank-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .rank-1 { background: rgba(212,168,67,0.2); color: #d4a843; }
+    .rank-2 { background: rgba(180,180,180,0.15); color: #aaa; }
+    .rank-3 { background: rgba(180,120,70,0.15); color: #b47846; }
+    .rank-4 { background: var(--surface-2); color: var(--text-muted); }
+
+    .factory-info {}
+    .factory-name {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.2rem;
+    }
+    .factory-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-bottom: 0.75rem;
+    }
+    .tag {
+      font-size: 0.6875rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: var(--surface-2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    /* Mini score bars */
+    .score-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+    .score-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+    }
+    .score-bar-label {
+      width: 48px;
+      color: var(--text-muted);
+      font-size: 0.6875rem;
+      flex-shrink: 0;
+    }
+    .score-bar-track {
+      flex: 1;
+      height: 5px;
+      background: var(--surface-2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+    .fill-speed { background: #4f98a3; }
+    .fill-cost  { background: #6daa45; }
+    .fill-cert  { background: #d4a843; }
+    .score-bar-val {
+      width: 30px;
+      text-align: right;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.6875rem;
+    }
+
+    .factory-total-score {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .total-score-num {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      line-height: 1;
+      color: var(--text);
+    }
+    .total-score-label {
+      font-size: 0.625rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    /* ── Loading ─────────────────────────────────────────────── */
+    .loading-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+    .loading-steps {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      text-align: left;
+      width: 100%;
+      max-width: 280px;
+    }
+    .loading-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0;
+      opacity: 0.4;
+      transition: opacity 0.3s;
+    }
+    .loading-step.done { opacity: 1; color: var(--success); }
+    .loading-step.active { opacity: 1; }
+
+    /* ── Result header ───────────────────────────────────────── */
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    /* ── Print styles ────────────────────────────────────────── */
+    @media print {
+      .ops-left, .no-print { display: none !important; }
+      .ops-layout { grid-template-columns: 1fr; }
+      .rec-banner { border: 1px solid #ccc; background: #f9f9f9; }
+      .factory-card { border: 1px solid #ddd; }
+    }
+  </style>
 </head>
 <body>
 
@@ -24,7 +346,8 @@
 
   <div class="page-wrapper">
 
-    <div style="margin-bottom:1.5rem;">
+    <!-- Page header -->
+    <div style="margin-bottom:1.75rem;">
       <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
         <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
           <i data-lucide="factory" style="width:18px;height:18px;"></i>
@@ -32,37 +355,181 @@
         <h1 style="font-size:1.5rem;">AI Contract Manufacturer Selector</h1>
         <span class="badge badge-accent">Component 07</span>
       </div>
-      <p style="color:var(--text-muted);font-size:0.875rem;max-width:600px;">
-        Takes mock factory data and user priorities, runs a weighted multi-criteria scoring algorithm,
-        and outputs a ranked manufacturer recommendation with reasoning.
+      <p style="color:var(--text-muted);font-size:0.875rem;max-width:620px;">
+        Set your launch priorities, describe your formula requirements, and let the scoring algorithm rank all candidate factories — with an AI-generated recommendation and rationale.
       </p>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-         👇 YOUR COMPONENT CODE GOES BELOW THIS LINE
-         Owner: [Your Name]
-         Data:  ../../data/factories.json
-                scoreFactories() function defined below
-         ═══════════════════════════════════════════════════════ -->
+    <div class="ops-layout">
 
-    <div class="card" style="text-align:center;padding:3rem;border-style:dashed;border-color:rgba(79,152,163,0.3);">
-      <i data-lucide="code-2" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:1rem;"></i>
-      <p style="color:var(--text-muted);font-size:0.9375rem;">
-        Component 07 — Manufacturer Selector<br/>
-        <span style="font-size:0.8125rem;">Build your 3-panel UI here. Load <code>../../data/factories.json</code> and use <code>scoreFactories()</code>.</span>
-      </p>
-    </div>
+      <!-- ── LEFT: Config panels ────────────────────────────── -->
+      <div class="ops-left">
 
-    <!-- ═══════════════════════════════════════════════════════
-         👆 YOUR COMPONENT CODE ENDS ABOVE THIS LINE
-         ═══════════════════════════════════════════════════════ -->
+        <!-- Panel 1: Priority Weights -->
+        <div class="card" style="margin-bottom:1rem;">
+          <p class="card-title">Priority Weights</p>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Drag each slider to set how much each criterion matters. Weights are auto-normalised to 100%.</p>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-label">
+                <i data-lucide="zap" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;color:var(--accent);"></i>
+                Speed to Market
+              </span>
+              <span class="slider-value" id="val-speed">50</span>
+            </div>
+            <input type="range" id="sl-speed" class="slider-accent" min="0" max="100" value="50" />
+          </div>
+
+          <div class="slider-row">
+            <div class="slider-header">
+              <span class="slider-label">
+                <i data-lucide="dollar-sign" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;color:var(--success);"></i>
+                Cost Efficiency
+              </span>
+              <span class="slider-value" id="val-cost">25</span>
+            </div>
+            <input type="range" id="sl-cost" class="slider-accent" min="0" max="100" value="25" />
+          </div>
+
+          <div class="slider-row" style="margin-bottom:0;">
+            <div class="slider-header">
+              <span class="slider-label">
+                <i data-lucide="shield-check" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;color:var(--warning);"></i>
+                Certification Level
+              </span>
+              <span class="slider-value" id="val-cert">25</span>
+            </div>
+            <input type="range" id="sl-cert" class="slider-accent" min="0" max="100" value="25" />
+          </div>
+
+          <div class="weight-display" id="weight-display">
+            <div class="weight-chip">
+              <div class="weight-chip-value" id="norm-speed">50%</div>
+              <div class="weight-chip-label">Speed</div>
+            </div>
+            <div style="width:1px;background:var(--border);"></div>
+            <div class="weight-chip">
+              <div class="weight-chip-value" id="norm-cost">25%</div>
+              <div class="weight-chip-label">Cost</div>
+            </div>
+            <div style="width:1px;background:var(--border);"></div>
+            <div class="weight-chip">
+              <div class="weight-chip-value" id="norm-cert">25%</div>
+              <div class="weight-chip-label">Cert</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Formula Context -->
+        <div class="card" style="margin-bottom:1rem;">
+          <p class="card-title">Formula Context</p>
+
+          <div class="form-row">
+            <label for="formula-select">My formula is</label>
+            <select id="formula-select">
+              <option value="Glass Skin Serum">Glass Skin Serum</option>
+              <option value="Bakuchiol Night Cream">Bakuchiol Night Cream</option>
+              <option value="Zinc SPF 30">Zinc SPF 30</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="target-market">Target market</label>
+            <select id="target-market">
+              <option value="EU">European Union</option>
+              <option value="US">United States</option>
+              <option value="Both">EU + US (both)</option>
+              <option value="Global">Global</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="launch-date">Target launch date</label>
+            <input type="date" id="launch-date" class="input" />
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.25rem;">
+            <input type="checkbox" id="eu-compliance" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;" />
+            <label for="eu-compliance" style="margin:0;cursor:pointer;font-size:0.8125rem;color:var(--text);">Require EU GMP / Ecocert certification</label>
+          </div>
+        </div>
+
+        <!-- Run button -->
+        <button class="btn btn-primary" id="run-btn" style="width:100%;justify-content:center;">
+          <i data-lucide="play-circle" style="width:16px;height:16px;"></i>
+          Run Analysis
+        </button>
+
+        <!-- Factory count info -->
+        <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:0.75rem;">
+          Evaluating <strong style="color:var(--text);">4 certified factories</strong> across 3 regions
+        </p>
+
+      </div><!-- /ops-left -->
+
+      <!-- ── RIGHT: Results panel ────────────────────────────── -->
+      <div id="results-panel">
+        <div class="empty-state">
+          <i data-lucide="bar-chart-horizontal" style="width:36px;height:36px;color:var(--text-muted);"></i>
+          <div>
+            <p style="font-size:0.9375rem;color:var(--text);margin-bottom:0.25rem;">No analysis yet</p>
+            <p style="font-size:0.8125rem;">Configure your priorities on the left, then click <strong>Run Analysis</strong>.</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /ops-layout -->
 
   </div>
 
   <script>
     lucide.createIcons();
 
-    // ─── Factory scoring algorithm (blueprint) ──────────────
+    /* ─── Set default launch date (today + 90 days) ─────────── */
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 90);
+    document.getElementById('launch-date').value = defaultDate.toISOString().split('T')[0];
+
+    /* ─── Slider logic ──────────────────────────────────────── */
+    const slSpeed = document.getElementById('sl-speed');
+    const slCost  = document.getElementById('sl-cost');
+    const slCert  = document.getElementById('sl-cert');
+
+    function updateSliderBackground(el) {
+      const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+      el.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--surface-2) ${pct}%)`;
+    }
+
+    function updateWeightDisplay() {
+      const s = parseInt(slSpeed.value);
+      const c = parseInt(slCost.value);
+      const r = parseInt(slCert.value);
+      const total = s + c + r;
+
+      document.getElementById('val-speed').textContent = s;
+      document.getElementById('val-cost').textContent  = c;
+      document.getElementById('val-cert').textContent  = r;
+
+      if (total === 0) {
+        document.getElementById('norm-speed').textContent = '—';
+        document.getElementById('norm-cost').textContent  = '—';
+        document.getElementById('norm-cert').textContent  = '—';
+      } else {
+        document.getElementById('norm-speed').textContent = Math.round(s/total*100) + '%';
+        document.getElementById('norm-cost').textContent  = Math.round(c/total*100) + '%';
+        document.getElementById('norm-cert').textContent  = Math.round(r/total*100) + '%';
+      }
+
+      updateSliderBackground(slSpeed);
+      updateSliderBackground(slCost);
+      updateSliderBackground(slCert);
+    }
+
+    [slSpeed, slCost, slCert].forEach(sl => sl.addEventListener('input', updateWeightDisplay));
+    updateWeightDisplay();
+
+    /* ─── Factory scoring algorithm ─────────────────────────── */
     function scoreFactories(factories, weights) {
       const total = weights.speed + weights.cost + weights.cert;
       const w = {
@@ -78,42 +545,250 @@
         const speedScore = (1 - factory.delivery_days / maxDelivery) * 100;
         const costScore  = (1 - factory.cost_per_unit  / maxCost)    * 100;
         const certScore  = factory.cert_score;
-
         const totalScore = (speedScore * w.speed) + (costScore * w.cost) + (certScore * w.cert);
 
         return {
           ...factory,
-          speedScore: speedScore.toFixed(1),
-          costScore:  costScore.toFixed(1),
-          certScore:  certScore.toFixed(1),
-          totalScore: totalScore.toFixed(1)
+          speedScore: parseFloat(speedScore.toFixed(1)),
+          costScore:  parseFloat(costScore.toFixed(1)),
+          certScore:  parseFloat(certScore.toFixed(1)),
+          totalScore: parseFloat(totalScore.toFixed(1))
         };
       }).sort((a, b) => b.totalScore - a.totalScore);
     }
 
-    // ─── Generate written rationale for #1 pick ─────────────
-    function generateRationale(ranked, weights) {
-      const top = ranked[0];
+    /* ─── Generate written rationale ────────────────────────── */
+    function generateRationale(ranked, weights, formula, market) {
+      const top    = ranked[0];
       const runner = ranked[1];
       const launchDate = new Date();
       launchDate.setDate(launchDate.getDate() + parseInt(top.delivery_days));
-      const launchStr = launchDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const launchStr = launchDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-      return `RECOMMENDATION: ${top.name} (#1 with score ${top.totalScore})
+      const total = weights.speed + weights.cost + weights.cert;
+      const wSpeed = Math.round(weights.speed / total * 100);
+      const wCost  = Math.round(weights.cost  / total * 100);
+      const wCert  = Math.round(weights.cert  / total * 100);
 
-Despite differences in cost, ${top.name} is the optimal choice for your priorities.
-With delivery in ${top.delivery_days} days and ${top.certification}, it aligns with your
-highest-weighted criteria.
+      const costDiff = ((top.cost_per_unit - runner.cost_per_unit) / runner.cost_per_unit * 100).toFixed(0);
+      const costNote = costDiff > 0
+        ? `Despite a ${Math.abs(costDiff)}% higher unit cost than ${runner.name},`
+        : `With a ${Math.abs(costDiff)}% lower unit cost than ${runner.name},`;
+
+      return `RECOMMENDATION: ${top.name}  (#1 · Score ${top.totalScore})
+
+${costNote} ${top.name} is the optimal choice for your ${formula} launch${market !== 'Global' ? ' targeting ' + market : ''}.
+
+With delivery in ${top.delivery_days} days vs. ${runner.delivery_days} days for the next-best option, and ${top.certification} certification, it delivers on your highest priorities: Speed (${wSpeed}%), Cost (${wCost}%), Certification (${wCert}%).
 
 Estimated launch date: ${launchStr}
-Estimated unit cost at ${top.moq.toLocaleString()} MOQ: $${(top.cost_per_unit * top.moq).toLocaleString()}`;
+Estimated unit cost at ${top.moq.toLocaleString()} MOQ: $${(top.cost_per_unit * top.moq).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     }
 
-    // ─── Load factory data ───────────────────────────────────
+    /* ─── Load factory data ─────────────────────────────────── */
     async function loadFactories() {
-      const res = await fetch("../../data/factories.json");
+      const res = await fetch('../../data/factories.json');
       return res.json();
     }
+
+    /* ─── Render results ────────────────────────────────────── */
+    function renderResults(ranked, weights, formula, market) {
+      const panel = document.getElementById('results-panel');
+      const top = ranked[0];
+      const rationale = generateRationale(ranked, weights, formula, market);
+
+      const medals = ['#1', '#2', '#3', '#4'];
+      const rankClasses = ['rank-1', 'rank-2', 'rank-3', 'rank-4'];
+
+      /* EU compliance filter note */
+      const euRequired = document.getElementById('eu-compliance').checked;
+      const euNote = euRequired
+        ? `<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;font-size:0.8125rem;padding:0.6rem 0.875rem;background:rgba(212,168,67,0.1);border:1px solid rgba(212,168,67,0.25);border-radius:var(--radius-sm);color:var(--warning);">
+            <i data-lucide="info" style="width:14px;height:14px;flex-shrink:0;"></i>
+            EU compliance required — factories without EU GMP / Ecocert are shown but flagged.
+          </div>`
+        : '';
+
+      /* Top recommendation */
+      const recHTML = `
+        <div class="rec-banner">
+          <div class="rec-banner-header">
+            <div>
+              <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;">
+                <span class="rec-badge"><i data-lucide="star" style="width:11px;height:11px;"></i> AI Recommendation</span>
+              </div>
+              <div style="font-family:var(--font-display);font-size:1.375rem;color:var(--text);">${top.name}</div>
+              <div style="font-size:0.8125rem;color:var(--text-muted);">${top.region} · ${top.certification}</div>
+            </div>
+            <div style="text-align:right;">
+              <div class="rec-score-big">${top.totalScore}</div>
+              <div style="font-size:0.6875rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">Overall Score</div>
+            </div>
+          </div>
+
+          <div class="rec-rationale">${rationale}</div>
+
+          <div class="rec-meta">
+            <div class="rec-meta-item">
+              <span class="meta-label">Delivery</span>
+              <span class="meta-value">${top.delivery_days} days</span>
+            </div>
+            <div class="rec-meta-item">
+              <span class="meta-label">Min. Order</span>
+              <span class="meta-value">${top.moq.toLocaleString()} units</span>
+            </div>
+            <div class="rec-meta-item">
+              <span class="meta-label">Unit Cost</span>
+              <span class="meta-value">$${top.cost_per_unit.toFixed(2)}</span>
+            </div>
+            <div class="rec-meta-item">
+              <span class="meta-label">Cert Score</span>
+              <span class="meta-value">${top.cert_score}/100</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      /* All ranked factory cards */
+      const cardsHTML = ranked.map((f, i) => {
+        const euMismatch = euRequired && !f.certification.toLowerCase().includes('eu') && !f.certification.toLowerCase().includes('ecocert');
+        const warningTag = euMismatch
+          ? `<span class="tag" style="color:var(--warning);border-color:rgba(212,168,67,0.3);">EU not confirmed</span>`
+          : '';
+
+        return `
+          <div class="factory-card animate-in" style="${i > 0 ? `opacity:0;animation-delay:${i*0.07}s` : ''}">
+            <div class="rank-badge ${rankClasses[i]}">${medals[i]}</div>
+            <div class="factory-info">
+              <div class="factory-name">${f.name}</div>
+              <div class="factory-tags">
+                <span class="tag">${f.region}</span>
+                <span class="tag">${f.moq.toLocaleString()} MOQ</span>
+                <span class="tag">$${f.cost_per_unit.toFixed(2)}/unit</span>
+                <span class="tag">${f.delivery_days}d lead time</span>
+                ${warningTag}
+              </div>
+              <div class="score-bars">
+                <div class="score-bar-row">
+                  <span class="score-bar-label">Speed</span>
+                  <div class="score-bar-track"><div class="score-bar-fill fill-speed" style="width:${f.speedScore}%"></div></div>
+                  <span class="score-bar-val">${f.speedScore}</span>
+                </div>
+                <div class="score-bar-row">
+                  <span class="score-bar-label">Cost</span>
+                  <div class="score-bar-track"><div class="score-bar-fill fill-cost" style="width:${f.costScore}%"></div></div>
+                  <span class="score-bar-val">${f.costScore}</span>
+                </div>
+                <div class="score-bar-row">
+                  <span class="score-bar-label">Cert</span>
+                  <div class="score-bar-track"><div class="score-bar-fill fill-cert" style="width:${f.certScore}%"></div></div>
+                  <span class="score-bar-val">${f.certScore}</span>
+                </div>
+              </div>
+            </div>
+            <div class="factory-total-score">
+              <div class="total-score-num">${f.totalScore}</div>
+              <div class="total-score-label">Score</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      panel.innerHTML = `
+        <div class="results-header no-print">
+          <div>
+            <p class="card-title" style="margin:0;">Analysis Results</p>
+            <p style="font-size:0.8125rem;color:var(--text-muted);margin-top:0.2rem;">Ranked ${ranked.length} factories · ${formula}</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="downloadReport()" style="font-size:0.8125rem;">
+            <i data-lucide="download" style="width:14px;height:14px;"></i> Download Report
+          </button>
+        </div>
+        ${euNote}
+        ${recHTML}
+        <p class="card-title" style="margin-bottom:0.75rem;">All Factories Ranked</p>
+        <div class="ranked-list">${cardsHTML}</div>
+      `;
+
+      lucide.createIcons();
+    }
+
+    /* ─── Run Analysis ──────────────────────────────────────── */
+    document.getElementById('run-btn').addEventListener('click', async () => {
+      const panel = document.getElementById('results-panel');
+      const btn   = document.getElementById('run-btn');
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Analysing...`;
+
+      /* Show loading steps */
+      panel.innerHTML = `
+        <div class="card loading-overlay">
+          <span class="spinner" style="width:24px;height:24px;border-width:3px;"></span>
+          <div class="loading-steps" id="loading-steps">
+            <div class="loading-step" id="step-1"><i data-lucide="loader" style="width:13px;height:13px;"></i> Loading factory database...</div>
+            <div class="loading-step" id="step-2"><i data-lucide="sliders-horizontal" style="width:13px;height:13px;"></i> Normalising priority weights...</div>
+            <div class="loading-step" id="step-3"><i data-lucide="calculator" style="width:13px;height:13px;"></i> Scoring all candidates...</div>
+            <div class="loading-step" id="step-4"><i data-lucide="sparkles" style="width:13px;height:13px;"></i> Generating recommendation...</div>
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+
+      const step = (id, delay) => new Promise(r => setTimeout(() => {
+        const el = document.getElementById(id);
+        if (el) el.className = 'loading-step done';
+        r();
+      }, delay));
+
+      try {
+        const factories = await loadFactories();
+        await step('step-1', 400);
+
+        const weights = {
+          speed: parseInt(slSpeed.value),
+          cost:  parseInt(slCost.value),
+          cert:  parseInt(slCert.value)
+        };
+
+        if (weights.speed + weights.cost + weights.cert === 0) {
+          panel.innerHTML = `<div class="card" style="color:var(--error);text-align:center;padding:2rem;">At least one weight must be greater than 0.</div>`;
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="play-circle" style="width:16px;height:16px;"></i> Run Analysis`;
+          lucide.createIcons();
+          return;
+        }
+
+        await step('step-2', 800);
+
+        const formula = document.getElementById('formula-select').value;
+        const market  = document.getElementById('target-market').value;
+
+        const ranked = scoreFactories(factories, weights);
+        await step('step-3', 1300);
+        await step('step-4', 1750);
+
+        await new Promise(r => setTimeout(r, 400));
+
+        renderResults(ranked, weights, formula, market);
+
+      } catch (err) {
+        panel.innerHTML = `<div class="card" style="color:var(--error);padding:2rem;">
+          <strong>Error loading factory data.</strong><br/>
+          <span style="font-size:0.8125rem;color:var(--text-muted);">Make sure the file <code>data/factories.json</code> is accessible.</span>
+        </div>`;
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = `<i data-lucide="play-circle" style="width:16px;height:16px;"></i> Run Analysis`;
+      lucide.createIcons();
+    });
+
+    /* ─── Download report ───────────────────────────────────── */
+    function downloadReport() {
+      window.print();
+    }
   </script>
+
 </body>
 </html>
