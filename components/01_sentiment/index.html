@@ -557,6 +557,12 @@ Rules:
 
       scanningState.classList.remove("visible");
       scanLabel.textContent = "Scanning comments…";
+
+      // Persist results to localStorage so Component 02 can read them
+      try {
+        localStorage.setItem("tf_c1_results", JSON.stringify(analysisResults));
+      } catch(e) {}
+
       showSummary();
       analyzeBtn.style.display = "";
       analyzeBtn.innerHTML = `<i data-lucide="refresh-cw" style="width:15px;height:15px;"></i> Re-run Analysis`;
@@ -568,7 +574,7 @@ Rules:
       const detected = analysisResults.filter(r => r.trend !== "Unclassified").length;
       const total    = analysisResults.length;
       document.getElementById("summary-text").innerHTML =
-        `<strong>${detected} trend${detected !== 1 ? "s" : ""}</strong> detected across <strong>${total} comment${total !== 1 ? "s" : ""}</strong>`;
+        `<strong>${detected} trend${detected !== 1 ? "s" : ""}</strong> detected across <strong>${total} comment${total !== 1 ? "s" : ""}</strong> — results saved for Component 02`;
       document.getElementById("summary-banner").classList.add("visible");
     }
 
