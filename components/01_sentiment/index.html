@@ -6,6 +6,166 @@
   <title>Sentiment Engine — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1.5rem 0 1.75rem;
+    }
+
+    .scanning-state {
+      display: none;
+      align-items: center;
+      gap: 0.625rem;
+      font-size: 0.875rem;
+      color: var(--accent);
+    }
+    .scanning-state.visible { display: flex; }
+
+    .summary-banner {
+      display: none;
+      background: rgba(79, 152, 163, 0.08);
+      border: 1px solid rgba(79, 152, 163, 0.22);
+      border-radius: var(--radius);
+      padding: 0.875rem 1.25rem;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .summary-banner.visible { display: flex; }
+    .summary-banner-text {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      font-size: 0.9375rem;
+      color: var(--text);
+    }
+    .summary-banner-text strong { color: var(--accent); }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    .panel-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Comment cards */
+    .comment-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.125rem;
+      margin-bottom: 0.75rem;
+      transition: border-left-color 0.4s ease;
+    }
+    .comment-card.processed {
+      border-left-color: var(--accent);
+    }
+    .comment-id {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.375rem;
+    }
+    .comment-text {
+      font-size: 0.875rem;
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .comment-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: color 0.3s;
+    }
+    .comment-status.done { color: var(--success); }
+
+    /* Result cards */
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.125rem 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+    .result-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.625rem;
+    }
+    .result-trend {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      color: var(--text);
+      line-height: 1.25;
+    }
+    .result-pain {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    .result-pain span { color: var(--text); }
+    .ingredient-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      margin-bottom: 0.75rem;
+    }
+    .ingredient-pill {
+      font-size: 0.75rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.2rem 0.625rem;
+      color: var(--accent);
+    }
+    .result-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .result-ref {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Empty state for results column */
+    .results-empty {
+      background: var(--surface);
+      border: 1px dashed rgba(79,152,163,0.2);
+      border-radius: var(--radius);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+  </style>
 </head>
 <body>
 
@@ -24,6 +184,7 @@
 
   <div class="page-wrapper">
 
+    <!-- Page header -->
     <div style="margin-bottom:1.5rem;">
       <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
         <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
@@ -38,39 +199,79 @@
       </p>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-         👇 YOUR COMPONENT CODE GOES BELOW THIS LINE
-         Owner: [Your Name]
-         Data:  ../../data/mock_comments.json
-         ═══════════════════════════════════════════════════════ -->
-
-    <div class="card" style="text-align:center;padding:3rem;border-style:dashed;border-color:rgba(79,152,163,0.3);">
-      <i data-lucide="code-2" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:1rem;"></i>
-      <p style="color:var(--text-muted);font-size:0.9375rem;">
-        Component 01 — Sentiment Engine<br/>
-        <span style="font-size:0.8125rem;">Build your UI here. Load <code>../../data/mock_comments.json</code> to get started.</span>
-      </p>
+    <!-- Summary banner (shown after analysis) -->
+    <div class="summary-banner" id="summary-banner">
+      <div class="summary-banner-text">
+        <i data-lucide="sparkles" style="width:16px;height:16px;color:var(--accent);flex-shrink:0;"></i>
+        <span id="summary-text">Analysis complete</span>
+      </div>
+      <button class="btn btn-secondary" id="export-btn" style="flex-shrink:0;">
+        <i data-lucide="download" style="width:15px;height:15px;"></i>
+        Export as JSON
+      </button>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-         👆 YOUR COMPONENT CODE ENDS ABOVE THIS LINE
-         ═══════════════════════════════════════════════════════ -->
+    <!-- Action bar -->
+    <div class="action-bar">
+      <button class="btn btn-primary" id="analyze-btn">
+        <i data-lucide="scan-search" style="width:15px;height:15px;"></i>
+        Run Sentiment Analysis
+      </button>
+      <div class="scanning-state" id="scanning-state">
+        <span class="spinner"></span>
+        <span id="scan-label">Scanning comments…</span>
+      </div>
+    </div>
 
+    <!-- Two-column grid -->
+    <div class="two-col">
+
+      <!-- Left: raw comments -->
+      <div>
+        <div class="panel-label">
+          <i data-lucide="inbox" style="width:12px;height:12px;"></i>
+          Raw Comments — <span id="comment-count">0</span> loaded
+        </div>
+        <div id="comments-panel"></div>
+      </div>
+
+      <!-- Right: analysis results -->
+      <div>
+        <div class="panel-label">
+          <i data-lucide="zap" style="width:12px;height:12px;"></i>
+          Analysis Output
+        </div>
+        <div id="results-panel">
+          <div class="results-empty" id="results-empty">
+            <i data-lucide="arrow-left" style="width:20px;height:20px;margin-bottom:0.5rem;display:block;margin-left:auto;margin-right:auto;"></i>
+            Run the analysis to see results here
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <script>
-    lucide.createIcons();
+    // ─── Inline mock data (matches data/mock_comments.json) ────────────────────
+    const COMMENTS = [
+      { id: 1, text: "I love the glass-skin look but niacinamide breaks me out, I wish there was something cleaner that plumps skin" },
+      { id: 2, text: "Slugging with petroleum jelly is too heavy, I want something that locks moisture without the greasy feel" },
+      { id: 3, text: "Looking for a reef-safe SPF that doesn't leave a white cast on dark skin tones" },
+      { id: 4, text: "Retinol is too harsh for my sensitive skin, what gives similar anti-aging results?" },
+      { id: 5, text: "I want the dewy K-beauty look without 10 steps, something that does it all in one" }
+    ];
 
-    // ─── Keyword map (from blueprint) ───────────────────────
+    // ─── Keyword map ───────────────────────────────────────────────────────────
     const KEYWORD_MAP = {
-      "glass-skin":    { trend: "Glass Skin",                ingredients: ["Polyglutamic Acid", "Centella Asiatica"],         pain_point: "niacinamide irritation" },
-      "slugging":      { trend: "Barrier Repair",             ingredients: ["Squalane", "Snow Mushroom Extract"],              pain_point: "heavy texture" },
-      "reef-safe spf": { trend: "Clean Sun Care",             ingredients: ["Zinc Oxide", "Non-nano Titanium Dioxide"],        pain_point: "white cast" },
+      "glass-skin":    { trend: "Glass Skin",                  ingredients: ["Polyglutamic Acid", "Centella Asiatica"],        pain_point: "niacinamide irritation" },
+      "slugging":      { trend: "Barrier Repair",              ingredients: ["Squalane", "Snow Mushroom Extract"],             pain_point: "heavy texture" },
+      "reef-safe spf": { trend: "Clean Sun Care",              ingredients: ["Zinc Oxide", "Non-nano Titanium Dioxide"],       pain_point: "white cast" },
       "retinol":       { trend: "Gentle Retinol Alternatives", ingredients: ["Bakuchiol", "Peptide Complex"],                  pain_point: "sensitivity" },
-      "k-beauty":      { trend: "Simplified K-Beauty",        ingredients: ["Hyaluronic Acid", "Rice Ferment Filtrate"],       pain_point: "too many steps" }
+      "k-beauty":      { trend: "Simplified K-Beauty",         ingredients: ["Hyaluronic Acid", "Rice Ferment Filtrate"],      pain_point: "too many steps" }
     };
 
-    // Helper: match a comment text against KEYWORD_MAP
+    // ─── Analysis logic ────────────────────────────────────────────────────────
     function analyzeComment(text) {
       const lower = text.toLowerCase();
       for (const [key, value] of Object.entries(KEYWORD_MAP)) {
@@ -81,7 +282,6 @@
       return { trend: "Unclassified", ingredients: [], pain_point: "unknown", confidence: "Low" };
     }
 
-    // Helper: export data as downloadable JSON
     function exportJSON(data, filename) {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -91,6 +291,167 @@
       a.click();
       URL.revokeObjectURL(url);
     }
+
+    // ─── Render: left panel comments ──────────────────────────────────────────
+    function renderComments() {
+      const panel = document.getElementById("comments-panel");
+      document.getElementById("comment-count").textContent = COMMENTS.length;
+      panel.innerHTML = "";
+      COMMENTS.forEach(c => {
+        const card = document.createElement("div");
+        card.className = "comment-card";
+        card.id = `comment-${c.id}`;
+        card.innerHTML = `
+          <div class="comment-id">Comment #${c.id}</div>
+          <div class="comment-text">${c.text}</div>
+          <div class="comment-status" id="comment-status-${c.id}">
+            <i data-lucide="clock" style="width:11px;height:11px;"></i>
+            Awaiting analysis…
+          </div>`;
+        panel.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    // ─── Render: one result card ───────────────────────────────────────────────
+    function renderResultCard(comment, result, index) {
+      const badgeClass = result.confidence === "High"
+        ? "badge-success"
+        : result.confidence === "Medium"
+          ? "badge-warning"
+          : "badge-error";
+
+      const pills = result.ingredients.length
+        ? result.ingredients.map(i => `<span class="ingredient-pill">${i}</span>`).join("")
+        : `<span style="font-size:0.75rem;color:var(--text-muted);">No ingredients mapped</span>`;
+
+      const card = document.createElement("div");
+      card.className = "result-card animate-in";
+      card.style.animationDelay = `${index * 0.08}s`;
+      card.innerHTML = `
+        <div class="result-card-header">
+          <div class="result-trend">${result.trend}</div>
+          <span class="badge ${badgeClass}">${result.confidence} confidence</span>
+        </div>
+        <div class="result-pain">
+          Pain point: <span>${result.pain_point}</span>
+        </div>
+        <div class="ingredient-pills">${pills}</div>
+        <div class="result-footer">
+          <span class="result-ref" style="font-size:0.75rem;color:var(--text-muted);">Source: Comment #${comment.id}</span>
+        </div>`;
+      return card;
+    }
+
+    // ─── Main analysis flow ────────────────────────────────────────────────────
+    let analysisResults = [];
+
+    function runAnalysis() {
+      const analyzeBtn = document.getElementById("analyze-btn");
+      const scanningState = document.getElementById("scanning-state");
+      const scanLabel = document.getElementById("scan-label");
+      const resultsPanel = document.getElementById("results-panel");
+
+      // Reset state
+      analyzeBtn.style.display = "none";
+      scanningState.classList.add("visible");
+      analysisResults = [];
+
+      // Reset comment cards to un-processed state
+      COMMENTS.forEach(c => {
+        const card = document.getElementById(`comment-${c.id}`);
+        if (card) card.classList.remove("processed");
+        const status = document.getElementById(`comment-status-${c.id}`);
+        if (status) {
+          status.className = "comment-status";
+          status.innerHTML = `<i data-lucide="clock" style="width:11px;height:11px;"></i> Awaiting analysis…`;
+        }
+      });
+      lucide.createIcons();
+
+      // Clear results
+      resultsPanel.innerHTML = "";
+
+      // Scanning phase: reveal one result at a time
+      const scanPhrases = [
+        "Scanning comments…",
+        "Extracting trend signals…",
+        "Mapping to ingredients…",
+        "Calculating confidence…",
+        "Finalising results…"
+      ];
+      let phraseIndex = 0;
+      const phraseInterval = setInterval(() => {
+        phraseIndex = (phraseIndex + 1) % scanPhrases.length;
+        scanLabel.textContent = scanPhrases[phraseIndex];
+      }, 300);
+
+      setTimeout(() => {
+        clearInterval(phraseInterval);
+
+        COMMENTS.forEach((c, i) => {
+          setTimeout(() => {
+            const result = analyzeComment(c.text);
+            analysisResults.push({ id: c.id, text: c.text, ...result });
+
+            // Highlight comment card
+            const commentCard = document.getElementById(`comment-${c.id}`);
+            if (commentCard) commentCard.classList.add("processed");
+            const statusEl = document.getElementById(`comment-status-${c.id}`);
+            if (statusEl) {
+              statusEl.className = "comment-status done";
+              statusEl.innerHTML = `<i data-lucide="check-circle" style="width:11px;height:11px;"></i> ${result.trend}`;
+              lucide.createIcons();
+            }
+
+            // Add result card
+            const card = renderResultCard(c, result, i);
+            resultsPanel.appendChild(card);
+            lucide.createIcons();
+
+            // After last result
+            if (i === COMMENTS.length - 1) {
+              setTimeout(() => {
+                scanningState.classList.remove("visible");
+                scanLabel.textContent = "Scanning comments…";
+                showSummary();
+                analyzeBtn.style.display = "";
+                analyzeBtn.innerHTML = `<i data-lucide="refresh-cw" style="width:15px;height:15px;"></i> Re-run Analysis`;
+                lucide.createIcons();
+              }, 300);
+            }
+          }, i * 220);
+        });
+      }, 1500);
+    }
+
+    // ─── Summary banner ────────────────────────────────────────────────────────
+    function showSummary() {
+      const detected = analysisResults.filter(r => r.trend !== "Unclassified").length;
+      const total = analysisResults.length;
+      document.getElementById("summary-text").innerHTML =
+        `<strong>${detected} trend${detected !== 1 ? "s" : ""}</strong> detected across <strong>${total} comment${total !== 1 ? "s" : ""}</strong>`;
+      document.getElementById("summary-banner").classList.add("visible");
+    }
+
+    // ─── Wire up events ────────────────────────────────────────────────────────
+    document.getElementById("analyze-btn").addEventListener("click", runAnalysis);
+
+    document.getElementById("export-btn").addEventListener("click", () => {
+      const payload = analysisResults.map(r => ({
+        comment_id: r.id,
+        comment_text: r.text,
+        trend: r.trend,
+        pain_point: r.pain_point,
+        target_ingredients: r.ingredients,
+        confidence: r.confidence
+      }));
+      exportJSON(payload, "trendformulate_sentiment_mapping.json");
+    });
+
+    // ─── Init ──────────────────────────────────────────────────────────────────
+    renderComments();
+    lucide.createIcons();
   </script>
 </body>
 </html>
