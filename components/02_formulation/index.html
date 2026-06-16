@@ -197,7 +197,7 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.78);
+      background: rgba(30,10,10,0.5);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -244,7 +244,7 @@
   <!-- Navbar -->
   <nav class="navbar">
     <div class="navbar-brand">
-      <div style="width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+      <div style="width:32px;height:32px;background:linear-gradient(135deg,#c4788a,#d4967a);border-radius:8px;display:flex;align-items:center;justify-content:center;">
         <i data-lucide="flask-conical" style="width:17px;height:17px;color:#fff;"></i>
       </div>
       <span class="logo-text">TrendFormulate</span>
@@ -433,7 +433,7 @@
         const idx = formula.findIndex(f => f.name === name);
         if (rows[idx]) {
           rows[idx].style.transition = 'background 0.15s';
-          rows[idx].style.background = 'rgba(79,152,163,0.12)';
+          rows[idx].style.background = 'rgba(196, 120, 138, 0.12)';
           setTimeout(() => { rows[idx].style.background = ''; }, 600);
         }
         return;

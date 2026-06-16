@@ -49,10 +49,10 @@
       transition: border-color 0.15s, background 0.15s;
       user-select: none;
     }
-    .tone-option:hover { border-color: rgba(79,152,163,0.35); }
+    .tone-option:hover { border-color: rgba(196, 120, 138, 0.35); }
     .tone-option.selected {
       border-color: var(--accent);
-      background: rgba(79,152,163,0.08);
+      background: rgba(196, 120, 138, 0.08);
     }
     .tone-option input[type="radio"] { display: none; }
     .tone-dot {
@@ -97,7 +97,7 @@
     /* Idle / placeholder state */
     .idle-placeholder {
       background: var(--surface);
-      border: 1px dashed rgba(79,152,163,0.25);
+      border: 1px dashed rgba(196, 120, 138, 0.25);
       border-radius: var(--radius);
       padding: 3.5rem 2rem;
       display: flex;
@@ -203,7 +203,7 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
-    .ts-hook     { background: rgba(79,152,163,0.15); color: var(--accent); }
+    .ts-hook     { background: rgba(196, 120, 138, 0.15); color: var(--accent); }
     .ts-bridge   { background: rgba(212,168,67,0.15); color: var(--warning); }
     .ts-benefits { background: rgba(109,170,69,0.15); color: var(--success); }
     .ts-cta      { background: rgba(221,105,116,0.15); color: var(--error); }
@@ -274,7 +274,7 @@
       position: relative;
       flex-shrink: 0;
     }
-    .frame-visual-hook     { background: linear-gradient(135deg, rgba(79,152,163,0.25), rgba(79,152,163,0.08)); }
+    .frame-visual-hook     { background: linear-gradient(135deg, rgba(196, 120, 138, 0.25), rgba(196, 120, 138, 0.08)); }
     .frame-visual-bridge   { background: linear-gradient(135deg, rgba(212,168,67,0.2), rgba(212,168,67,0.06)); }
     .frame-visual-benefits { background: linear-gradient(135deg, rgba(109,170,69,0.2), rgba(109,170,69,0.06)); }
     .frame-visual-cta      { background: linear-gradient(135deg, rgba(221,105,116,0.2), rgba(221,105,116,0.06)); }
@@ -284,7 +284,7 @@
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
     }
-    .frame-icon-hook     { background: rgba(79,152,163,0.2); color: var(--accent); }
+    .frame-icon-hook     { background: rgba(196, 120, 138, 0.2); color: var(--accent); }
     .frame-icon-bridge   { background: rgba(212,168,67,0.2); color: var(--warning); }
     .frame-icon-benefits { background: rgba(109,170,69,0.2); color: var(--success); }
     .frame-icon-cta      { background: rgba(221,105,116,0.2); color: var(--error); }
@@ -296,7 +296,7 @@
       font-weight: 700;
       padding: 0.15rem 0.45rem;
       border-radius: 999px;
-      background: rgba(0,0,0,0.45);
+      background: rgba(44,20,20,0.55);
       color: #fff;
       letter-spacing: 0.03em;
     }
@@ -357,7 +357,7 @@
   <!-- Navbar -->
   <nav class="navbar">
     <div class="navbar-brand">
-      <div style="width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;">
+      <div style="width:32px;height:32px;background:linear-gradient(135deg,#c4788a,#d4967a);border-radius:8px;display:flex;align-items:center;justify-content:center;">
         <i data-lucide="flask-conical" style="width:17px;height:17px;color:#fff;"></i>
       </div>
       <span class="logo-text">TrendFormulate</span>
