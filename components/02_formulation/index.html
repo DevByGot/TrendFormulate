@@ -3,261 +3,586 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Formulation Proposer — TrendFormulate</title>
+  <title>R&D Formulation — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
+  <script src="../../assets/config.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
-    /* ── 3-column grid ─────────────────────────────────────────── */
-    .formulation-grid {
+    /* ── Step progress ───────────────────────────────────────────── */
+    .step-progress {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2.25rem;
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .step-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: background 0.35s, color 0.35s, box-shadow 0.35s;
+    }
+    .step-dot.pending  { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted); }
+    .step-dot.active   { background: var(--accent); color: #fff; box-shadow: 0 0 0 4px rgba(196,120,138,0.18); }
+    .step-dot.done     { background: var(--success); color: #fff; }
+    .step-label        { font-size: 0.8125rem; color: var(--text-muted); white-space: nowrap; transition: color 0.3s; }
+    .step-label.active { color: var(--text); font-weight: 600; }
+    .step-label.done   { color: var(--success); font-weight: 500; }
+    .step-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      margin: 0 0.75rem;
+      min-width: 30px;
+      transition: background 0.5s;
+    }
+    .step-line.done { background: var(--success); }
+
+    /* ── Trend cards grid ────────────────────────────────────────── */
+    .trend-grid {
       display: grid;
-      grid-template-columns: 270px 1fr 290px;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1rem;
-      align-items: start;
+      margin-bottom: 1.5rem;
     }
-    @media (max-width: 1024px) {
-      .formulation-grid { grid-template-columns: 260px 1fr; }
-      .panel-audit { grid-column: 1 / -1; }
+    .trend-option-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+      position: relative;
     }
-    @media (max-width: 640px) {
-      .formulation-grid { grid-template-columns: 1fr; }
+    .trend-option-card:hover {
+      border-color: rgba(196,120,138,0.4);
+      box-shadow: var(--shadow);
+      transform: translateY(-2px);
+    }
+    .trend-option-card.selected {
+      border-color: var(--accent);
+      background: rgba(196,120,138,0.04);
+      box-shadow: 0 0 0 3px rgba(196,120,138,0.14);
+      transform: translateY(-2px);
+    }
+    .trend-option-card.disabled-card {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .trend-card-check {
+      position: absolute;
+      top: 0.875rem;
+      right: 0.875rem;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .trend-option-card.selected .trend-card-check { display: flex; }
+    .trend-name {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-style: italic;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+    .trend-pain {
+      font-size: 0.775rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 0.75rem;
+    }
+    .trend-ings {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-bottom: 0.625rem;
+    }
+    .trend-ing-pill {
+      font-size: 0.72rem;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-mid);
+      border-radius: 999px;
+      padding: 0.15rem 0.55rem;
+      color: var(--accent);
+    }
+    .trend-source {
+      font-size: 0.7rem;
+      color: var(--text-faint);
+      font-style: italic;
+      border-top: 1px solid var(--border);
+      padding-top: 0.5rem;
+      margin-top: 0.5rem;
+      line-height: 1.4;
+    }
+    .confidence-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      margin-right: 0.3rem;
+      vertical-align: middle;
     }
 
-    /* ── Panel shell ───────────────────────────────────────────── */
-    .panel {
+    /* ── CTA bar ─────────────────────────────────────────────────── */
+    .cta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1.25rem 0 0.25rem;
+    }
+    .generating-state {
+      display: none;
+      align-items: center;
+      gap: 0.625rem;
+      font-size: 0.875rem;
+      color: var(--accent);
+    }
+    .generating-state.visible { display: flex; }
+
+    /* ── Section divider ─────────────────────────────────────────── */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 2rem 0 1.75rem;
+    }
+    .section-divider-line { flex: 1; height: 1px; background: var(--border); }
+    .section-divider-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* ── Result grid (pipeline + output) ─────────────────────────── */
+    .result-grid {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .result-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Agent pipeline column ───────────────────────────────────── */
+    .agent-pipeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+      position: sticky;
+      top: 1.5rem;
+    }
+    .agent-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.25rem;
+      padding: 1rem 1.125rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.875rem;
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow 0.3s;
+    }
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 3px;
+      background: var(--border);
+      transition: background 0.35s;
+    }
+    .agent-card.active { box-shadow: var(--shadow-sm); }
+    .agent-card.active::before { background: var(--accent); }
+    .agent-card.done::before   { background: var(--success); }
+    .agent-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: background 0.3s, color 0.3s, border-color 0.3s;
+    }
+    .agent-card.active .agent-icon {
+      background: var(--accent-soft);
+      border-color: var(--accent-mid);
+      color: var(--accent);
+    }
+    .agent-card.done .agent-icon {
+      background: rgba(94,158,71,0.1);
+      border-color: rgba(94,158,71,0.25);
+      color: var(--success);
+    }
+    .agent-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.175rem;
+    }
+    .agent-role {
+      font-size: 0.72rem;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+    .agent-status-text {
+      font-size: 0.775rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: color 0.3s;
+    }
+    .agent-card.active .agent-status-text { color: var(--accent); }
+    .agent-card.done   .agent-status-text { color: var(--success); }
+    .agent-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.1rem 0;
+      color: var(--text-faint);
+    }
+
+    /* ── Output column ───────────────────────────────────────────── */
+    .output-column {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.25rem;
     }
-    .panel-title {
+
+    /* ── Formula card ────────────────────────────────────────────── */
+    .formula-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .formula-header {
+      padding: 1.25rem 1.375rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(110deg, rgba(196,120,138,0.05) 0%, transparent 70%);
+    }
+    .formula-product-type {
       font-size: 0.6875rem;
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: var(--text-muted);
+      margin-bottom: 0.3rem;
     }
-
-    /* ── Editable % input in formula table ────────────────────── */
-    .pct-input {
-      width: 64px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--accent);
-      font-family: var(--font-body);
-      font-size: 0.875rem;
-      font-weight: 700;
-      padding: 0.25rem 0.4rem;
-      text-align: right;
-      outline: none;
-      transition: border-color 0.15s;
+    .formula-product-name {
+      font-family: var(--font-display);
+      font-size: 1.375rem;
+      font-style: italic;
+      color: var(--text);
+      line-height: 1.2;
+      margin-bottom: 0.3rem;
     }
-    .pct-input:focus { border-color: var(--accent); }
-
-    .remove-btn {
-      background: transparent;
-      border: none;
+    .formula-tagline {
+      font-size: 0.825rem;
       color: var(--text-muted);
-      cursor: pointer;
-      padding: 0.2rem;
-      border-radius: 4px;
+      font-style: italic;
+    }
+    .formula-meta-row {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 0.875rem;
+      flex-wrap: wrap;
+    }
+    .formula-meta-item {
       display: flex;
       align-items: center;
-      transition: color 0.15s, background 0.15s;
-      flex-shrink: 0;
+      gap: 0.35rem;
+      font-size: 0.775rem;
+      color: var(--text-muted);
     }
-    .remove-btn:hover { color: var(--error); background: rgba(221,105,116,0.12); }
+    .formula-meta-item strong { color: var(--text); font-weight: 600; }
 
-    /* ── Formula table ─────────────────────────────────────────── */
-    .formula-table {
+    /* INCI Table */
+    .inci-table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.8125rem;
     }
-    .formula-table th {
+    .inci-table th {
       text-align: left;
       font-size: 0.6875rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.07em;
       color: var(--text-muted);
-      padding: 0.45rem 0.625rem;
+      padding: 0.55rem 1.375rem;
       border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
     }
-    .formula-table td {
-      padding: 0.55rem 0.625rem;
+    .inci-table td {
+      padding: 0.75rem 1.375rem;
       border-bottom: 1px solid var(--border);
-      vertical-align: middle;
+      vertical-align: top;
     }
-    .formula-table tbody tr:last-child td { border-bottom: none; }
-    .formula-table .tfoot-row td {
-      border-top: 1px solid var(--border);
-      font-weight: 600;
-      color: var(--text);
-      font-size: 0.8125rem;
-    }
-    .total-ok   { color: var(--success) !important; }
-    .total-warn { color: var(--error)   !important; }
-
-    .empty-formula {
-      text-align: center;
-      padding: 2.5rem 1rem;
-      color: var(--text-muted);
-      font-size: 0.8125rem;
-      line-height: 1.7;
-    }
-    .action-col { display: flex; flex-direction: column; gap: 0.5rem; }
-
-    /* ── Audit log ─────────────────────────────────────────────── */
-    .audit-log { display: flex; flex-direction: column; gap: 0.4375rem; }
-    .audit-empty {
-      text-align: center;
-      padding: 1.75rem 0.5rem;
-      color: var(--text-muted);
-      font-size: 0.8125rem;
-      line-height: 1.6;
-    }
-    .audit-row {
-      padding: 0.625rem 0.75rem;
-      border-radius: var(--radius-sm);
-      border: 1px solid transparent;
-      animation: slideIn 0.22s ease forwards;
-    }
-    .audit-row.pass { background: rgba(109,170,69,0.07); border-color: rgba(109,170,69,0.15); }
-    .audit-row.fail { background: rgba(221,105,116,0.08);border-color: rgba(221,105,116,0.2); }
-    .audit-row.note { background: rgba(212,168,67,0.07); border-color: rgba(212,168,67,0.15); }
-    .audit-row-head {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .audit-status {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      flex-shrink: 0;
-    }
-    .audit-status.pass { color: var(--success); }
-    .audit-status.fail { color: var(--error);   }
-    .audit-status.note { color: var(--warning); }
-    .audit-ing {
-      font-size: 0.8125rem;
+    .inci-table tbody tr:last-child td { border-bottom: none; }
+    .inci-table tbody tr:hover td { background: rgba(196,120,138,0.025); }
+    .ing-name  { font-weight: 500; color: var(--text); line-height: 1.3; }
+    .ing-inci  { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .ing-pct   {
+      font-family: var(--font-display);
+      font-size: 1.125rem;
       font-weight: 500;
-      color: var(--text);
-      flex: 1;
+      color: var(--accent);
+      line-height: 1;
     }
-    .audit-msg {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      margin-top: 0.2rem;
-      line-height: 1.4;
-    }
-    .autofix-btn {
+    .ing-pct-unit { font-size: 0.65rem; color: var(--text-faint); }
+    .ing-fn-badge {
+      display: inline-block;
       font-size: 0.6875rem;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
       padding: 0.175rem 0.55rem;
-      background: rgba(221,105,116,0.15);
-      border: 1px solid rgba(221,105,116,0.3);
-      color: var(--error);
       border-radius: 999px;
-      cursor: pointer;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
       white-space: nowrap;
-      transition: background 0.15s;
-      flex-shrink: 0;
     }
-    .autofix-btn:hover { background: rgba(221,105,116,0.28); }
+    .ing-rationale { font-size: 0.75rem; color: var(--text-muted); line-height: 1.45; }
 
-    /* ── Compliance badge ──────────────────────────────────────── */
-    .compliance-badge {
+    .formula-claims {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.75rem;
-      border-radius: var(--radius-sm);
-      font-size: 0.875rem;
-      font-weight: 600;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      padding: 0.875rem 1.375rem;
+      border-top: 1px solid var(--border);
+      background: rgba(196,120,138,0.025);
     }
-    .compliance-badge.compliant {
-      background: rgba(109,170,69,0.12);
-      border: 1px solid rgba(109,170,69,0.25);
-      color: var(--success);
+    .claim-pill {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.225rem 0.7rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-mid);
+      color: var(--accent);
     }
-    .compliance-badge.violation {
-      background: rgba(221,105,116,0.1);
-      border: 1px solid rgba(221,105,116,0.2);
-      color: var(--error);
+    .formula-notes {
+      padding: 0.875rem 1.375rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+      line-height: 1.5;
     }
 
-    /* ── Formula sheet modal ───────────────────────────────────── */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(30,10,10,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 999;
-      padding: 1.5rem;
-    }
-    .modal-overlay.hidden { display: none; }
-    .formula-sheet-modal {
+    /* ── Compliance card ─────────────────────────────────────────── */
+    .compliance-card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.75rem 2rem;
-      max-width: 660px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
+      overflow: hidden;
     }
-    .sheet-pre {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.78rem;
-      color: var(--text);
-      white-space: pre;
-      line-height: 1.75;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 1.25rem 1.375rem;
-      overflow-x: auto;
-    }
-    .sheet-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
-
-    /* ── Save-to-workspace button ──────────────────────────────── */
-    .btn-accent {
-      display: inline-flex;
+    .compliance-verdict {
+      padding: 1rem 1.375rem;
+      display: flex;
       align-items: center;
-      gap: 0.45rem;
-      padding: 0.55rem 1rem;
-      border: none;
-      border-radius: var(--radius-sm);
-      background: linear-gradient(135deg, #c4788a 0%, #d4967a 100%);
-      color: #fff;
-      font-family: var(--font-body);
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.15s, transform 0.1s;
-      box-shadow: 0 2px 8px rgba(196,120,138,0.28);
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
     }
-    .btn-accent:hover { opacity: 0.88; transform: translateY(-1px); }
-    .btn-accent:active { transform: scale(0.98); }
-    .btn-accent:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .verdict-COMPLIANT    { background: rgba(94,158,71,0.07); }
+    .verdict-CAUTION      { background: rgba(184,134,46,0.07); }
+    .verdict-NON_COMPLIANT{ background: rgba(201,87,94,0.07); }
+    .verdict-label {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .verdict-COMPLIANT     .verdict-label { color: var(--success); }
+    .verdict-CAUTION       .verdict-label { color: var(--warning); }
+    .verdict-NON_COMPLIANT .verdict-label { color: var(--error); }
+    .verdict-summary {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      max-width: 480px;
+    }
 
-    /* ── Print ─────────────────────────────────────────────────── */
-    @media print {
-      .navbar, .no-print { display: none !important; }
-      .modal-overlay { position: static; background: none; padding: 0; display: block; }
-      .formula-sheet-modal { border: none; max-height: none; overflow: visible; padding: 0; }
-      .sheet-actions { display: none !important; }
-      .sheet-pre { background: #f5f5f5; color: #000; border-color: #ccc; font-size: 0.75rem; }
+    .compliance-check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.875rem;
+      padding: 0.75rem 1.375rem;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
     }
+    .compliance-check-row:last-of-type { border-bottom: none; }
+    .compliance-check-row:hover { background: rgba(196,120,138,0.02); }
+    .check-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.125rem;
+    }
+    .check-icon.pass    { background: rgba(94,158,71,0.12);  color: var(--success); }
+    .check-icon.caution { background: rgba(184,134,46,0.12); color: var(--warning); }
+    .check-icon.fail    { background: rgba(201,87,94,0.12);  color: var(--error); }
+    .check-ing-name   { font-size: 0.875rem; font-weight: 500; color: var(--text); }
+    .check-ref        { font-size: 0.7rem; color: var(--text-faint); font-style: italic; margin-top: 0.1rem; }
+    .check-note       { font-size: 0.775rem; color: var(--text-muted); margin-top: 0.2rem; line-height: 1.4; }
+
+    .market-clearance {
+      display: flex;
+      gap: 0.625rem;
+      flex-wrap: wrap;
+      padding: 1rem 1.375rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface-2);
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
+    .market-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.875rem;
+      border-radius: 999px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+    .market-badge.cleared {
+      background: rgba(94,158,71,0.1);
+      border: 1px solid rgba(94,158,71,0.25);
+      color: var(--success);
+    }
+    .market-badge.blocked {
+      background: rgba(201,87,94,0.1);
+      border: 1px solid rgba(201,87,94,0.2);
+      color: var(--error);
+    }
+
+    .compliance-recs {
+      padding: 0.875rem 1.375rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .rec-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+    .rec-item::before {
+      content: '→';
+      color: var(--accent);
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.05rem;
+    }
+
+    /* ── Empty/loading states ────────────────────────────────────── */
+    .output-empty {
+      background: var(--surface);
+      border: 1px dashed rgba(196,120,138,0.25);
+      border-radius: var(--radius);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      line-height: 1.7;
+    }
+    .skeleton-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      padding: 1.375rem;
+    }
+    .skel-line {
+      height: 12px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      margin-bottom: 0.625rem;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Error notice ────────────────────────────────────────────── */
+    .error-notice {
+      display: none;
+      background: rgba(201,87,94,0.08);
+      border: 1px solid rgba(201,87,94,0.25);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: 0.8125rem;
+      color: var(--error);
+      margin-bottom: 1rem;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .error-notice.visible { display: flex; }
+
+    /* ── Misc ────────────────────────────────────────────────────── */
+    .phase-section { margin-bottom: 0; }
+    .phase-heading {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .phase-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-mid);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700; color: var(--accent);
+      flex-shrink: 0;
+    }
+    .phase-title { font-size: 1rem; font-weight: 600; color: var(--text); }
+    .phase-desc  { font-size: 0.8125rem; color: var(--text-muted); }
+    .hidden-section { display: none; }
+    .hidden-section.visible { display: block; }
   </style>
 </head>
 <body>
@@ -279,579 +604,781 @@
   <div class="page-wrapper">
 
     <!-- Page header -->
-    <div style="margin-bottom:1.5rem;">
-      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;flex-wrap:wrap;">
+    <div style="margin-bottom:1.75rem;">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.4rem;flex-wrap:wrap;">
         <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
           <i data-lucide="flask-conical" style="width:18px;height:18px;"></i>
         </div>
-        <h1 style="font-size:1.5rem;">Formulation Proposer + Safety Check</h1>
+        <h1 style="font-size:1.5rem;">R&amp;D Formulation Agent</h1>
         <span class="badge badge-accent">Component 02</span>
       </div>
-      <p style="color:var(--text-muted);font-size:0.875rem;max-width:640px;">
-        Build a cosmetic formula by selecting ingredients and percentages, then run it through
-        the automated safety guardrail to validate EU &amp; FDA compliance.
+      <p style="color:var(--text-muted);font-size:0.875rem;max-width:620px;line-height:1.6;">
+        Select a trend detected by Component 01. Two AI agents then collaborate: a <strong style="color:var(--text);">Formulation Agent</strong> creates the full cosmetic recipe, and a <strong style="color:var(--text);">Regulatory Agent</strong> audits it for EU &amp; FDA compliance — no manual input needed.
       </p>
     </div>
 
-    <!-- 3-column grid -->
-    <div class="formulation-grid">
+    <!-- Step progress -->
+    <div class="step-progress">
+      <div class="step-item">
+        <div class="step-dot active" id="step-dot-1">1</div>
+        <span class="step-label active" id="step-label-1">Select Trend</span>
+      </div>
+      <div class="step-line" id="step-line-1"></div>
+      <div class="step-item">
+        <div class="step-dot pending" id="step-dot-2">2</div>
+        <span class="step-label" id="step-label-2">Generate Formula</span>
+      </div>
+      <div class="step-line" id="step-line-2"></div>
+      <div class="step-item">
+        <div class="step-dot pending" id="step-dot-3">3</div>
+        <span class="step-label" id="step-label-3">Compliance Review</span>
+      </div>
+    </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           PANEL 1 — Ingredient Builder
-           ═══════════════════════════════════════════════════ -->
-      <div class="panel panel-builder no-print">
-        <p class="panel-title">Ingredient Builder</p>
+    <!-- Error notice -->
+    <div class="error-notice" id="error-notice">
+      <i data-lucide="alert-triangle" style="width:14px;height:14px;flex-shrink:0;"></i>
+      <span id="error-text">API error — please check your connection and try again.</span>
+    </div>
 
-        <!-- Product name -->
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 1 — Trend Selection
+         ══════════════════════════════════════════════════════ -->
+    <div class="phase-section" id="phase1">
+      <div class="phase-heading">
+        <div class="phase-num">1</div>
         <div>
-          <label for="product-name">Product Name</label>
-          <input id="product-name" class="input" type="text" value="Glass Skin Serum v1.0" />
+          <div class="phase-title">Trends detected by Component 01</div>
+          <div class="phase-desc">Select the trend you want to formulate a product for — the AI will handle the rest.</div>
         </div>
-
-        <!-- Ingredient dropdown -->
-        <div>
-          <label for="ing-select">Select Ingredient</label>
-          <select id="ing-select"></select>
-        </div>
-
-        <button class="btn btn-primary" id="add-btn" onclick="addIngredient()">
-          <i data-lucide="plus" style="width:15px;height:15px;"></i> Add to Formula
-        </button>
-
-        <p style="font-size:0.75rem;color:var(--text-muted);line-height:1.5;">
-          Ingredients are added with a suggested starting %. Edit each percentage directly in the Formula Draft table.
-        </p>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           PANEL 2 — Formula Draft Table
-           ═══════════════════════════════════════════════════ -->
-      <div class="panel panel-formula">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
-          <p class="panel-title">Formula Draft</p>
-          <span id="ing-count-badge" class="badge badge-muted" style="display:none;"></span>
-        </div>
+      <div class="trend-grid" id="trend-grid"></div>
 
-        <div id="formula-table-wrap">
-          <div class="empty-formula">
-            <i data-lucide="test-tubes" style="width:30px;height:30px;margin-bottom:0.75rem;color:var(--text-muted);display:block;margin-left:auto;margin-right:auto;"></i>
-            No ingredients added yet.<br/>Use the builder panel to start your formula.
+      <div class="cta-bar">
+        <button class="btn btn-primary" id="generate-btn" disabled>
+          <i data-lucide="sparkles" style="width:15px;height:15px;"></i>
+          Generate AI Recipe
+        </button>
+        <div class="generating-state" id="generating-state">
+          <span class="spinner"></span>
+          <span id="gen-label">Agents working…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         PHASE 2 + 3 — Agent Pipeline + Outputs
+         ══════════════════════════════════════════════════════ -->
+    <div class="hidden-section" id="phase23">
+
+      <div class="section-divider">
+        <div class="section-divider-line"></div>
+        <div class="section-divider-label">
+          <i data-lucide="cpu" style="width:11px;height:11px;"></i>
+          AI Pipeline
+        </div>
+        <div class="section-divider-line"></div>
+      </div>
+
+      <div class="result-grid">
+
+        <!-- Left: Agent pipeline -->
+        <div class="agent-pipeline">
+
+          <!-- Agent 1 -->
+          <div class="agent-card" id="agent1-card">
+            <div class="agent-icon">
+              <i data-lucide="flask-conical" style="width:17px;height:17px;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div class="agent-role">Agent 1</div>
+              <div class="agent-name">Formulation Agent</div>
+              <div class="agent-status-text" id="agent1-status">
+                <i data-lucide="clock" style="width:11px;height:11px;"></i>
+                Waiting…
+              </div>
+            </div>
+          </div>
+
+          <!-- Connector -->
+          <div class="agent-connector">
+            <i data-lucide="arrow-down" style="width:14px;height:14px;color:var(--text-faint);"></i>
+          </div>
+
+          <!-- Agent 2 -->
+          <div class="agent-card" id="agent2-card">
+            <div class="agent-icon">
+              <i data-lucide="shield-check" style="width:17px;height:17px;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div class="agent-role">Agent 2</div>
+              <div class="agent-name">Regulatory Agent</div>
+              <div class="agent-status-text" id="agent2-status">
+                <i data-lucide="clock" style="width:11px;height:11px;"></i>
+                Waiting for Agent 1…
+              </div>
+            </div>
+          </div>
+
+          <!-- Export button (shown after done) -->
+          <div id="export-block" style="display:none;margin-top:0.25rem;">
+            <button class="btn btn-secondary" id="export-btn" style="width:100%;">
+              <i data-lucide="download" style="width:14px;height:14px;"></i>
+              Export Full Report
+            </button>
+            <button class="btn btn-primary" id="retry-btn" style="width:100%;margin-top:0.5rem;">
+              <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i>
+              New Formula
+            </button>
           </div>
         </div>
 
-        <div class="action-col no-print">
-          <button class="btn btn-primary" id="audit-btn" onclick="runAudit()" disabled>
-            <i data-lucide="shield-check" style="width:15px;height:15px;"></i> Run Safety Audit
-          </button>
-          <button class="btn btn-secondary" id="export-btn" onclick="openSheet()" disabled>
-            <i data-lucide="file-text" style="width:15px;height:15px;"></i> Export Formula Sheet
-          </button>
-          <button class="btn btn-accent" id="save-btn" onclick="saveFormulaToWorkspace()" disabled>
-            <i data-lucide="send" style="width:15px;height:15px;"></i> Save to Workspace
-          </button>
-        </div>
-      </div>
+        <!-- Right: Output column -->
+        <div class="output-column" id="output-column">
 
-      <!-- ═══════════════════════════════════════════════════
-           PANEL 3 — Safety Audit
-           ═══════════════════════════════════════════════════ -->
-      <div class="panel panel-audit">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
-          <p class="panel-title">Safety Audit Log</p>
-          <span id="audit-count-badge" class="badge badge-muted" style="display:none;"></span>
-        </div>
-
-        <div id="audit-log" class="audit-log">
-          <div class="audit-empty">
-            <i data-lucide="shield" style="width:26px;height:26px;margin-bottom:0.625rem;color:var(--text-muted);display:block;margin-left:auto;margin-right:auto;"></i>
-            Run the Safety Audit to validate your formula against EU Annex V &amp; FDA thresholds.
+          <!-- Formula placeholder -->
+          <div class="output-empty" id="formula-empty">
+            <i data-lucide="flask-conical" style="width:26px;height:26px;margin-bottom:0.625rem;display:block;margin-left:auto;margin-right:auto;color:var(--text-faint);"></i>
+            Agent 1 will generate the complete formula here
           </div>
+          <div id="formula-skeleton" style="display:none;">
+            <div class="skeleton-block">
+              <div class="skel-line" style="width:40%;margin-bottom:0.875rem;height:8px;"></div>
+              <div class="skel-line" style="width:65%;height:18px;margin-bottom:0.5rem;"></div>
+              <div class="skel-line" style="width:50%;height:10px;margin-bottom:1.25rem;"></div>
+              <div class="skel-line" style="width:100%;"></div>
+              <div class="skel-line" style="width:88%;"></div>
+              <div class="skel-line" style="width:94%;"></div>
+              <div class="skel-line" style="width:80%;"></div>
+              <div class="skel-line" style="width:92%;"></div>
+            </div>
+          </div>
+          <div id="formula-output" style="display:none;"></div>
+
+          <!-- Compliance placeholder -->
+          <div class="output-empty" id="compliance-empty">
+            <i data-lucide="shield" style="width:26px;height:26px;margin-bottom:0.625rem;display:block;margin-left:auto;margin-right:auto;color:var(--text-faint);"></i>
+            Agent 2 will audit the formula for EU &amp; FDA compliance
+          </div>
+          <div id="compliance-skeleton" style="display:none;">
+            <div class="skeleton-block">
+              <div class="skel-line" style="width:55%;margin-bottom:0.875rem;height:16px;"></div>
+              <div class="skel-line" style="width:100%;"></div>
+              <div class="skel-line" style="width:78%;"></div>
+              <div class="skel-line" style="width:90%;"></div>
+              <div class="skel-line" style="width:65%;"></div>
+            </div>
+          </div>
+          <div id="compliance-output" style="display:none;"></div>
+
         </div>
-
-        <div id="compliance-badge" style="display:none;" class="compliance-badge"></div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════
-       Formula Sheet Modal
-       ═══════════════════════════════════════════════════════ -->
-  <div id="sheet-modal" class="modal-overlay hidden" onclick="handleModalClick(event)">
-    <div class="formula-sheet-modal" onclick="event.stopPropagation()">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem;">
-        <div>
-          <h2 style="font-size:1.125rem;margin-bottom:0.2rem;">Formula Sheet</h2>
-          <p style="font-size:0.8rem;color:var(--text-muted);">TRENDFORMULATE — Printable INCI Record</p>
-        </div>
-        <button class="btn btn-ghost no-print" onclick="closeSheet()" style="padding:0.4rem 0.75rem;">
-          <i data-lucide="x" style="width:14px;height:14px;"></i> Close
-        </button>
-      </div>
-      <hr />
-      <pre id="sheet-content" class="sheet-pre"></pre>
-      <div class="sheet-actions no-print">
-        <button class="btn btn-primary" onclick="window.print()">
-          <i data-lucide="printer" style="width:15px;height:15px;"></i> Print / Save PDF
-        </button>
-        <button class="btn btn-secondary" onclick="closeSheet()">Close</button>
       </div>
     </div>
-  </div>
+
+  </div><!-- /page-wrapper -->
 
   <script>
-    /* ── Inline data ─────────────────────────────────────────────── */
-    const INGREDIENTS_DB = [
-      { name: "Water",             inci: "Aqua",                       max_pct: 95,  type: "base" },
-      { name: "Polyglutamic Acid", inci: "Sodium Polyglutamate",        max_pct: 5,   optimal_pct: 3,   type: "active" },
-      { name: "Phenoxyethanol",    inci: "Phenoxyethanol",              max_pct: 1,   type: "preservative", regulation: "EU Annex V" },
-      { name: "Centella Asiatica", inci: "Centella Asiatica Extract",   max_pct: 10,  type: "active" },
-      { name: "Niacinamide",       inci: "Niacinamide",                 max_pct: 10,  type: "active",      known_sensitivity: true },
-      { name: "Glycerin",          inci: "Glycerin",                    max_pct: 30,  type: "humectant" },
-      { name: "Squalane",          inci: "Squalane",                    max_pct: 15,  type: "emollient" },
-      { name: "Bakuchiol",         inci: "Bakuchiol",                   max_pct: 2,   optimal_pct: 0.5, type: "active" },
-      { name: "Hyaluronic Acid",   inci: "Sodium Hyaluronate",          max_pct: 2,   optimal_pct: 0.1, type: "humectant" },
-      { name: "Zinc Oxide",        inci: "Zinc Oxide",                  max_pct: 25,  type: "sunscreen", regulation: "EU Annex VI" }
+    // ─── Groq configuration (same as Component 01) ─────────────────
+    const GROQ_MODEL    = "llama-3.3-70b-versatile";
+    const GROQ_DIRECT   = "https://api.groq.com/openai/v1/chat/completions";
+    const ON_SERVER     = window.location.protocol !== "file:" &&
+                          window.location.hostname !== "localhost" &&
+                          window.location.hostname !== "127.0.0.1";
+    const GROQ_ENDPOINT = ON_SERVER ? "/api/groq" : GROQ_DIRECT;
+
+    // ─── Trends imported from Component 01 output ──────────────────
+    // These mirror the exact trends the Sentiment Engine generates
+    // from its 5 mock social comments.
+    const TRENDS = [
+      {
+        id: 1,
+        trend: "Glass Skin",
+        pain_point: "Niacinamide triggers breakouts — consumers need plumping without irritation",
+        ingredients: ["Polyglutamic Acid", "Centella Asiatica"],
+        confidence: "High",
+        source: "\"I love the glass-skin look but niacinamide breaks me out…\""
+      },
+      {
+        id: 2,
+        trend: "Barrier Repair",
+        pain_point: "Petroleum-based occlusives feel too heavy — need lightweight moisture lock",
+        ingredients: ["Squalane", "Snow Mushroom Extract"],
+        confidence: "High",
+        source: "\"Slugging with petroleum jelly is too heavy…\""
+      },
+      {
+        id: 3,
+        trend: "Clean Sun Care",
+        pain_point: "Mineral SPF leaves white cast on deeper skin tones",
+        ingredients: ["Zinc Oxide", "Non-nano Titanium Dioxide"],
+        confidence: "High",
+        source: "\"Looking for a reef-safe SPF that doesn't leave a white cast…\""
+      },
+      {
+        id: 4,
+        trend: "Gentle Retinol Alternative",
+        pain_point: "Retinol causes sensitivity — need effective anti-ageing without irritation",
+        ingredients: ["Bakuchiol", "Tripeptide-1"],
+        confidence: "High",
+        source: "\"Retinol is too harsh for my sensitive skin…\""
+      },
+      {
+        id: 5,
+        trend: "Simplified K-Beauty",
+        pain_point: "Multi-step routine fatigue — one product delivering the full dewy stack",
+        ingredients: ["Sodium Hyaluronate", "Rice Ferment Filtrate"],
+        confidence: "Medium",
+        source: "\"I want the dewy K-beauty look without 10 steps…\""
+      }
     ];
 
-    const SAFETY_RULES = [
-      { ingredient: "Phenoxyethanol",    max_allowed: 1.0,  regulation: "EU Annex V / FDA",  violation_message: "Phenoxyethanol cannot exceed 1% in leave-on products." },
-      { ingredient: "Polyglutamic Acid", recommended_max: 5.0, optimal: 3.0,                 note: "Highly effective at 3%; above 5% adds cost without benefit." },
-      { ingredient: "Zinc Oxide",        max_allowed: 25.0, regulation: "EU Annex VI",        violation_message: "Zinc Oxide cannot exceed 25% in sunscreen products (EU Annex VI)." },
-      { ingredient: "Bakuchiol",         recommended_max: 2.0, optimal: 0.5,                 note: "Effective at 0.5%; concentrations above 2% may cause skin sensitivity." }
-    ];
+    // ─── Agent 1 system prompt ──────────────────────────────────────
+    const FORMULATOR_SYSTEM = `You are a master cosmetic chemist for an indie beauty brand. Given a beauty trend, consumer pain point, and target ingredients, generate a complete, scientifically-sound cosmetic formula.
 
-    /* ── App state ───────────────────────────────────────────────── */
-    let formula = [
-      { name: "Water", inci: "Aqua", pct: 91, type: "base" }
-    ];
-    let auditLog = [];
+Return ONLY a valid JSON object — no markdown fences, no explanation, no extra text whatsoever.
 
-    /* ── Init ────────────────────────────────────────────────────── */
-    function init() {
-      populateSelect();
-      renderFormulaTable();
+Use this exact schema:
+{
+  "product_name": "<creative product name, e.g. 'Glass Skin Serum 001'>",
+  "product_type": "<one of: serum | face cream | facial oil | toner | face mist | sleeping mask>",
+  "tagline": "<brand-ready marketing tagline, 8-14 words>",
+  "ingredients": [
+    {
+      "name": "<common ingredient name>",
+      "inci": "<official INCI/CTFA name>",
+      "percentage": <number, e.g. 72.4>,
+      "function": "<one of: solvent | humectant | active | preservative | emollient | UV filter | thickener | emulsifier | pH adjuster | antioxidant | fragrance>",
+      "rationale": "<one sentence explaining why this ingredient belongs in this formula>"
     }
+  ],
+  "ph_range": "<e.g. '5.5–6.0'>",
+  "shelf_life": "<e.g. '18 months unopened'>",
+  "marketing_claims": ["<claim 1>", "<claim 2>", "<claim 3>"],
+  "formulation_notes": "<1-2 sentence processing instruction>"
+}
 
-    /* ── Dropdown ────────────────────────────────────────────────── */
-    function populateSelect() {
-      const sel = document.getElementById('ing-select');
-      INGREDIENTS_DB.forEach(ing => {
-        const opt = document.createElement('option');
-        opt.value = ing.name;
-        opt.textContent = ing.name + ' — ' + ing.inci;
-        sel.appendChild(opt);
+Critical rules — violating any of these makes the output unusable:
+1. The SUM of all ingredient percentages MUST equal exactly 100.0
+2. Include exactly 6 to 8 ingredients
+3. For water-based formulas: Water (Aqua) must be the base with the highest single percentage
+4. Preservative (Phenoxyethanol or equivalent) must be ≤ 1.0%
+5. Fragrance/Parfum must be ≤ 1.0% if included
+6. Actives must follow industry norms: Bakuchiol ≤ 2%, Niacinamide ≤ 10%, Zinc Oxide ≤ 25%, Retinol ≤ 0.3%
+7. Use only real, approved INCI names
+8. RETURN ONLY THE JSON OBJECT — nothing else`;
+
+    // ─── Agent 2 system prompt ──────────────────────────────────────
+    const COMPLIANCE_SYSTEM = `You are a cosmetic regulatory expert specializing in EU Cosmetics Regulation (EC 1223/2009) and its Annexes II–VI, plus FDA cosmetic regulations (21 CFR 700–740).
+
+You receive a cosmetic formula and must audit it for regulatory compliance.
+
+Return ONLY a valid JSON object — no markdown fences, no explanation, no extra text.
+
+Use this exact schema:
+{
+  "overall_status": "<COMPLIANT | CAUTION | NON_COMPLIANT>",
+  "checks": [
+    {
+      "ingredient": "<common name>",
+      "inci": "<INCI name>",
+      "percentage": <number>,
+      "status": "<PASS | CAUTION | FAIL>",
+      "regulation_ref": "<specific reference, e.g. 'EU Annex V, Entry 34' or 'No restrictions — general use'>",
+      "note": "<specific compliance note, e.g. 'Within EU max of 1.0% for leave-on products'>"
+    }
+  ],
+  "violations": ["<violation description>"],
+  "warnings": ["<warning description>"],
+  "recommendations": ["<actionable recommendation>"],
+  "market_clearance": {
+    "EU": <true | false>,
+    "US_FDA": <true | false>,
+    "UK": <true | false>
+  },
+  "summary": "<2-3 sentence overall regulatory assessment>"
+}
+
+Rules:
+- For common safe ingredients (Water, Glycerin, Squalane, plant extracts with no restrictions): status = PASS, note = "No regulatory restrictions; universally approved for cosmetic use"
+- For Phenoxyethanol: max 1.0% per EU Annex V, Entry 34
+- For Zinc Oxide: max 25% per EU Annex VI, Entry 30 (non-nano)
+- For Titanium Dioxide: max 25% per EU Annex VI, Entry 27 (non-nano)
+- For Bakuchiol: no specific EU limit but flag concentrations above 2%
+- If violations array is empty, overall_status must be COMPLIANT
+- RETURN ONLY THE JSON OBJECT — nothing else`;
+
+    // ─── State ──────────────────────────────────────────────────────
+    let selectedTrend   = null;
+    let generatedFormula = null;
+    let complianceResult = null;
+
+    // ─── Groq API call ───────────────────────────────────────────────
+    async function callGroq(messages, maxTokens = 1200, retrying = false) {
+      const headers = { "Content-Type": "application/json" };
+      if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
+        headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
+      }
+      const response = await fetch(GROQ_ENDPOINT, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model:       GROQ_MODEL,
+          temperature: 0.35,
+          max_tokens:  maxTokens,
+          messages
+        })
       });
+      if (response.status === 429 && !retrying) {
+        await sleep(2500);
+        return callGroq(messages, maxTokens, true);
+      }
+      if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
+      const data = await response.json();
+      return data.choices[0].message.content.trim();
     }
 
-    /* ── Add ingredient ──────────────────────────────────────────── */
-    function addIngredient() {
-      const name = document.getElementById('ing-select').value;
-      const ing = INGREDIENTS_DB.find(i => i.name === name);
-      if (!ing) return;
+    // ─── Parse JSON from AI response ────────────────────────────────
+    function parseJSON(raw) {
+      const cleaned = raw
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
+      return JSON.parse(cleaned);
+    }
 
-      if (formula.findIndex(f => f.name === name) !== -1) {
-        // Already present — just flash the row instead of duplicating
-        const inputs = document.querySelectorAll('.pct-input');
-        const rows = document.querySelectorAll('.formula-table tbody tr');
-        const idx = formula.findIndex(f => f.name === name);
-        if (rows[idx]) {
-          rows[idx].style.transition = 'background 0.15s';
-          rows[idx].style.background = 'rgba(196, 120, 138, 0.12)';
-          setTimeout(() => { rows[idx].style.background = ''; }, 600);
-        }
-        return;
+    // ─── Agent 1: Formulation Agent ─────────────────────────────────
+    async function runAgent1(trend) {
+      setAgentState("agent1", "active", "Generating formula…");
+      setStep(2, "active");
+
+      const userMsg =
+        `Trend: ${trend.trend}\n` +
+        `Pain point: ${trend.pain_point}\n` +
+        `Target ingredients to incorporate: ${trend.ingredients.join(", ")}`;
+
+      const raw = await callGroq([
+        { role: "system", content: FORMULATOR_SYSTEM },
+        { role: "user",   content: userMsg }
+      ], 1200);
+
+      const formula = parseJSON(raw);
+
+      // Validate required fields
+      if (!formula.product_name || !Array.isArray(formula.ingredients) || formula.ingredients.length === 0) {
+        throw new Error("Invalid formula schema from Agent 1");
       }
 
-      const defaultPct = ing.optimal_pct ?? Math.min(5, Math.round(ing.max_pct * 0.3 * 10) / 10, 10);
-      formula.push({ name: ing.name, inci: ing.inci, pct: defaultPct, type: ing.type });
-
-      resetAudit();
-      renderFormulaTable();
-    }
-
-    /* ── Update a single ingredient's % ─────────────────────────── */
-    function updatePct(name, rawVal) {
-      const val = parseFloat(rawVal);
-      if (isNaN(val) || val < 0) return;
-      const idx = formula.findIndex(f => f.name === name);
-      if (idx === -1) return;
-      formula[idx].pct = Math.round(val * 10) / 10;
-      resetAudit();
-      refreshTotals();
-    }
-
-    /* ── Refresh just the tfoot totals (no full re-render) ───────── */
-    function refreshTotals() {
-      const total = formula.reduce((s, f) => s + f.pct, 0);
-      const isOk  = Math.abs(total - 100) < 0.05;
-      const isOver = total > 100.05;
-
-      const totalCell = document.querySelector('.formula-table tfoot .tfoot-row td:nth-child(2)');
-      const hintCell  = document.querySelector('.formula-table tfoot .tfoot-row td:nth-child(3)');
-      if (totalCell) {
-        totalCell.className = isOk ? 'total-ok' : 'total-warn';
-        totalCell.textContent = isOk ? '✓ 100.0' : total.toFixed(1);
+      // Normalise percentages to sum to 100 (AI arithmetic can drift)
+      const total = formula.ingredients.reduce((s, i) => s + (parseFloat(i.percentage) || 0), 0);
+      if (Math.abs(total - 100) > 0.5) {
+        formula.ingredients = formula.ingredients.map(i => ({
+          ...i,
+          percentage: Math.round((parseFloat(i.percentage) / total * 100) * 10) / 10
+        }));
       }
-      if (hintCell) {
-        hintCell.textContent = isOk ? 'Ready to audit ↓' : (isOver ? 'Over 100% — reduce an ingredient' : 'Must equal 100% to run audit');
+
+      setAgentState("agent1", "done", "Formula generated ✓");
+      setStep(2, "done");
+      return formula;
+    }
+
+    // ─── Agent 2: Regulatory Agent ──────────────────────────────────
+    async function runAgent2(formula) {
+      setAgentState("agent2", "active", "Auditing for EU & FDA compliance…");
+      setStep(3, "active");
+
+      const ingList = formula.ingredients
+        .map(i => `- ${i.inci} (${i.name}): ${i.percentage}%`)
+        .join("\n");
+
+      const userMsg =
+        `Please audit this cosmetic formula for regulatory compliance.\n\n` +
+        `Product: ${formula.product_name}\n` +
+        `Type: ${formula.product_type}\n\n` +
+        `Ingredients:\n${ingList}`;
+
+      const raw = await callGroq([
+        { role: "system", content: COMPLIANCE_SYSTEM },
+        { role: "user",   content: userMsg }
+      ], 1200);
+
+      const compliance = parseJSON(raw);
+
+      if (!compliance.overall_status || !Array.isArray(compliance.checks)) {
+        throw new Error("Invalid compliance schema from Agent 2");
       }
-      const auditBtn = document.getElementById('audit-btn');
-      if (auditBtn) auditBtn.disabled = !isOk;
+
+      setAgentState("agent2", "done", "Compliance audit complete ✓");
+      setStep(3, "done");
+      return compliance;
     }
 
-    /* ── Remove ingredient ───────────────────────────────────────── */
-    function removeIngredient(name) {
-      formula = formula.filter(f => f.name !== name);
-      resetAudit();
-      renderFormulaTable();
-    }
+    // ─── Main orchestration ──────────────────────────────────────────
+    async function runPipeline() {
+      const genBtn   = document.getElementById("generate-btn");
+      const genState = document.getElementById("generating-state");
+      const genLabel = document.getElementById("gen-label");
+      const errEl    = document.getElementById("error-notice");
+      const errText  = document.getElementById("error-text");
 
-    /* ── Render formula table ────────────────────────────────────── */
-    function renderFormulaTable() {
-      const wrap    = document.getElementById('formula-table-wrap');
-      const badge   = document.getElementById('ing-count-badge');
-      const auditBtn= document.getElementById('audit-btn');
-      const expBtn  = document.getElementById('export-btn');
+      // Lock UI
+      genBtn.style.display = "none";
+      genState.classList.add("visible");
+      errEl.classList.remove("visible");
 
-      if (formula.length === 0) {
-        wrap.innerHTML = `<div class="empty-formula">
-          <i data-lucide="test-tubes" style="width:30px;height:30px;margin-bottom:0.75rem;color:var(--text-muted);display:block;margin-left:auto;margin-right:auto;"></i>
-          No ingredients added yet.<br/>Use the builder panel to start your formula.
-        </div>`;
-        badge.style.display = 'none';
-        auditBtn.disabled = true;
-        expBtn.disabled = true;
-        document.getElementById('save-btn').disabled = true;
+      // Disable trend cards during generation
+      document.querySelectorAll(".trend-option-card").forEach(c => c.classList.add("disabled-card"));
+
+      // Show Phase 2+3 section
+      document.getElementById("phase23").classList.add("visible");
+      document.getElementById("formula-empty").style.display = "none";
+      document.getElementById("formula-skeleton").style.display = "block";
+      document.getElementById("compliance-empty").style.display = "none";
+
+      try {
+        // ── Agent 1 ─────────────────────────────────────────────────
+        genLabel.textContent = "Agent 1: crafting formula…";
+        generatedFormula = await runAgent1(selectedTrend);
+
+        // Render formula
+        document.getElementById("formula-skeleton").style.display = "none";
+        document.getElementById("formula-output").style.display = "block";
+        renderFormula(generatedFormula);
+
+        // ── Agent 2 ─────────────────────────────────────────────────
+        await sleep(400);
+        document.getElementById("compliance-skeleton").style.display = "block";
+        genLabel.textContent = "Agent 2: reviewing compliance…";
+        complianceResult = await runAgent2(generatedFormula);
+
+        // Render compliance
+        document.getElementById("compliance-skeleton").style.display = "none";
+        document.getElementById("compliance-output").style.display = "block";
+        renderCompliance(complianceResult);
+
+        // Show export block
+        document.getElementById("export-block").style.display = "block";
+        setStep(1, "done");
+
+        // Save to workspace
+        saveToWorkspace(generatedFormula, complianceResult);
+
+      } catch (err) {
+        errText.textContent = `Error: ${err.message} — Please retry.`;
+        errEl.classList.add("visible");
         lucide.createIcons();
-        return;
+
+        // Reset skeletons
+        document.getElementById("formula-skeleton").style.display = "none";
+        document.getElementById("compliance-skeleton").style.display = "none";
+        if (!generatedFormula) {
+          document.getElementById("formula-empty").style.display = "";
+          document.getElementById("compliance-empty").style.display = "";
+        }
+        setAgentState("agent1", "pending", "Waiting…");
+        setAgentState("agent2", "pending", "Waiting for Agent 1…");
+
+        // Re-enable cards
+        document.querySelectorAll(".trend-option-card").forEach(c => c.classList.remove("disabled-card"));
+
+      } finally {
+        genState.classList.remove("visible");
+        genBtn.style.display = "";
+        genLabel.textContent = "Agents working…";
+        lucide.createIcons();
       }
+    }
 
-      const total = formula.reduce((s, f) => s + f.pct, 0);
-      const isOk  = Math.abs(total - 100) < 0.05;
+    // ─── Render: formula card ────────────────────────────────────────
+    function renderFormula(f) {
+      const wrap = document.getElementById("formula-output");
 
-      badge.style.display = 'inline-flex';
-      badge.textContent = formula.length + ' ingredient' + (formula.length !== 1 ? 's' : '');
-      auditBtn.disabled = !isOk;
-      expBtn.disabled = false;
-      document.getElementById('save-btn').disabled = false;
-
-      const rows = formula.map(item => `
+      const rows = f.ingredients.map(ing => `
         <tr>
-          <td style="font-weight:500;">${item.inci}</td>
           <td>
-            <input
-              type="number"
-              class="pct-input"
-              value="${item.pct}"
-              min="0.1"
-              max="99.9"
-              step="0.1"
-              onchange="updatePct('${escQ(item.name)}', this.value)"
-              oninput="updatePct('${escQ(item.name)}', this.value)"
-            />
+            <div class="ing-name">${esc(ing.name)}</div>
+            <div class="ing-inci">${esc(ing.inci)}</div>
           </td>
-          <td>${cap(item.type)}</td>
           <td>
-            <button class="remove-btn" onclick="removeIngredient('${escQ(item.name)}')" title="Remove ${escQ(item.name)}">
-              <i data-lucide="x" style="width:13px;height:13px;"></i>
-            </button>
+            <div class="ing-pct">${parseFloat(ing.percentage).toFixed(1)}<span class="ing-pct-unit">%</span></div>
           </td>
-        </tr>`).join('');
+          <td><span class="ing-fn-badge">${esc(ing.function || "")}</span></td>
+          <td class="ing-rationale">${esc(ing.rationale || "")}</td>
+        </tr>`).join("");
 
-      const cls     = isOk ? 'total-ok' : 'total-warn';
-      const totalTx = isOk ? '✓ 100.0' : total.toFixed(1);
-      const hint    = isOk ? 'Ready to audit ↓' : 'Must equal 100% to run audit';
+      const claims = (f.marketing_claims || [])
+        .map(c => `<span class="claim-pill">${esc(c)}</span>`).join("");
 
       wrap.innerHTML = `
-        <table class="formula-table">
-          <thead>
-            <tr>
-              <th>INCI Name</th><th>%</th><th>Function</th><th></th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-          <tfoot>
-            <tr class="tfoot-row">
-              <td>Total</td>
-              <td class="${cls}">${totalTx}</td>
-              <td colspan="2" style="font-size:0.72rem;color:var(--text-muted);">${hint}</td>
-            </tr>
-          </tfoot>
-        </table>`;
-      lucide.createIcons();
-    }
-
-    /* ── Safety validation ───────────────────────────────────────── */
-    function validateFormula(formulaArr) {
-      const log = [];
-      for (const item of formulaArr) {
-        const rule = SAFETY_RULES.find(r => r.ingredient === item.name);
-        if (rule) {
-          if (rule.max_allowed !== undefined && item.pct > rule.max_allowed) {
-            log.push({
-              ingredient: item.name,
-              status: 'FAIL',
-              message: `${rule.violation_message} (input ${item.pct.toFixed(1)}% → max ${rule.max_allowed}%)`,
-              correctedPct: rule.max_allowed
-            });
-          } else if (rule.recommended_max !== undefined && item.pct > rule.recommended_max) {
-            log.push({
-              ingredient: item.name,
-              status: 'NOTE',
-              message: `${rule.note} (input ${item.pct.toFixed(1)}% → recommended max ${rule.recommended_max}%)`
-            });
-          } else {
-            log.push({ ingredient: item.name, status: 'PASS', message: null });
-          }
-        } else {
-          log.push({ ingredient: item.name, status: 'PASS', message: null });
-        }
-      }
-      return log;
-    }
-
-    /* ── Run audit (animated) ────────────────────────────────────── */
-    async function runAudit() {
-      const btn = document.getElementById('audit-btn');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span>&nbsp;Auditing…';
-
-      const logEl      = document.getElementById('audit-log');
-      const compEl     = document.getElementById('compliance-badge');
-      const countBadge = document.getElementById('audit-count-badge');
-
-      logEl.innerHTML  = '';
-      compEl.style.display = 'none';
-
-      auditLog = validateFormula(formula);
-
-      for (const row of auditLog) {
-        await delay(155);
-        const div = document.createElement('div');
-        const cls = row.status === 'FAIL' ? 'fail' : row.status === 'NOTE' ? 'note' : 'pass';
-        div.className = 'audit-row ' + cls;
-
-        const fixBtn = row.status === 'FAIL'
-          ? `<button class="autofix-btn" onclick="autoFixIngredient('${escQ(row.ingredient)}',${row.correctedPct})">Auto-Fix ↩</button>`
-          : '';
-
-        div.innerHTML = `
-          <div class="audit-row-head">
-            <span class="audit-status ${cls}">${row.status}</span>
-            <span class="audit-ing">${row.ingredient}</span>
-            ${fixBtn}
+        <div class="formula-card animate-in">
+          <div class="formula-header">
+            <div class="formula-product-type">${esc(f.product_type || "Formula")}</div>
+            <div class="formula-product-name">${esc(f.product_name)}</div>
+            <div class="formula-tagline">${esc(f.tagline || "")}</div>
+            <div class="formula-meta-row">
+              <div class="formula-meta-item">
+                <i data-lucide="droplets" style="width:13px;height:13px;"></i>
+                pH <strong>${esc(f.ph_range || "—")}</strong>
+              </div>
+              <div class="formula-meta-item">
+                <i data-lucide="calendar" style="width:13px;height:13px;"></i>
+                <strong>${esc(f.shelf_life || "—")}</strong>
+              </div>
+              <div class="formula-meta-item">
+                <i data-lucide="layers" style="width:13px;height:13px;"></i>
+                <strong>${f.ingredients.length} ingredients</strong>
+              </div>
+            </div>
           </div>
-          ${row.message ? `<div class="audit-msg">${row.message}</div>` : ''}`;
-        logEl.appendChild(div);
-      }
-
-      await delay(200);
-
-      const failCount = auditLog.filter(r => r.status === 'FAIL').length;
-
-      compEl.style.display = 'flex';
-      countBadge.style.display = 'inline-flex';
-
-      if (failCount === 0) {
-        compEl.className = 'compliance-badge compliant';
-        compEl.innerHTML = '<i data-lucide="shield-check" style="width:16px;height:16px;"></i>&nbsp;EU &amp; FDA Compliant ✓';
-        countBadge.textContent = 'All Pass';
-        countBadge.className = 'badge badge-success';
-      } else {
-        compEl.className = 'compliance-badge violation';
-        compEl.innerHTML = `<i data-lucide="shield-x" style="width:16px;height:16px;"></i>&nbsp;${failCount} Violation${failCount > 1 ? 's' : ''} Found`;
-        countBadge.textContent = failCount + ' violation' + (failCount !== 1 ? 's' : '');
-        countBadge.className = 'badge badge-error';
-      }
-
-      lucide.createIcons();
-
-      btn.disabled = false;
-      btn.innerHTML = '<i data-lucide="shield-check" style="width:15px;height:15px;"></i>&nbsp;Re-run Audit';
-      lucide.createIcons();
-    }
-
-    /* ── Auto-fix ────────────────────────────────────────────────── */
-    function autoFixIngredient(name, maxPct) {
-      const idx = formula.findIndex(f => f.name === name);
-      if (idx === -1) return;
-      const surplus = formula[idx].pct - maxPct;
-      formula[idx].pct = maxPct;
-      const waterIdx = formula.findIndex(f => f.name === 'Water');
-      if (waterIdx !== -1) {
-        formula[waterIdx].pct = Math.max(0, parseFloat((formula[waterIdx].pct + surplus).toFixed(1)));
-      }
-      resetAudit();
-      renderFormulaTable();
-      runAudit();
-    }
-
-    /* ── Reset audit panel ───────────────────────────────────────── */
-    function resetAudit() {
-      auditLog = [];
-      document.getElementById('audit-log').innerHTML = `
-        <div class="audit-empty">
-          <i data-lucide="shield" style="width:26px;height:26px;margin-bottom:0.625rem;color:var(--text-muted);display:block;margin-left:auto;margin-right:auto;"></i>
-          Run the Safety Audit to validate your formula against EU Annex V &amp; FDA thresholds.
+          <table class="inci-table">
+            <thead>
+              <tr>
+                <th>Ingredient</th>
+                <th>%</th>
+                <th>Function</th>
+                <th>Rationale</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+          ${claims ? `<div class="formula-claims">${claims}</div>` : ""}
+          ${f.formulation_notes ? `<div class="formula-notes"><i data-lucide="info" style="width:12px;height:12px;margin-right:0.35rem;vertical-align:middle;"></i>${esc(f.formulation_notes)}</div>` : ""}
         </div>`;
-      document.getElementById('compliance-badge').style.display = 'none';
-      document.getElementById('audit-count-badge').style.display = 'none';
       lucide.createIcons();
     }
 
-    /* ── Formula sheet modal ─────────────────────────────────────── */
-    function openSheet() {
-      const productName = document.getElementById('product-name').value.trim() || 'Untitled Formula';
-      const date = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
-      const failCount = auditLog.filter(r => r.status === 'FAIL').length;
+    // ─── Render: compliance card ─────────────────────────────────────
+    function renderCompliance(c) {
+      const wrap = document.getElementById("compliance-output");
 
-      let statusLine;
-      if (auditLog.length === 0) {
-        statusLine = 'Status: Not Yet Audited';
-      } else if (failCount === 0) {
-        statusLine = 'Status: EU & FDA Compliant ✓';
-      } else {
-        statusLine = `Status: ${failCount} Violation(s) — Not Compliant ✗`;
-      }
+      const verdictClass = `verdict-${c.overall_status}`;
+      const verdictIcon  = c.overall_status === "COMPLIANT"
+        ? "shield-check"
+        : c.overall_status === "CAUTION"
+          ? "shield-alert"
+          : "shield-x";
+      const verdictLabel = c.overall_status === "COMPLIANT"
+        ? "EU & FDA Compliant"
+        : c.overall_status === "CAUTION"
+          ? "Caution — Review Recommended"
+          : "Non-Compliant — Violations Found";
 
-      const DIV   = '─'.repeat(52);
-      const COL_W = [32, 8, 14];
+      const checks = (c.checks || []).map(chk => {
+        const statusLC = (chk.status || "pass").toLowerCase();
+        const icon = statusLC === "pass"
+          ? "check"
+          : statusLC === "caution"
+            ? "alert-triangle"
+            : "x";
+        return `
+          <div class="compliance-check-row">
+            <div class="check-icon ${statusLC}">
+              <i data-lucide="${icon}" style="width:12px;height:12px;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div class="check-ing-name">${esc(chk.ingredient || chk.inci || "")} <span style="font-size:0.72rem;color:var(--text-faint);font-weight:400;">${chk.percentage != null ? `(${parseFloat(chk.percentage).toFixed(1)}%)` : ""}</span></div>
+              <div class="check-ref">${esc(chk.regulation_ref || "")}</div>
+              <div class="check-note">${esc(chk.note || "")}</div>
+            </div>
+            <span class="badge ${statusLC === "pass" ? "badge-success" : statusLC === "caution" ? "badge-warning" : "badge-error"}" style="flex-shrink:0;">${(chk.status || "PASS").toUpperCase()}</span>
+          </div>`;
+      }).join("");
 
-      const header = padR('INCI Name', COL_W[0]) + padR('%', COL_W[1]) + 'Function';
-      const ingRows = formula.map(item => {
-        return padR(item.inci, COL_W[0]) + padR(item.pct.toFixed(1), COL_W[1]) + cap(item.type);
-      }).join('\n');
+      const mc = c.market_clearance || {};
+      const marketBadges = [
+        { label: "EU", key: "EU" },
+        { label: "US (FDA)", key: "US_FDA" },
+        { label: "UK (CPSR)", key: "UK" }
+      ].map(m => {
+        const cleared = mc[m.key] === true;
+        const icon = cleared ? "check-circle" : "x-circle";
+        return `<div class="market-badge ${cleared ? "cleared" : "blocked"}">
+          <i data-lucide="${icon}" style="width:13px;height:13px;"></i>
+          ${m.label}
+        </div>`;
+      }).join("");
 
-      let auditSection = '';
-      if (auditLog.length > 0) {
-        const lines = auditLog.map(r => {
-          const pfx = r.status === 'FAIL' ? '[WARN]' : r.status === 'NOTE' ? '[NOTE]' : '[OK]  ';
-          return r.message ? `${pfx} ${r.ingredient}: ${r.message}` : `${pfx} ${r.ingredient}: Within safe limits.`;
-        }).join('\n');
-        auditSection = `\nSAFETY AUDIT LOG:\n${lines}\n`;
-      }
+      const recs = (c.recommendations || []);
+      const recsHTML = recs.length
+        ? `<div class="compliance-recs">
+            <div style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:0.375rem;">Recommendations</div>
+            ${recs.map(r => `<div class="rec-item">${esc(r)}</div>`).join("")}
+          </div>`
+        : "";
 
-      const content =
-`TRENDFORMULATE FORMULA SHEET
-${DIV}
-Product Name: ${productName}
-Generated:    ${date}
-${statusLine}
-
-${header}
-${DIV}
-${ingRows}
-${DIV}
-${auditSection}${DIV}`;
-
-      document.getElementById('sheet-content').textContent = content;
-      document.getElementById('sheet-modal').classList.remove('hidden');
+      wrap.innerHTML = `
+        <div class="compliance-card animate-in">
+          <div class="compliance-verdict ${verdictClass}">
+            <div class="verdict-label">
+              <i data-lucide="${verdictIcon}" style="width:18px;height:18px;"></i>
+              ${verdictLabel}
+            </div>
+            <div class="verdict-summary">${esc(c.summary || "")}</div>
+          </div>
+          ${checks}
+          ${recsHTML}
+          <div class="market-clearance">
+            <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);align-self:center;margin-right:0.25rem;">Market Clearance</span>
+            ${marketBadges}
+          </div>
+        </div>`;
       lucide.createIcons();
     }
 
-    function closeSheet() {
-      document.getElementById('sheet-modal').classList.add('hidden');
+    // ─── Render: trend selection cards ──────────────────────────────
+    function renderTrendCards() {
+      const grid = document.getElementById("trend-grid");
+      grid.innerHTML = TRENDS.map(t => `
+        <div class="trend-option-card" id="trend-card-${t.id}" onclick="selectTrend(${t.id})">
+          <div class="trend-card-check">
+            <i data-lucide="check" style="width:11px;height:11px;color:#fff;"></i>
+          </div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.5rem;">
+            <div class="trend-name">${esc(t.trend)}</div>
+            <span class="badge badge-success" style="flex-shrink:0;font-size:0.65rem;">
+              <span class="confidence-dot"></span>${t.confidence}
+            </span>
+          </div>
+          <div class="trend-pain">${esc(t.pain_point)}</div>
+          <div class="trend-ings">
+            ${t.ingredients.map(i => `<span class="trend-ing-pill">${esc(i)}</span>`).join("")}
+          </div>
+          <div class="trend-source">${esc(t.source)}</div>
+        </div>`).join("");
+      lucide.createIcons();
     }
 
-    function handleModalClick(e) {
-      if (e.target === document.getElementById('sheet-modal')) closeSheet();
+    // ─── Select a trend ──────────────────────────────────────────────
+    function selectTrend(id) {
+      selectedTrend = TRENDS.find(t => t.id === id);
+      document.querySelectorAll(".trend-option-card").forEach(c => c.classList.remove("selected"));
+      document.getElementById(`trend-card-${id}`).classList.add("selected");
+      document.getElementById("generate-btn").disabled = false;
+      lucide.createIcons();
     }
 
-    /* ── Save formula to localStorage workspace ──────────────────── */
-    const INGREDIENT_META = {
-      "Polyglutamic Acid":  { type: "polysaccharide",                    mechanism: "forms a moisture-locking film on the skin surface",             benefits: ["Glass skin", "Dewy finish", "Zero irritation"] },
-      "Bakuchiol":          { type: "plant-derived retinol alternative",  mechanism: "activates retinol receptors without photosensitivity",           benefits: ["Anti-ageing", "No photosensitivity", "Safe for sensitive skin"] },
-      "Zinc Oxide":         { type: "mineral UV filter",                  mechanism: "physically deflects UV radiation without chemical absorption",    benefits: ["Reef-safe", "No white cast", "Broad spectrum SPF"] },
-      "Niacinamide":        { type: "vitamin B3 derivative",              mechanism: "inhibits melanosome transfer to reduce hyperpigmentation",        benefits: ["Brightening", "Pore minimizing", "Barrier repair"] },
-      "Centella Asiatica":  { type: "botanical adaptogen",                mechanism: "stimulates collagen synthesis and accelerates wound healing",     benefits: ["Soothing", "Anti-redness", "Barrier strengthening"] },
-      "Hyaluronic Acid":    { type: "glycosaminoglycan",                  mechanism: "holds up to 1000× its weight in water to plump skin",            benefits: ["Deep hydration", "Plumping", "Fine line reduction"] },
-      "Squalane":           { type: "plant-derived lipid",                mechanism: "mimics natural sebum to reinforce the skin lipid barrier",       benefits: ["Non-comedogenic", "Lightweight", "Barrier repair"] },
-      "Glycerin":           { type: "humectant",                          mechanism: "draws moisture from the environment deep into the skin",          benefits: ["Hydration", "Softness", "Barrier support"] },
-      "Phenoxyethanol":     { type: "broad-spectrum preservative",        mechanism: "prevents microbial growth in aqueous formulations",              benefits: ["Preservation", "Extended shelf life", "Safety"] },
-    };
+    // ─── UI helpers ──────────────────────────────────────────────────
+    function setAgentState(agentId, state, statusText) {
+      const card = document.getElementById(`${agentId}-card`);
+      const statusEl = document.getElementById(`${agentId}-status`);
+      card.className = `agent-card ${state}`;
+      const icon = state === "active" ? "loader" : state === "done" ? "check-circle" : "clock";
+      const spin = state === "active" ? `<span class="spinner" style="width:11px;height:11px;"></span>` :
+                   `<i data-lucide="${icon}" style="width:11px;height:11px;"></i>`;
+      statusEl.innerHTML = `${spin} ${statusText}`;
+      lucide.createIcons();
+    }
 
-    function saveFormulaToWorkspace() {
-      const productName = document.getElementById('product-name').value.trim() || 'Untitled Formula';
-      const failCount   = auditLog.filter(r => r.status === 'FAIL').length;
-      const compliance  = auditLog.length === 0 ? 'not_audited' : failCount === 0 ? 'compliant' : 'violation';
+    function setStep(num, state) {
+      const dot   = document.getElementById(`step-dot-${num}`);
+      const label = document.getElementById(`step-label-${num}`);
+      dot.className   = `step-dot ${state}`;
+      label.className = `step-label ${state}`;
+      if (state === "done" && num < 3) {
+        document.getElementById(`step-line-${num}`).classList.add("done");
+      }
+      if (state === "done") {
+        dot.innerHTML = `<i data-lucide="check" style="width:12px;height:12px;"></i>`;
+      }
+      lucide.createIcons();
+    }
 
-      // Pick the hero ingredient: highest-% active/humectant/emollient (not Water)
-      const ranked = [...formula]
-        .filter(i => i.name !== 'Water')
-        .sort((a, b) => b.pct - a.pct);
-      const hero   = ranked[0] || formula[0];
-      const meta   = INGREDIENT_META[hero?.name] || { type: 'active', mechanism: 'supports skin health', benefits: ['Effective', 'Tested', 'Safe'] };
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+    function esc(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    // ─── Save to localStorage workspace ─────────────────────────────
+    function saveToWorkspace(formula, compliance) {
       const entry = {
-        id:             Date.now(),
-        name:           productName,
-        compliance,
-        ingredients:    formula.map(i => ({ name: i.name, inci: i.inci, pct: i.pct, type: i.type })),
-        hero_ingredient: hero?.name   || 'Active Blend',
-        hero_inci:       hero?.inci   || '',
-        ingredient_type: meta.type,
-        mechanism:       meta.mechanism,
-        benefit_stack:   meta.benefits,
-        shot_type:       'Product texture close-up',
+        id:              Date.now(),
+        name:            formula.product_name,
+        compliance:      compliance.overall_status === "COMPLIANT" ? "compliant" : compliance.overall_status === "CAUTION" ? "caution" : "violation",
+        ingredients:     formula.ingredients.map(i => ({ name: i.name, inci: i.inci, pct: i.percentage, type: i.function })),
+        hero_ingredient: formula.ingredients.find(i => i.function === "active")?.name || formula.ingredients[1]?.name || "Active Blend",
+        hero_inci:       formula.ingredients.find(i => i.function === "active")?.inci || "",
+        ingredient_type: formula.ingredients.find(i => i.function === "active")?.function || "active",
+        mechanism:       formula.ingredients.find(i => i.function === "active")?.rationale || "",
+        benefit_stack:   formula.marketing_claims || [],
+        shot_type:       "Product texture close-up",
         savedAt:         new Date().toISOString()
       };
-
-      const STORE_KEY = 'tf_saved_formulas';
+      const STORE_KEY = "tf_saved_formulas";
       let saved = [];
-      try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { saved = []; }
-
-      // Replace existing entry with same name, or append
-      const existingIdx = saved.findIndex(f => f.name === entry.name);
-      if (existingIdx !== -1) { saved[existingIdx] = entry; } else { saved.push(entry); }
-
+      try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch(e) { saved = []; }
+      const idx = saved.findIndex(f => f.name === entry.name);
+      if (idx !== -1) { saved[idx] = entry; } else { saved.push(entry); }
       localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+    }
 
-      showSaveToast(productName, compliance);
-      document.getElementById('save-btn').innerHTML =
-        '<i data-lucide="check" style="width:15px;height:15px;"></i> Saved to Workspace';
+    // ─── Export full report as JSON ──────────────────────────────────
+    function exportReport() {
+      if (!generatedFormula) return;
+      const payload = {
+        generated_at:    new Date().toISOString(),
+        trend:           selectedTrend,
+        formula:         generatedFormula,
+        compliance_audit: complianceResult
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url;
+      a.download = `trendformulate_formula_${generatedFormula.product_name.toLowerCase().replace(/\s+/g, "_")}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ─── Reset for new formula ───────────────────────────────────────
+    function resetForNew() {
+      selectedTrend    = null;
+      generatedFormula = null;
+      complianceResult = null;
+
+      document.querySelectorAll(".trend-option-card").forEach(c => {
+        c.classList.remove("selected", "disabled-card");
+      });
+      document.getElementById("generate-btn").disabled = true;
+      document.getElementById("phase23").classList.remove("visible");
+      document.getElementById("formula-output").style.display = "none";
+      document.getElementById("compliance-output").style.display = "none";
+      document.getElementById("formula-empty").style.display = "";
+      document.getElementById("compliance-empty").style.display = "";
+      document.getElementById("export-block").style.display = "none";
+      document.getElementById("error-notice").classList.remove("visible");
+
+      setAgentState("agent1", "pending", "Waiting…");
+      setAgentState("agent2", "pending", "Waiting for Agent 1…");
+
+      // Reset steps
+      [1,2,3].forEach(n => {
+        const dot   = document.getElementById(`step-dot-${n}`);
+        const label = document.getElementById(`step-label-${n}`);
+        const state = n === 1 ? "active" : "pending";
+        dot.className   = `step-dot ${state}`;
+        label.className = `step-label ${n === 1 ? "active" : ""}`;
+        dot.innerHTML = n;
+        if (n < 3) document.getElementById(`step-line-${n}`).classList.remove("done");
+      });
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
       lucide.createIcons();
-      setTimeout(() => {
-        document.getElementById('save-btn').innerHTML =
-          '<i data-lucide="send" style="width:15px;height:15px;"></i> Save to Workspace';
-        lucide.createIcons();
-      }, 2500);
     }
 
-    function showSaveToast(name, compliance) {
-      let t = document.getElementById('save-toast');
-      if (!t) {
-        t = document.createElement('div');
-        t.id = 'save-toast';
-        t.style.cssText = `
-          position:fixed;bottom:1.5rem;right:1.5rem;z-index:999;
-          background:var(--surface);border:1px solid var(--border);
-          color:var(--text);font-size:0.875rem;font-family:var(--font-body);
-          padding:0.75rem 1.125rem;border-radius:var(--radius);
-          box-shadow:var(--shadow-lg);opacity:0;transition:opacity 0.25s;
-          display:flex;align-items:center;gap:0.625rem;max-width:320px;
-        `;
-        document.body.appendChild(t);
-      }
-      const icon = compliance === 'compliant' ? '✅' : compliance === 'violation' ? '⚠️' : '💾';
-      t.innerHTML = `<span style="font-size:1.1rem;">${icon}</span>
-        <div>
-          <strong style="display:block;margin-bottom:0.1rem;">"${name}" saved to workspace</strong>
-          <span style="font-size:0.775rem;color:var(--text-muted);">Available in Marketing, Sales &amp; Finance departments</span>
-        </div>`;
-      t.style.opacity = '1';
-      setTimeout(() => { t.style.opacity = '0'; }, 3500);
-    }
+    // ─── Wire up events ──────────────────────────────────────────────
+    document.getElementById("generate-btn").addEventListener("click", runPipeline);
+    document.getElementById("export-btn").addEventListener("click", exportReport);
+    document.getElementById("retry-btn").addEventListener("click", resetForNew);
 
-    /* ── Helpers ─────────────────────────────────────────────────── */
-    function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
-    function padR(s, len) { s = String(s); return s.length >= len ? s.substring(0, len) : s + ' '.repeat(len - s.length); }
-    function escQ(s) { return s.replace(/'/g, "\\'"); }
-    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-    /* ── Boot ────────────────────────────────────────────────────── */
+    // ─── Init ────────────────────────────────────────────────────────
+    renderTrendCards();
     lucide.createIcons();
-    init();
   </script>
 </body>
 </html>
