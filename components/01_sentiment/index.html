@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sentiment Engine — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
+  <script src="../../assets/config.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
     .action-bar {
@@ -128,9 +129,18 @@
     .result-pain {
       font-size: 0.8125rem;
       color: var(--text-muted);
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
     }
     .result-pain span { color: var(--text); }
+    .result-rationale {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+      line-height: 1.5;
+      margin-bottom: 0.75rem;
+      padding-left: 0.625rem;
+      border-left: 2px solid var(--border);
+    }
     .ingredient-pills {
       display: flex;
       flex-wrap: wrap;
@@ -165,6 +175,21 @@
       color: var(--text-muted);
       font-size: 0.875rem;
     }
+
+    /* Error notice */
+    .error-notice {
+      display: none;
+      background: rgba(221, 105, 116, 0.08);
+      border: 1px solid rgba(221, 105, 116, 0.25);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      font-size: 0.8125rem;
+      color: var(--error);
+      margin-bottom: 1rem;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .error-notice.visible { display: flex; }
   </style>
 </head>
 <body>
@@ -194,9 +219,14 @@
         <span class="badge badge-accent">Component 01</span>
       </div>
       <p style="color:var(--text-muted);font-size:0.875rem;max-width:600px;">
-        Reads social media comments, extracts beauty trends, and maps them to target chemical ingredients.
-        Uses keyword matching against a curated ingredient dictionary.
+        Reads social media comments, extracts beauty trends, and maps them to target chemical ingredients using AI.
       </p>
+    </div>
+
+    <!-- Error notice (shown on API failure) -->
+    <div class="error-notice" id="error-notice">
+      <i data-lucide="alert-triangle" style="width:14px;height:14px;flex-shrink:0;"></i>
+      <span id="error-text">API error — falling back to keyword matching.</span>
     </div>
 
     <!-- Summary banner (shown after analysis) -->
@@ -253,7 +283,32 @@
   </div>
 
   <script>
-    // ─── Inline mock data (matches data/mock_comments.json) ────────────────────
+    // ─── Groq configuration ────────────────────────────────────────────────────
+    // GROQ_API_KEY is loaded from ../../assets/config.js (gitignored)
+    const GROQ_MODEL   = "llama3-8b-8192";
+    const GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions";
+
+    const SYSTEM_PROMPT = `You are an expert cosmetic trend analyst for an indie beauty brand.
+A user left a social media comment about their skincare routine.
+
+Analyze it and reply with ONLY a valid JSON object — no extra text, no markdown fences, no explanation.
+Use exactly this schema:
+{
+  "trend": "<2–4 word beauty trend name>",
+  "pain_point": "<the specific frustration or unmet need expressed>",
+  "ingredients": ["<ingredient 1>", "<ingredient 2>"],
+  "confidence": "<High|Medium|Low>",
+  "rationale": "<one sentence explaining why these ingredients address the pain point>"
+}
+
+Rules:
+- trend: a marketable, concise label (e.g. "Glass Skin", "Barrier Repair", "Clean Sun Care")
+- ingredients: exactly 2 clean, science-backed cosmetic ingredients relevant to solving the trend
+- confidence: High if the trend is explicitly named, Medium if implied, Low if the comment is vague
+- rationale: one sentence, grounded in cosmetic science, explaining the ingredient choice
+- Return ONLY the JSON object. No preamble, no suffix, no code block markers.`;
+
+    // ─── Inline mock data ──────────────────────────────────────────────────────
     const COMMENTS = [
       { id: 1, text: "I love the glass-skin look but niacinamide breaks me out, I wish there was something cleaner that plumps skin" },
       { id: 2, text: "Slugging with petroleum jelly is too heavy, I want something that locks moisture without the greasy feel" },
@@ -262,33 +317,90 @@
       { id: 5, text: "I want the dewy K-beauty look without 10 steps, something that does it all in one" }
     ];
 
-    // ─── Keyword map ───────────────────────────────────────────────────────────
+    // ─── Keyword fallback map ──────────────────────────────────────────────────
     const KEYWORD_MAP = {
-      "glass-skin":    { trend: "Glass Skin",                  ingredients: ["Polyglutamic Acid", "Centella Asiatica"],        pain_point: "niacinamide irritation" },
-      "slugging":      { trend: "Barrier Repair",              ingredients: ["Squalane", "Snow Mushroom Extract"],             pain_point: "heavy texture" },
-      "reef-safe spf": { trend: "Clean Sun Care",              ingredients: ["Zinc Oxide", "Non-nano Titanium Dioxide"],       pain_point: "white cast" },
-      "retinol":       { trend: "Gentle Retinol Alternatives", ingredients: ["Bakuchiol", "Peptide Complex"],                  pain_point: "sensitivity" },
-      "k-beauty":      { trend: "Simplified K-Beauty",         ingredients: ["Hyaluronic Acid", "Rice Ferment Filtrate"],      pain_point: "too many steps" }
+      "glass-skin":    { trend: "Glass Skin",                  ingredients: ["Polyglutamic Acid", "Centella Asiatica"],        pain_point: "niacinamide irritation",  rationale: "Polyglutamic Acid forms a moisture-retaining film and Centella Asiatica calms irritation without triggering sensitivity." },
+      "slugging":      { trend: "Barrier Repair",              ingredients: ["Squalane", "Snow Mushroom Extract"],             pain_point: "heavy texture",           rationale: "Squalane mimics the skin's natural sebum and Snow Mushroom Extract provides lightweight, deep hydration without occlusive greasiness." },
+      "reef-safe spf": { trend: "Clean Sun Care",              ingredients: ["Zinc Oxide", "Non-nano Titanium Dioxide"],       pain_point: "white cast",              rationale: "Non-nano mineral filters provide broad-spectrum UV protection that is ocean-safe and formulated to minimise white cast on deeper skin tones." },
+      "retinol":       { trend: "Gentle Retinol Alternatives", ingredients: ["Bakuchiol", "Peptide Complex"],                  pain_point: "sensitivity",             rationale: "Bakuchiol activates retinol receptors without photosensitivity and Peptide Complex stimulates collagen synthesis gently." },
+      "k-beauty":      { trend: "Simplified K-Beauty",         ingredients: ["Hyaluronic Acid", "Rice Ferment Filtrate"],      pain_point: "too many steps",          rationale: "Multi-weight Hyaluronic Acid and fermented Rice Filtrate deliver the full K-beauty hydration stack in a single leave-on formula." }
     };
 
-    // ─── Analysis logic ────────────────────────────────────────────────────────
-    function analyzeComment(text) {
+    // ─── Keyword fallback ──────────────────────────────────────────────────────
+    function analyzeCommentKeyword(text) {
       const lower = text.toLowerCase();
       for (const [key, value] of Object.entries(KEYWORD_MAP)) {
         if (lower.includes(key)) {
-          return { ...value, confidence: "High" };
+          return { ...value, confidence: "High", source: "keyword" };
         }
       }
-      return { trend: "Unclassified", ingredients: [], pain_point: "unknown", confidence: "Low" };
+      return { trend: "Unclassified", ingredients: [], pain_point: "unknown", rationale: "", confidence: "Low", source: "keyword" };
     }
 
+    // ─── Groq AI call with retry on 429 ───────────────────────────────────────
+    async function callGroq(commentText, retrying = false) {
+      const response = await fetch(GROQ_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: GROQ_MODEL,
+          temperature: 0.3,
+          max_tokens: 256,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user",   content: commentText }
+          ]
+        })
+      });
+
+      if (response.status === 429 && !retrying) {
+        // Rate limited — wait 2 s then retry once
+        await new Promise(r => setTimeout(r, 2000));
+        return callGroq(commentText, true);
+      }
+
+      if (!response.ok) {
+        throw new Error(`Groq API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content.trim();
+    }
+
+    // ─── Main AI analysis: calls Groq, falls back to keyword on any failure ───
+    async function analyzeCommentAI(text) {
+      try {
+        const raw = await callGroq(text);
+
+        // Strip accidental markdown fences if model adds them
+        const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+        const parsed  = JSON.parse(cleaned);
+
+        // Validate expected fields
+        if (!parsed.trend || !Array.isArray(parsed.ingredients)) throw new Error("Invalid schema");
+
+        return {
+          trend:       parsed.trend      || "Unknown",
+          pain_point:  parsed.pain_point || "unknown",
+          ingredients: parsed.ingredients.slice(0, 2),
+          confidence:  ["High", "Medium", "Low"].includes(parsed.confidence) ? parsed.confidence : "Medium",
+          rationale:   parsed.rationale  || "",
+          source:      "ai"
+        };
+      } catch {
+        return { ...analyzeCommentKeyword(text), source: "keyword" };
+      }
+    }
+
+    // ─── JSON export ──────────────────────────────────────────────────────────
     function exportJSON(data, filename) {
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
       URL.revokeObjectURL(url);
     }
 
@@ -325,6 +437,10 @@
         ? result.ingredients.map(i => `<span class="ingredient-pill">${i}</span>`).join("")
         : `<span style="font-size:0.75rem;color:var(--text-muted);">No ingredients mapped</span>`;
 
+      const rationaleHTML = result.rationale
+        ? `<div class="result-rationale">${result.rationale}</div>`
+        : "";
+
       const card = document.createElement("div");
       card.className = "result-card animate-in";
       card.style.animationDelay = `${index * 0.08}s`;
@@ -336,9 +452,10 @@
         <div class="result-pain">
           Pain point: <span>${result.pain_point}</span>
         </div>
+        ${rationaleHTML}
         <div class="ingredient-pills">${pills}</div>
         <div class="result-footer">
-          <span class="result-ref" style="font-size:0.75rem;color:var(--text-muted);">Source: Comment #${comment.id}</span>
+          <span class="result-ref">Source: Comment #${comment.id}</span>
         </div>`;
       return card;
     }
@@ -346,35 +463,36 @@
     // ─── Main analysis flow ────────────────────────────────────────────────────
     let analysisResults = [];
 
-    function runAnalysis() {
-      const analyzeBtn = document.getElementById("analyze-btn");
+    async function runAnalysis() {
+      const analyzeBtn    = document.getElementById("analyze-btn");
       const scanningState = document.getElementById("scanning-state");
-      const scanLabel = document.getElementById("scan-label");
-      const resultsPanel = document.getElementById("results-panel");
+      const scanLabel     = document.getElementById("scan-label");
+      const resultsPanel  = document.getElementById("results-panel");
+      const errorNotice   = document.getElementById("error-notice");
+      const errorText     = document.getElementById("error-text");
 
-      // Reset state
+      // Reset UI
       analyzeBtn.style.display = "none";
       scanningState.classList.add("visible");
+      errorNotice.classList.remove("visible");
+      document.getElementById("summary-banner").classList.remove("visible");
       analysisResults = [];
 
-      // Reset comment cards to un-processed state
       COMMENTS.forEach(c => {
-        const card = document.getElementById(`comment-${c.id}`);
-        if (card) card.classList.remove("processed");
+        const card   = document.getElementById(`comment-${c.id}`);
         const status = document.getElementById(`comment-status-${c.id}`);
+        if (card)   card.classList.remove("processed");
         if (status) {
-          status.className = "comment-status";
-          status.innerHTML = `<i data-lucide="clock" style="width:11px;height:11px;"></i> Awaiting analysis…`;
+          status.className  = "comment-status";
+          status.innerHTML  = `<i data-lucide="clock" style="width:11px;height:11px;"></i> Awaiting analysis…`;
         }
       });
       lucide.createIcons();
 
-      // Clear results
       resultsPanel.innerHTML = "";
 
-      // Scanning phase: reveal one result at a time
       const scanPhrases = [
-        "Scanning comments…",
+        "Connecting to AI…",
         "Extracting trend signals…",
         "Mapping to ingredients…",
         "Calculating confidence…",
@@ -384,51 +502,62 @@
       const phraseInterval = setInterval(() => {
         phraseIndex = (phraseIndex + 1) % scanPhrases.length;
         scanLabel.textContent = scanPhrases[phraseIndex];
-      }, 300);
+      }, 600);
 
-      setTimeout(() => {
-        clearInterval(phraseInterval);
+      let anyKeywordFallback = false;
 
-        COMMENTS.forEach((c, i) => {
-          setTimeout(() => {
-            const result = analyzeComment(c.text);
-            analysisResults.push({ id: c.id, text: c.text, ...result });
+      // Process comments sequentially with 500 ms gap (rate-limit safety)
+      for (let i = 0; i < COMMENTS.length; i++) {
+        const c = COMMENTS[i];
 
-            // Highlight comment card
-            const commentCard = document.getElementById(`comment-${c.id}`);
-            if (commentCard) commentCard.classList.add("processed");
-            const statusEl = document.getElementById(`comment-status-${c.id}`);
-            if (statusEl) {
-              statusEl.className = "comment-status done";
-              statusEl.innerHTML = `<i data-lucide="check-circle" style="width:11px;height:11px;"></i> ${result.trend}`;
-              lucide.createIcons();
-            }
+        scanLabel.textContent = `Analysing comment ${i + 1} of ${COMMENTS.length}…`;
 
-            // Add result card
-            const card = renderResultCard(c, result, i);
-            resultsPanel.appendChild(card);
-            lucide.createIcons();
+        const result = await analyzeCommentAI(c.text);
+        if (result.source === "keyword") anyKeywordFallback = true;
 
-            // After last result
-            if (i === COMMENTS.length - 1) {
-              setTimeout(() => {
-                scanningState.classList.remove("visible");
-                scanLabel.textContent = "Scanning comments…";
-                showSummary();
-                analyzeBtn.style.display = "";
-                analyzeBtn.innerHTML = `<i data-lucide="refresh-cw" style="width:15px;height:15px;"></i> Re-run Analysis`;
-                lucide.createIcons();
-              }, 300);
-            }
-          }, i * 220);
-        });
-      }, 1500);
+        analysisResults.push({ id: c.id, text: c.text, ...result });
+
+        // Highlight comment card
+        const commentCard = document.getElementById(`comment-${c.id}`);
+        const statusEl    = document.getElementById(`comment-status-${c.id}`);
+        if (commentCard) commentCard.classList.add("processed");
+        if (statusEl) {
+          statusEl.className = "comment-status done";
+          statusEl.innerHTML = `<i data-lucide="check-circle" style="width:11px;height:11px;"></i> ${result.trend}`;
+        }
+
+        // Add result card
+        const card = renderResultCard(c, result, i);
+        resultsPanel.appendChild(card);
+        lucide.createIcons();
+
+        // 500 ms gap before next call
+        if (i < COMMENTS.length - 1) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+
+      clearInterval(phraseInterval);
+
+      // Show fallback warning if any comment fell back to keywords
+      if (anyKeywordFallback) {
+        errorText.textContent = "AI unavailable for some comments — keyword matching was used as fallback.";
+        errorNotice.classList.add("visible");
+        lucide.createIcons();
+      }
+
+      scanningState.classList.remove("visible");
+      scanLabel.textContent = "Scanning comments…";
+      showSummary();
+      analyzeBtn.style.display = "";
+      analyzeBtn.innerHTML = `<i data-lucide="refresh-cw" style="width:15px;height:15px;"></i> Re-run Analysis`;
+      lucide.createIcons();
     }
 
     // ─── Summary banner ────────────────────────────────────────────────────────
     function showSummary() {
       const detected = analysisResults.filter(r => r.trend !== "Unclassified").length;
-      const total = analysisResults.length;
+      const total    = analysisResults.length;
       document.getElementById("summary-text").innerHTML =
         `<strong>${detected} trend${detected !== 1 ? "s" : ""}</strong> detected across <strong>${total} comment${total !== 1 ? "s" : ""}</strong>`;
       document.getElementById("summary-banner").classList.add("visible");
@@ -439,12 +568,13 @@
 
     document.getElementById("export-btn").addEventListener("click", () => {
       const payload = analysisResults.map(r => ({
-        comment_id: r.id,
-        comment_text: r.text,
-        trend: r.trend,
-        pain_point: r.pain_point,
-        target_ingredients: r.ingredients,
-        confidence: r.confidence
+        comment_id:          r.id,
+        comment_text:        r.text,
+        trend:               r.trend,
+        pain_point:          r.pain_point,
+        target_ingredients:  r.ingredients,
+        confidence:          r.confidence,
+        rationale:           r.rationale || ""
       }));
       exportJSON(payload, "trendformulate_sentiment_mapping.json");
     });
