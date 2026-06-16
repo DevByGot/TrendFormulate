@@ -229,6 +229,27 @@
     }
     .sheet-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
 
+    /* ── Save-to-workspace button ──────────────────────────────── */
+    .btn-accent {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 1rem;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #c4788a 0%, #d4967a 100%);
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(196,120,138,0.28);
+    }
+    .btn-accent:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-accent:active { transform: scale(0.98); }
+    .btn-accent:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
     /* ── Print ─────────────────────────────────────────────────── */
     @media print {
       .navbar, .no-print { display: none !important; }
@@ -324,6 +345,9 @@
           </button>
           <button class="btn btn-secondary" id="export-btn" onclick="openSheet()" disabled>
             <i data-lucide="file-text" style="width:15px;height:15px;"></i> Export Formula Sheet
+          </button>
+          <button class="btn btn-accent" id="save-btn" onclick="saveFormulaToWorkspace()" disabled>
+            <i data-lucide="send" style="width:15px;height:15px;"></i> Save to Workspace
           </button>
         </div>
       </div>
@@ -498,6 +522,7 @@
         badge.style.display = 'none';
         auditBtn.disabled = true;
         expBtn.disabled = true;
+        document.getElementById('save-btn').disabled = true;
         lucide.createIcons();
         return;
       }
@@ -509,6 +534,7 @@
       badge.textContent = formula.length + ' ingredient' + (formula.length !== 1 ? 's' : '');
       auditBtn.disabled = !isOk;
       expBtn.disabled = false;
+      document.getElementById('save-btn').disabled = false;
 
       const rows = formula.map(item => `
         <tr>
@@ -730,6 +756,91 @@ ${auditSection}${DIV}`;
 
     function handleModalClick(e) {
       if (e.target === document.getElementById('sheet-modal')) closeSheet();
+    }
+
+    /* ── Save formula to localStorage workspace ──────────────────── */
+    const INGREDIENT_META = {
+      "Polyglutamic Acid":  { type: "polysaccharide",                    mechanism: "forms a moisture-locking film on the skin surface",             benefits: ["Glass skin", "Dewy finish", "Zero irritation"] },
+      "Bakuchiol":          { type: "plant-derived retinol alternative",  mechanism: "activates retinol receptors without photosensitivity",           benefits: ["Anti-ageing", "No photosensitivity", "Safe for sensitive skin"] },
+      "Zinc Oxide":         { type: "mineral UV filter",                  mechanism: "physically deflects UV radiation without chemical absorption",    benefits: ["Reef-safe", "No white cast", "Broad spectrum SPF"] },
+      "Niacinamide":        { type: "vitamin B3 derivative",              mechanism: "inhibits melanosome transfer to reduce hyperpigmentation",        benefits: ["Brightening", "Pore minimizing", "Barrier repair"] },
+      "Centella Asiatica":  { type: "botanical adaptogen",                mechanism: "stimulates collagen synthesis and accelerates wound healing",     benefits: ["Soothing", "Anti-redness", "Barrier strengthening"] },
+      "Hyaluronic Acid":    { type: "glycosaminoglycan",                  mechanism: "holds up to 1000× its weight in water to plump skin",            benefits: ["Deep hydration", "Plumping", "Fine line reduction"] },
+      "Squalane":           { type: "plant-derived lipid",                mechanism: "mimics natural sebum to reinforce the skin lipid barrier",       benefits: ["Non-comedogenic", "Lightweight", "Barrier repair"] },
+      "Glycerin":           { type: "humectant",                          mechanism: "draws moisture from the environment deep into the skin",          benefits: ["Hydration", "Softness", "Barrier support"] },
+      "Phenoxyethanol":     { type: "broad-spectrum preservative",        mechanism: "prevents microbial growth in aqueous formulations",              benefits: ["Preservation", "Extended shelf life", "Safety"] },
+    };
+
+    function saveFormulaToWorkspace() {
+      const productName = document.getElementById('product-name').value.trim() || 'Untitled Formula';
+      const failCount   = auditLog.filter(r => r.status === 'FAIL').length;
+      const compliance  = auditLog.length === 0 ? 'not_audited' : failCount === 0 ? 'compliant' : 'violation';
+
+      // Pick the hero ingredient: highest-% active/humectant/emollient (not Water)
+      const ranked = [...formula]
+        .filter(i => i.name !== 'Water')
+        .sort((a, b) => b.pct - a.pct);
+      const hero   = ranked[0] || formula[0];
+      const meta   = INGREDIENT_META[hero?.name] || { type: 'active', mechanism: 'supports skin health', benefits: ['Effective', 'Tested', 'Safe'] };
+
+      const entry = {
+        id:             Date.now(),
+        name:           productName,
+        compliance,
+        ingredients:    formula.map(i => ({ name: i.name, inci: i.inci, pct: i.pct, type: i.type })),
+        hero_ingredient: hero?.name   || 'Active Blend',
+        hero_inci:       hero?.inci   || '',
+        ingredient_type: meta.type,
+        mechanism:       meta.mechanism,
+        benefit_stack:   meta.benefits,
+        shot_type:       'Product texture close-up',
+        savedAt:         new Date().toISOString()
+      };
+
+      const STORE_KEY = 'tf_saved_formulas';
+      let saved = [];
+      try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { saved = []; }
+
+      // Replace existing entry with same name, or append
+      const existingIdx = saved.findIndex(f => f.name === entry.name);
+      if (existingIdx !== -1) { saved[existingIdx] = entry; } else { saved.push(entry); }
+
+      localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+
+      showSaveToast(productName, compliance);
+      document.getElementById('save-btn').innerHTML =
+        '<i data-lucide="check" style="width:15px;height:15px;"></i> Saved to Workspace';
+      lucide.createIcons();
+      setTimeout(() => {
+        document.getElementById('save-btn').innerHTML =
+          '<i data-lucide="send" style="width:15px;height:15px;"></i> Save to Workspace';
+        lucide.createIcons();
+      }, 2500);
+    }
+
+    function showSaveToast(name, compliance) {
+      let t = document.getElementById('save-toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'save-toast';
+        t.style.cssText = `
+          position:fixed;bottom:1.5rem;right:1.5rem;z-index:999;
+          background:var(--surface);border:1px solid var(--border);
+          color:var(--text);font-size:0.875rem;font-family:var(--font-body);
+          padding:0.75rem 1.125rem;border-radius:var(--radius);
+          box-shadow:var(--shadow-lg);opacity:0;transition:opacity 0.25s;
+          display:flex;align-items:center;gap:0.625rem;max-width:320px;
+        `;
+        document.body.appendChild(t);
+      }
+      const icon = compliance === 'compliant' ? '✅' : compliance === 'violation' ? '⚠️' : '💾';
+      t.innerHTML = `<span style="font-size:1.1rem;">${icon}</span>
+        <div>
+          <strong style="display:block;margin-bottom:0.1rem;">"${name}" saved to workspace</strong>
+          <span style="font-size:0.775rem;color:var(--text-muted);">Available in Marketing, Sales &amp; Finance departments</span>
+        </div>`;
+      t.style.opacity = '1';
+      setTimeout(() => { t.style.opacity = '0'; }, 3500);
     }
 
     /* ── Helpers ─────────────────────────────────────────────────── */
