@@ -289,7 +289,9 @@
     // directly using GROQ_API_KEY from ../../assets/config.js (gitignored).
     const GROQ_MODEL    = "llama3-8b-8192";
     const GROQ_DIRECT   = "https://api.groq.com/openai/v1/chat/completions";
-    const ON_SERVER     = window.location.protocol !== "file:";
+    const ON_SERVER     = window.location.protocol !== "file:" &&
+                          window.location.hostname !== "localhost" &&
+                          window.location.hostname !== "127.0.0.1";
     const GROQ_ENDPOINT = ON_SERVER ? "/api/groq" : GROQ_DIRECT;
 
     const SYSTEM_PROMPT = `You are an expert cosmetic trend analyst for an indie beauty brand.
