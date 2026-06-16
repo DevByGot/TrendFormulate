@@ -6,9 +6,355 @@
   <title>TikTok Content Engine — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ── Layout ────────────────────────────────────────────── */
+    .engine-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .engine-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Input panel ───────────────────────────────────────── */
+    .input-panel { display: flex; flex-direction: column; gap: 1rem; }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.375rem; }
+    .form-group label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    /* Tone pill selector */
+    .tone-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .tone-option {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0.85rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+    }
+    .tone-option:hover { border-color: rgba(79,152,163,0.35); }
+    .tone-option.selected {
+      border-color: var(--accent);
+      background: rgba(79,152,163,0.08);
+    }
+    .tone-option input[type="radio"] { display: none; }
+    .tone-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .tone-option.selected .tone-dot {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .tone-label { font-size: 0.875rem; font-weight: 500; color: var(--text); }
+    .tone-sublabel { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Generate button */
+    .btn-generate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.65rem 1rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      font-family: var(--font-body);
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .btn-generate:hover { background: var(--accent-hover); }
+    .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-generate.generating { opacity: 0.7; }
+
+    /* ── Output area ───────────────────────────────────────── */
+    .output-area { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    /* Idle / placeholder state */
+    .idle-placeholder {
+      background: var(--surface);
+      border: 1px dashed rgba(79,152,163,0.25);
+      border-radius: var(--radius);
+      padding: 3.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .idle-placeholder .idle-icon {
+      width: 48px; height: 48px;
+      background: var(--surface-2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+      opacity: 0.6;
+    }
+
+    /* Generating overlay */
+    .generating-state {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 3rem 2rem;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      text-align: center;
+    }
+    .generating-state.visible { display: flex; }
+    .gen-label {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      height: 1.2em;
+    }
+    .gen-steps {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+    }
+    .gen-step {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      transition: background 0.3s;
+    }
+    .gen-step.done { background: var(--accent); }
+    .gen-step.active { background: var(--accent); animation: pulse 0.9s ease-in-out infinite; }
+
+    /* ── Script card ───────────────────────────────────────── */
+    .script-card {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .script-card.visible { display: block; animation: slideIn 0.35s ease forwards; }
+
+    .script-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .script-header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .script-title {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      color: var(--text);
+    }
+    .script-header-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .script-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+
+    .script-line {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 1rem;
+      align-items: start;
+      animation: slideIn 0.3s ease forwards;
+    }
+    .script-timestamp {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      text-align: center;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .ts-hook     { background: rgba(79,152,163,0.15); color: var(--accent); }
+    .ts-bridge   { background: rgba(212,168,67,0.15); color: var(--warning); }
+    .ts-benefits { background: rgba(109,170,69,0.15); color: var(--success); }
+    .ts-cta      { background: rgba(221,105,116,0.15); color: var(--error); }
+
+    .script-text {
+      font-size: 0.9375rem;
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .script-section-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-bottom: 0.2rem;
+    }
+    .label-hook     { color: var(--accent); }
+    .label-bridge   { color: var(--warning); }
+    .label-benefits { color: var(--success); }
+    .label-cta      { color: var(--error); }
+
+    .script-quote {
+      font-style: italic;
+      color: var(--text);
+    }
+    .script-direction {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-style: normal;
+      margin-top: 0.25rem;
+    }
+
+    /* ── Storyboard ────────────────────────────────────────── */
+    .storyboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .storyboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.875rem;
+    }
+    @media (max-width: 700px) {
+      .storyboard-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .storyboard-grid { grid-template-columns: 1fr; }
+    }
+
+    .frame-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: none;
+      flex-direction: column;
+      animation: slideIn 0.35s ease forwards;
+    }
+    .frame-card.visible { display: flex; }
+
+    .frame-visual {
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .frame-visual-hook     { background: linear-gradient(135deg, rgba(79,152,163,0.25), rgba(79,152,163,0.08)); }
+    .frame-visual-bridge   { background: linear-gradient(135deg, rgba(212,168,67,0.2), rgba(212,168,67,0.06)); }
+    .frame-visual-benefits { background: linear-gradient(135deg, rgba(109,170,69,0.2), rgba(109,170,69,0.06)); }
+    .frame-visual-cta      { background: linear-gradient(135deg, rgba(221,105,116,0.2), rgba(221,105,116,0.06)); }
+
+    .frame-icon {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .frame-icon-hook     { background: rgba(79,152,163,0.2); color: var(--accent); }
+    .frame-icon-bridge   { background: rgba(212,168,67,0.2); color: var(--warning); }
+    .frame-icon-benefits { background: rgba(109,170,69,0.2); color: var(--success); }
+    .frame-icon-cta      { background: rgba(221,105,116,0.2); color: var(--error); }
+
+    .frame-time-badge {
+      position: absolute;
+      top: 0.5rem; left: 0.5rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.45);
+      color: #fff;
+      letter-spacing: 0.03em;
+    }
+
+    .frame-body { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.375rem; }
+    .frame-type-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .frame-desc {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .frame-shot-type {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin-top: 0.25rem;
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.1rem 0.5rem;
+    }
+
+    /* ── Action bar ─────────────────────────────────────────── */
+    .action-bar {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .action-bar.visible { display: flex; }
+    .action-bar-left { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    /* ── Print styles ───────────────────────────────────────── */
+    @media print {
+      .input-panel, .navbar, .action-bar, .no-print { display: none !important; }
+      .engine-grid { grid-template-columns: 1fr; }
+      .output-area { gap: 1.5rem; }
+      .storyboard-grid { grid-template-columns: repeat(4, 1fr); }
+      .frame-card { display: flex !important; break-inside: avoid; }
+      .script-card { display: block !important; }
+      .idle-placeholder, .generating-state { display: none !important; }
+      body { background: #fff; color: #000; }
+      .script-title, .script-text, .script-quote { color: #000; }
+      .frame-desc { color: #555; }
+    }
+  </style>
 </head>
 <body>
 
+  <!-- Navbar -->
   <nav class="navbar">
     <div class="navbar-brand">
       <div style="width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;">
@@ -24,7 +370,8 @@
 
   <div class="page-wrapper">
 
-    <div style="margin-bottom:1.5rem;">
+    <!-- Page header -->
+    <div style="margin-bottom:1.75rem;">
       <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
         <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
           <i data-lucide="video" style="width:18px;height:18px;"></i>
@@ -32,90 +379,544 @@
         <h1 style="font-size:1.5rem;">AI TikTok Content Engine</h1>
         <span class="badge badge-accent">Component 03</span>
       </div>
-      <p style="color:var(--text-muted);font-size:0.875rem;max-width:600px;">
-        Takes an approved formula and brand tone, then generates a production-ready 30-second TikTok
-        script with a visual storyboard breakdown.
+      <p style="color:var(--text-muted);font-size:0.875rem;max-width:640px;">
+        Select an approved formula and brand voice. The engine generates a production-ready 30-second TikTok script with a shot-by-shot storyboard.
       </p>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-         👇 YOUR COMPONENT CODE GOES BELOW THIS LINE
-         Owner: [Your Name]
-         Data:  APPROVED_FORMULAS constant (defined below, no file needed)
-         ═══════════════════════════════════════════════════════ -->
+    <div class="engine-grid">
 
-    <div class="card" style="text-align:center;padding:3rem;border-style:dashed;border-color:rgba(79,152,163,0.3);">
-      <i data-lucide="code-2" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:1rem;"></i>
-      <p style="color:var(--text-muted);font-size:0.9375rem;">
-        Component 03 — TikTok Content Engine<br/>
-        <span style="font-size:0.8125rem;">Build your UI here. Use <code>APPROVED_FORMULAS</code> and <code>generateScript()</code> defined below.</span>
-      </p>
+      <!-- ════════════════════════════════
+           LEFT: Input panel
+           ════════════════════════════════ -->
+      <div class="input-panel">
+
+        <div class="card">
+          <p class="card-title">Content Settings</p>
+
+          <!-- Formula selector -->
+          <div class="form-group" style="margin-bottom:1rem;">
+            <label for="formula-select">Approved Formula</label>
+            <select id="formula-select">
+              <option value="0">Glass Skin Serum</option>
+              <option value="1">Bakuchiol Night Cream</option>
+              <option value="2">Zinc SPF 30</option>
+            </select>
+          </div>
+
+          <!-- Demographic selector -->
+          <div class="form-group" style="margin-bottom:1.25rem;">
+            <label for="demo-select">Target Demographic</label>
+            <select id="demo-select">
+              <option value="Gen Z (18–24)">Gen Z (18–24)</option>
+              <option value="Millennials (25–38)" selected>Millennials (25–38)</option>
+              <option value="Gen X (39–54)">Gen X (39–54)</option>
+              <option value="All ages">All ages</option>
+            </select>
+          </div>
+
+          <!-- Tone selector -->
+          <div class="form-group">
+            <label>Brand Tone</label>
+            <div class="tone-group" id="tone-group">
+              <label class="tone-option selected" data-tone="Clean Beauty">
+                <input type="radio" name="tone" value="Clean Beauty" checked />
+                <span class="tone-dot"></span>
+                <div>
+                  <div class="tone-label">🌿 Clean Beauty</div>
+                  <div class="tone-sublabel">Natural, mindful, ingredient-story driven</div>
+                </div>
+              </label>
+              <label class="tone-option" data-tone="Science-Forward">
+                <input type="radio" name="tone" value="Science-Forward" />
+                <span class="tone-dot"></span>
+                <div>
+                  <div class="tone-label">🔬 Science-Forward</div>
+                  <div class="tone-sublabel">Clinical proof, mechanism-led, authoritative</div>
+                </div>
+              </label>
+              <label class="tone-option" data-tone="Gen Z Playful">
+                <input type="radio" name="tone" value="Gen Z Playful" />
+                <span class="tone-dot"></span>
+                <div>
+                  <div class="tone-label">✨ Gen Z Playful</div>
+                  <div class="tone-sublabel">Trending sounds, casual, hype-driven</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generate button -->
+        <button class="btn-generate" id="generate-btn" onclick="handleGenerate()">
+          <i data-lucide="zap" style="width:16px;height:16px;"></i>
+          Generate Content
+        </button>
+
+        <!-- Formula preview card -->
+        <div class="card" id="formula-preview">
+          <p class="card-title">Formula Preview</p>
+          <div id="preview-content">
+            <!-- filled dynamically -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ════════════════════════════════
+           RIGHT: Output area
+           ════════════════════════════════ -->
+      <div class="output-area">
+
+        <!-- Idle placeholder -->
+        <div class="idle-placeholder" id="idle-placeholder">
+          <div class="idle-icon">
+            <i data-lucide="film" style="width:22px;height:22px;"></i>
+          </div>
+          <p style="font-size:0.9375rem;font-weight:500;color:var(--text);">Ready to generate</p>
+          <p style="font-size:0.8125rem;">Configure your settings and click <strong style="color:var(--accent);">Generate Content</strong> to produce your TikTok script and storyboard.</p>
+        </div>
+
+        <!-- Generating animation -->
+        <div class="generating-state" id="generating-state">
+          <div class="spinner" style="width:28px;height:28px;border-width:3px;"></div>
+          <p id="gen-label" class="gen-label">Analysing formula hero ingredient…</p>
+          <div class="gen-steps">
+            <div class="gen-step active" id="step-0"></div>
+            <div class="gen-step" id="step-1"></div>
+            <div class="gen-step" id="step-2"></div>
+            <div class="gen-step" id="step-3"></div>
+          </div>
+        </div>
+
+        <!-- Script card -->
+        <div class="script-card" id="script-card">
+          <div class="script-header">
+            <div class="script-header-left">
+              <i data-lucide="file-text" style="width:16px;height:16px;color:var(--accent);"></i>
+              <span class="script-title" id="script-title">TikTok Script</span>
+              <span class="badge badge-success" style="font-size:0.6875rem;">
+                <span class="status-dot active"></span>30s
+              </span>
+            </div>
+            <div class="script-header-actions">
+              <button class="btn btn-secondary" style="font-size:0.8125rem;padding:0.35rem 0.75rem;" onclick="copyScript()">
+                <i data-lucide="copy" style="width:13px;height:13px;"></i> Copy Script
+              </button>
+            </div>
+          </div>
+          <div class="script-body" id="script-body">
+            <!-- filled dynamically -->
+          </div>
+        </div>
+
+        <!-- Storyboard section -->
+        <div id="storyboard-section" style="display:none;">
+          <div class="storyboard-header">
+            <p class="card-title" style="margin-bottom:0;">Shot Storyboard</p>
+            <span style="font-size:0.75rem;color:var(--text-muted);">4 frames · 30 seconds</span>
+          </div>
+          <div class="storyboard-grid" id="storyboard-grid">
+            <!-- filled dynamically -->
+          </div>
+        </div>
+
+        <!-- Action bar -->
+        <div class="action-bar" id="action-bar">
+          <div class="action-bar-left">
+            <button class="btn btn-secondary" onclick="copyScript()">
+              <i data-lucide="copy" style="width:14px;height:14px;"></i> Copy Script
+            </button>
+            <button class="btn btn-secondary" onclick="window.print()">
+              <i data-lucide="download" style="width:14px;height:14px;"></i> Download Storyboard PDF
+            </button>
+          </div>
+          <button class="btn btn-ghost" onclick="resetOutput()">
+            <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Reset
+          </button>
+        </div>
+
+      </div>
     </div>
-
-    <!-- ═══════════════════════════════════════════════════════
-         👆 YOUR COMPONENT CODE ENDS ABOVE THIS LINE
-         ═══════════════════════════════════════════════════════ -->
 
   </div>
 
   <script>
     lucide.createIcons();
 
-    // ─── Mock formula objects (blueprint) ───────────────────
+    // ─── Mock formula objects ────────────────────────────────
     const APPROVED_FORMULAS = [
       {
         name: "Glass Skin Serum",
         hero_ingredient: "Polyglutamic Acid",
         ingredient_type: "polysaccharide",
-        mechanism: "forms a moisture-locking film on the skin surface"
+        mechanism: "forms a moisture-locking film on the skin surface",
+        benefit_stack: ["Glass skin", "Dewy finish", "Zero irritation"],
+        shot_type: "Serum texture drop"
       },
       {
         name: "Bakuchiol Night Cream",
         hero_ingredient: "Bakuchiol",
         ingredient_type: "plant-derived retinol alternative",
-        mechanism: "activates retinol receptors without photosensitivity"
+        mechanism: "activates retinol receptors without photosensitivity",
+        benefit_stack: ["Anti-ageing", "No photosensitivity", "Safe for sensitive skin"],
+        shot_type: "Cream swipe close-up"
       },
       {
         name: "Zinc SPF 30",
         hero_ingredient: "Zinc Oxide",
         ingredient_type: "mineral UV filter",
-        mechanism: "physically deflects UV radiation without chemical absorption"
+        mechanism: "physically deflects UV radiation without chemical absorption",
+        benefit_stack: ["Reef-safe", "No white cast", "Broad spectrum SPF 30"],
+        shot_type: "SPF application B-roll"
       }
     ];
 
-    // ─── Script generator (blueprint) ───────────────────────
+    // ─── Script generator ────────────────────────────────────
     function generateScript(formula, tone, demographic) {
-      const hook = {
-        "Clean Beauty":      `POV: You finally found the ingredient your skin was BEGGING for. 🌿`,
-        "Science-Forward":   `Why is ${formula.hero_ingredient} outperforming niacinamide in every clinical trial right now?`,
-        "Gen Z Playful":     `Niacinamide who? Let me introduce you to your new holy grail ✨`
-      }[tone] || `Discover ${formula.hero_ingredient} — your skin's new best friend.`;
+      const hooks = {
+        "Clean Beauty":    `POV: You finally found the ingredient your skin was BEGGING for. 🌿`,
+        "Science-Forward": `Why is ${formula.hero_ingredient} outperforming niacinamide in every clinical trial right now?`,
+        "Gen Z Playful":   `Niacinamide who? Let me introduce you to your new holy grail ✨`
+      };
+      const hook = hooks[tone] || `Discover ${formula.hero_ingredient} — your skin's new best friend.`;
+      const benefits = formula.benefit_stack.join(". ") + ".";
 
       return {
         hook,
-        science: `${formula.hero_ingredient} is a ${formula.ingredient_type} that works by ${formula.mechanism}. Unlike niacinamide, it doesn't trigger inflammatory responses in sensitive skin types.`,
-        transition: `B-roll of product texture close-up. Text on screen: "No irritation. No compromise."`,
-        benefits: `Glass skin. Dewy finish. Zero white cast.`,
+        science: `${formula.hero_ingredient} is a ${formula.ingredient_type} that works by ${formula.mechanism}. Unlike conventional actives, it doesn't trigger inflammatory responses in sensitive skin types.`,
+        transition: `B-roll of ${formula.shot_type}. On-screen text: "No irritation. No compromise."`,
+        benefits,
         cta: `Link in bio — join the waitlist. First 100 founders get early access.`,
         storyboard: [
-          { time: "0–3s",   type: "hook",     label: "Hook",    description: hook },
-          { time: "3–15s",  type: "bridge",   label: "Bridge",  description: `Science bridge: ${formula.hero_ingredient} mechanism explained.` },
-          { time: "15–28s", type: "benefits", label: "Benefits",description: "Benefit stack + B-roll texture shots." },
-          { time: "28–30s", type: "cta",      label: "CTA",     description: "Waitlist CTA with link in bio." }
+          {
+            time: "0–3s",
+            type: "hook",
+            label: "Hook",
+            description: hook,
+            shotType: "Talking head",
+            icon: "user"
+          },
+          {
+            time: "3–15s",
+            type: "bridge",
+            label: "Science Bridge",
+            description: `${formula.hero_ingredient} (${formula.ingredient_type}) — mechanism: "${formula.mechanism}".`,
+            shotType: "Talking head + text overlay",
+            icon: "flask-conical"
+          },
+          {
+            time: "15–28s",
+            type: "benefits",
+            label: "Benefit Stack",
+            description: `${benefits} Cut to product texture B-roll.`,
+            shotType: formula.shot_type,
+            icon: "sparkles"
+          },
+          {
+            time: "28–30s",
+            type: "cta",
+            label: "CTA",
+            description: `"Link in bio — join the waitlist." First-100-founders early access offer.`,
+            shotType: "Product shot",
+            icon: "link"
+          }
         ]
       };
     }
 
-    // Helper: copy text to clipboard
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).catch(() => {
+    // ─── UI helpers ──────────────────────────────────────────
+    function getSelectedTone() {
+      return document.querySelector('input[name="tone"]:checked').value;
+    }
+
+    function updateFormulaPreview() {
+      const idx = parseInt(document.getElementById('formula-select').value);
+      const f = APPROVED_FORMULAS[idx];
+      document.getElementById('preview-content').innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:0.9375rem;font-weight:600;color:var(--text);">${f.name}</span>
+          </div>
+          <div style="font-size:0.8125rem;color:var(--text-muted);">
+            <span style="color:var(--accent);font-weight:600;">Hero:</span> ${f.hero_ingredient}
+          </div>
+          <div style="font-size:0.8125rem;color:var(--text-muted);">
+            <span style="color:var(--accent);font-weight:600;">Type:</span> ${f.ingredient_type}
+          </div>
+          <div style="font-size:0.8125rem;color:var(--text-muted);">
+            <span style="color:var(--accent);font-weight:600;">Action:</span> ${f.mechanism}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.25rem;">
+            ${f.benefit_stack.map(b => `<span class="badge badge-muted" style="font-size:0.6875rem;">${b}</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // Tone selector interactivity
+    document.querySelectorAll('.tone-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.tone-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        opt.querySelector('input').checked = true;
+      });
+    });
+
+    document.getElementById('formula-select').addEventListener('change', updateFormulaPreview);
+    updateFormulaPreview();
+
+    // ─── Generate logic ──────────────────────────────────────
+    const GEN_STEPS = [
+      "Analysing formula hero ingredient…",
+      "Matching brand tone template…",
+      "Writing hook & science bridge…",
+      "Building storyboard frames…"
+    ];
+
+    function handleGenerate() {
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true;
+      btn.classList.add('generating');
+
+      // Hide output, show generating state
+      document.getElementById('idle-placeholder').style.display = 'none';
+      document.getElementById('script-card').classList.remove('visible');
+      document.getElementById('storyboard-section').style.display = 'none';
+      document.getElementById('action-bar').classList.remove('visible');
+      const genState = document.getElementById('generating-state');
+      genState.classList.add('visible');
+
+      // Reset step dots
+      for (let i = 0; i < 4; i++) {
+        const s = document.getElementById(`step-${i}`);
+        s.classList.remove('done', 'active');
+      }
+      document.getElementById('step-0').classList.add('active');
+      document.getElementById('gen-label').textContent = GEN_STEPS[0];
+
+      let step = 0;
+      const interval = setInterval(() => {
+        document.getElementById(`step-${step}`).classList.remove('active');
+        document.getElementById(`step-${step}`).classList.add('done');
+        step++;
+        if (step < 4) {
+          document.getElementById(`step-${step}`).classList.add('active');
+          document.getElementById('gen-label').textContent = GEN_STEPS[step];
+        } else {
+          clearInterval(interval);
+          setTimeout(() => finishGenerate(), 300);
+        }
+      }, 550);
+    }
+
+    let lastScript = null;
+
+    function finishGenerate() {
+      const formulaIdx = parseInt(document.getElementById('formula-select').value);
+      const formula = APPROVED_FORMULAS[formulaIdx];
+      const tone = getSelectedTone();
+      const demographic = document.getElementById('demo-select').value;
+      const script = generateScript(formula, tone, demographic);
+      lastScript = script;
+
+      // Hide generating state
+      document.getElementById('generating-state').classList.remove('visible');
+
+      // Build script card
+      renderScript(formula, tone, demographic, script);
+
+      // Build storyboard
+      renderStoryboard(script.storyboard);
+
+      // Show action bar
+      document.getElementById('action-bar').classList.add('visible');
+
+      // Re-enable button
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = false;
+      btn.classList.remove('generating');
+      btn.innerHTML = `<i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> Regenerate`;
+      lucide.createIcons();
+    }
+
+    function renderScript(formula, tone, demographic, script) {
+      const titleEl = document.getElementById('script-title');
+      titleEl.textContent = `${formula.name} · ${tone} · ${demographic}`;
+
+      const body = document.getElementById('script-body');
+      body.innerHTML = '';
+
+      const lines = [
+        {
+          time: "0–3s",
+          typeClass: "ts-hook",
+          labelClass: "label-hook",
+          label: "HOOK",
+          quote: script.hook,
+          direction: null
+        },
+        {
+          time: "3–15s",
+          typeClass: "ts-bridge",
+          labelClass: "label-bridge",
+          label: "SCIENCE BRIDGE",
+          quote: script.science,
+          direction: null
+        },
+        {
+          time: "15s",
+          typeClass: "ts-bridge",
+          labelClass: "label-bridge",
+          label: "TRANSITION",
+          quote: null,
+          direction: script.transition
+        },
+        {
+          time: "15–28s",
+          typeClass: "ts-benefits",
+          labelClass: "label-benefits",
+          label: "BENEFIT STACK",
+          quote: script.benefits,
+          direction: null
+        },
+        {
+          time: "28–30s",
+          typeClass: "ts-cta",
+          labelClass: "label-cta",
+          label: "CTA",
+          quote: `"${script.cta}"`,
+          direction: null
+        }
+      ];
+
+      lines.forEach((line, i) => {
+        const div = document.createElement('div');
+        div.className = 'script-line';
+        div.style.animationDelay = `${i * 80}ms`;
+        div.style.opacity = '0';
+        div.innerHTML = `
+          <span class="script-timestamp ${line.typeClass}">${line.time}</span>
+          <div class="script-text">
+            <div class="script-section-label ${line.labelClass}">${line.label}</div>
+            ${line.quote ? `<div class="script-quote">${line.quote}</div>` : ''}
+            ${line.direction ? `<div class="script-direction">${line.direction}</div>` : ''}
+          </div>
+        `;
+        body.appendChild(div);
+      });
+
+      document.getElementById('script-card').classList.add('visible');
+      lucide.createIcons();
+    }
+
+    function renderStoryboard(frames) {
+      const grid = document.getElementById('storyboard-grid');
+      grid.innerHTML = '';
+
+      const typeColors = {
+        hook:     { visual: 'frame-visual-hook',     icon: 'frame-icon-hook',     label: 'label-hook',     type: 'ts-hook' },
+        bridge:   { visual: 'frame-visual-bridge',   icon: 'frame-icon-bridge',   label: 'label-bridge',   type: 'ts-bridge' },
+        benefits: { visual: 'frame-visual-benefits', icon: 'frame-icon-benefits', label: 'label-benefits', type: 'ts-benefits' },
+        cta:      { visual: 'frame-visual-cta',       icon: 'frame-icon-cta',      label: 'label-cta',      type: 'ts-cta' }
+      };
+
+      frames.forEach((frame, i) => {
+        const c = typeColors[frame.type];
+        const card = document.createElement('div');
+        card.className = 'frame-card visible';
+        card.style.animationDelay = `${i * 100}ms`;
+        card.style.opacity = '0';
+        card.innerHTML = `
+          <div class="frame-visual ${c.visual}">
+            <div class="frame-icon ${c.icon}">
+              <i data-lucide="${frame.icon}" style="width:18px;height:18px;"></i>
+            </div>
+            <span class="frame-time-badge">${frame.time}</span>
+          </div>
+          <div class="frame-body">
+            <div class="frame-type-label ${c.label}">${frame.label}</div>
+            <div class="frame-desc">${frame.description}</div>
+            <span class="frame-shot-type">
+              <i data-lucide="camera" style="width:10px;height:10px;"></i>
+              ${frame.shotType}
+            </span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      document.getElementById('storyboard-section').style.display = 'block';
+      lucide.createIcons();
+    }
+
+    // ─── Copy script to clipboard ────────────────────────────
+    function copyScript() {
+      if (!lastScript) return;
+      const formulaIdx = parseInt(document.getElementById('formula-select').value);
+      const formula = APPROVED_FORMULAS[formulaIdx];
+      const tone = getSelectedTone();
+      const demo = document.getElementById('demo-select').value;
+
+      const text = [
+        `TRENDFORMULATE — TIKTOK SCRIPT`,
+        `Formula: ${formula.name} | Tone: ${tone} | Demo: ${demo}`,
+        `─────────────────────────────────────────`,
+        `[0–3s]   HOOK: "${lastScript.hook}"`,
+        `[3–15s]  SCIENCE BRIDGE: "${lastScript.science}"`,
+        `[15s]    TRANSITION: ${lastScript.transition}`,
+        `[15–28s] BENEFIT STACK: "${lastScript.benefits}"`,
+        `[28–30s] CTA: "${lastScript.cta}"`,
+        `─────────────────────────────────────────`,
+        `Generated by TrendFormulate OS v1.0`
+      ].join('\n');
+
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Script copied to clipboard!');
+      }).catch(() => {
         const ta = document.createElement("textarea");
         ta.value = text;
         document.body.appendChild(ta);
         ta.select();
         document.execCommand("copy");
         document.body.removeChild(ta);
+        showToast('Script copied!');
       });
+    }
+
+    // ─── Reset ───────────────────────────────────────────────
+    function resetOutput() {
+      lastScript = null;
+      document.getElementById('script-card').classList.remove('visible');
+      document.getElementById('storyboard-section').style.display = 'none';
+      document.getElementById('action-bar').classList.remove('visible');
+      document.getElementById('generating-state').classList.remove('visible');
+      document.getElementById('idle-placeholder').style.display = '';
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = false;
+      btn.classList.remove('generating');
+      btn.innerHTML = `<i data-lucide="zap" style="width:16px;height:16px;"></i> Generate Content`;
+      lucide.createIcons();
+    }
+
+    // ─── Toast notification ──────────────────────────────────
+    function showToast(msg) {
+      let t = document.getElementById('toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'toast';
+        t.style.cssText = `
+          position:fixed;bottom:1.5rem;right:1.5rem;z-index:999;
+          background:var(--surface-2);border:1px solid var(--border);
+          color:var(--text);font-size:0.875rem;font-family:var(--font-body);
+          padding:0.6rem 1rem;border-radius:var(--radius-sm);
+          box-shadow:var(--shadow);opacity:0;transition:opacity 0.25s;
+        `;
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      t.style.opacity = '1';
+      setTimeout(() => { t.style.opacity = '0'; }, 2200);
     }
   </script>
 </body>
