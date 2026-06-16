@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TikTok Content Engine — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
+  <script src="../../assets/config.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
     /* ── Layout ────────────────────────────────────────────── */
@@ -648,56 +649,137 @@
       updateFormulaPreview();
     }
 
-    // ─── Script generator ────────────────────────────────────
-    function generateScript(formula, tone, demographic) {
-      const hooks = {
-        "Clean Beauty":    `POV: You finally found the ingredient your skin was BEGGING for. 🌿`,
-        "Science-Forward": `Why is ${formula.hero_ingredient} outperforming niacinamide in every clinical trial right now?`,
-        "Gen Z Playful":   `Niacinamide who? Let me introduce you to your new holy grail ✨`
-      };
-      const hook = hooks[tone] || `Discover ${formula.hero_ingredient} — your skin's new best friend.`;
-      const benefits = formula.benefit_stack.join(". ") + ".";
+    // ─── Groq configuration ──────────────────────────────────
+    const GROQ_MODEL    = "llama-3.3-70b-versatile";
+    const GROQ_DIRECT   = "https://api.groq.com/openai/v1/chat/completions";
+    const ON_SERVER     = window.location.protocol !== "file:" &&
+                          window.location.hostname !== "localhost" &&
+                          window.location.hostname !== "127.0.0.1";
+    const GROQ_ENDPOINT = ON_SERVER ? "/api/groq" : GROQ_DIRECT;
 
+    async function callGroq(messages, maxTokens = 1200, retrying = false) {
+      const headers = { "Content-Type": "application/json" };
+      if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
+        headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
+      }
+      const response = await fetch(GROQ_ENDPOINT, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model:       GROQ_MODEL,
+          temperature: 0.7,
+          max_tokens:  maxTokens,
+          messages
+        })
+      });
+      if (response.status === 429 && !retrying) {
+        await new Promise(r => setTimeout(r, 2500));
+        return callGroq(messages, maxTokens, true);
+      }
+      if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
+      const data = await response.json();
+      return data.choices[0].message.content.trim();
+    }
+
+    function parseJSON(raw) {
+      const cleaned = raw
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
+      return JSON.parse(cleaned);
+    }
+
+    // ─── Groq system prompt ───────────────────────────────────
+    const SCRIPT_SYSTEM = `You are an expert TikTok content strategist for indie beauty brands. Given a cosmetic formula, brand tone, and target demographic, write a production-ready 30-second TikTok video script with a shot-by-shot storyboard.
+
+Return ONLY a valid JSON object — no markdown fences, no explanation, no extra text.
+
+Use this exact schema:
+{
+  "hook": "<attention-grabbing 1-2 sentence spoken hook for 0–3s — tailored to the brand tone>",
+  "science_bridge": "<spoken science explanation for 3–15s — explain the hero ingredient's mechanism in plain language>",
+  "transition": "<director note for the 15s cut — describe the B-roll shot and any on-screen text>",
+  "benefit_stack": "<spoken benefit list for 15–28s — 2-4 punchy claims from the formula's benefit stack>",
+  "cta": "<spoken CTA for 28–30s — direct, urgent, platform-native>",
+  "storyboard": [
+    {
+      "time": "0–3s",
+      "type": "hook",
+      "label": "Hook",
+      "description": "<what happens on screen during this segment>",
+      "shotType": "<camera direction, e.g. 'Talking head — close crop'>",
+      "icon": "user"
+    },
+    {
+      "time": "3–15s",
+      "type": "bridge",
+      "label": "Science Bridge",
+      "description": "<what happens on screen>",
+      "shotType": "<camera direction>",
+      "icon": "flask-conical"
+    },
+    {
+      "time": "15–28s",
+      "type": "benefits",
+      "label": "Benefit Stack",
+      "description": "<what happens on screen>",
+      "shotType": "<camera direction matching the formula's shot type>",
+      "icon": "sparkles"
+    },
+    {
+      "time": "28–30s",
+      "type": "cta",
+      "label": "CTA",
+      "description": "<what happens on screen>",
+      "shotType": "Product shot",
+      "icon": "link"
+    }
+  ]
+}
+
+Tone rules:
+- "Clean Beauty": warm, nature-forward language; focus on ingredient story and skin harmony
+- "Science-Forward": clinical, confident, mechanism-led; use the ingredient's technical action
+- "Gen Z Playful": casual slang, hype culture, relatable pain-point hook, trending phrasing
+
+RETURN ONLY THE JSON OBJECT — nothing else`;
+
+    // ─── Groq script generator ────────────────────────────────
+    async function generateScriptAI(formula, tone, demographic) {
+      const benefitList = formula.benefit_stack.join(", ");
+      const userMsg =
+        `Product name: ${formula.name}\n` +
+        `Hero ingredient: ${formula.hero_ingredient} (${formula.ingredient_type})\n` +
+        `Mechanism: ${formula.mechanism}\n` +
+        `Key benefits: ${benefitList}\n` +
+        `Shot type: ${formula.shot_type}\n` +
+        `Brand tone: ${tone}\n` +
+        `Target demographic: ${demographic}`;
+
+      const raw = await callGroq([
+        { role: "system", content: SCRIPT_SYSTEM },
+        { role: "user",   content: userMsg }
+      ], 1200);
+
+      const script = parseJSON(raw);
+
+      // Normalise field names (AI may use 'science' instead of 'science_bridge')
+      if (!script.science_bridge && script.science) {
+        script.science_bridge = script.science;
+      }
+
+      if (!script.hook || !script.science_bridge || !script.cta || !Array.isArray(script.storyboard)) {
+        throw new Error("Invalid script schema from Groq");
+      }
+
+      // Map to the shape the existing renderers expect
       return {
-        hook,
-        science: `${formula.hero_ingredient} is a ${formula.ingredient_type} that works by ${formula.mechanism}. Unlike conventional actives, it doesn't trigger inflammatory responses in sensitive skin types.`,
-        transition: `B-roll of ${formula.shot_type}. On-screen text: "No irritation. No compromise."`,
-        benefits,
-        cta: `Link in bio — join the waitlist. First 100 founders get early access.`,
-        storyboard: [
-          {
-            time: "0–3s",
-            type: "hook",
-            label: "Hook",
-            description: hook,
-            shotType: "Talking head",
-            icon: "user"
-          },
-          {
-            time: "3–15s",
-            type: "bridge",
-            label: "Science Bridge",
-            description: `${formula.hero_ingredient} (${formula.ingredient_type}) — mechanism: "${formula.mechanism}".`,
-            shotType: "Talking head + text overlay",
-            icon: "flask-conical"
-          },
-          {
-            time: "15–28s",
-            type: "benefits",
-            label: "Benefit Stack",
-            description: `${benefits} Cut to product texture B-roll.`,
-            shotType: formula.shot_type,
-            icon: "sparkles"
-          },
-          {
-            time: "28–30s",
-            type: "cta",
-            label: "CTA",
-            description: `"Link in bio — join the waitlist." First-100-founders early access offer.`,
-            shotType: "Product shot",
-            icon: "link"
-          }
-        ]
+        hook:       script.hook,
+        science:    script.science_bridge,
+        transition: script.transition || `B-roll of ${formula.shot_type}. On-screen text: "${benefitList}."`,
+        benefits:   script.benefit_stack || benefitList,
+        cta:        script.cta,
+        storyboard: script.storyboard
       };
     }
 
@@ -773,12 +855,15 @@
     // ─── Generate logic ──────────────────────────────────────
     const GEN_STEPS = [
       "Analysing formula hero ingredient…",
-      "Matching brand tone template…",
+      "Matching brand tone & demographic…",
       "Writing hook & science bridge…",
       "Building storyboard frames…"
     ];
 
-    function handleGenerate() {
+    let lastScript = null;
+    let stepInterval = null;
+
+    async function handleGenerate() {
       const btn = document.getElementById('generate-btn');
       btn.disabled = true;
       btn.classList.add('generating');
@@ -799,49 +884,56 @@
       document.getElementById('step-0').classList.add('active');
       document.getElementById('gen-label').textContent = GEN_STEPS[0];
 
+      // Animate step dots while Groq runs
       let step = 0;
-      const interval = setInterval(() => {
+      if (stepInterval) clearInterval(stepInterval);
+      stepInterval = setInterval(() => {
+        if (step >= 3) return;
         document.getElementById(`step-${step}`).classList.remove('active');
         document.getElementById(`step-${step}`).classList.add('done');
         step++;
-        if (step < 4) {
-          document.getElementById(`step-${step}`).classList.add('active');
-          document.getElementById('gen-label').textContent = GEN_STEPS[step];
-        } else {
-          clearInterval(interval);
-          setTimeout(() => finishGenerate(), 300);
-        }
-      }, 550);
-    }
+        document.getElementById(`step-${step}`).classList.add('active');
+        document.getElementById('gen-label').textContent = GEN_STEPS[step];
+      }, 900);
 
-    let lastScript = null;
-
-    function finishGenerate() {
       const formulaIdx = parseInt(document.getElementById('formula-select').value);
-      const formula = APPROVED_FORMULAS[formulaIdx];
-      const tone = getSelectedTone();
+      const formula    = APPROVED_FORMULAS[formulaIdx];
+      const tone       = getSelectedTone();
       const demographic = document.getElementById('demo-select').value;
-      const script = generateScript(formula, tone, demographic);
-      lastScript = script;
 
-      // Hide generating state
-      document.getElementById('generating-state').classList.remove('visible');
+      try {
+        const script = await generateScriptAI(formula, tone, demographic);
+        lastScript = script;
 
-      // Build script card
-      renderScript(formula, tone, demographic, script);
+        // Finish step animation
+        clearInterval(stepInterval);
+        stepInterval = null;
+        for (let i = 0; i <= 3; i++) {
+          const s = document.getElementById(`step-${i}`);
+          s.classList.remove('active');
+          s.classList.add('done');
+        }
 
-      // Build storyboard
-      renderStoryboard(script.storyboard);
+        // Hide generating state
+        genState.classList.remove('visible');
 
-      // Show action bar
-      document.getElementById('action-bar').classList.add('visible');
+        // Render
+        renderScript(formula, tone, demographic, script);
+        renderStoryboard(script.storyboard);
+        document.getElementById('action-bar').classList.add('visible');
 
-      // Re-enable button
-      const btn = document.getElementById('generate-btn');
-      btn.disabled = false;
-      btn.classList.remove('generating');
-      btn.innerHTML = `<i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> Regenerate`;
-      lucide.createIcons();
+      } catch (err) {
+        clearInterval(stepInterval);
+        stepInterval = null;
+        genState.classList.remove('visible');
+        document.getElementById('idle-placeholder').style.display = '';
+        showToast(`Error: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('generating');
+        btn.innerHTML = `<i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> Regenerate`;
+        lucide.createIcons();
+      }
     }
 
     function renderScript(formula, tone, demographic, script) {
