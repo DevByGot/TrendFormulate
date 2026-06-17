@@ -251,11 +251,14 @@
     /* ─── Department Grid ─────────────────────────────────────── */
     .dept-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 1.125rem;
       margin-bottom: 2rem;
     }
-    @media (max-width: 680px) {
+    @media (max-width: 1024px) {
+      .dept-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
       .dept-grid { grid-template-columns: 1fr; }
     }
 
@@ -459,45 +462,6 @@
       <div class="hero-ornament">✦</div>
     </div>
 
-    <!-- ─── Stats Row ─────────────────────────────────────────── -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-icon">
-          <i data-lucide="flask-conical" style="width:16px;height:16px;"></i>
-        </div>
-        <div class="stat-value" id="stat-formulas">1,247</div>
-        <div class="stat-label">Formulas Generated</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">
-          <i data-lucide="trending-up" style="width:16px;height:16px;"></i>
-        </div>
-        <div class="stat-value">5</div>
-        <div class="stat-label">Trends Detected</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">
-          <i data-lucide="coins" style="width:16px;height:16px;"></i>
-        </div>
-        <div class="stat-value">$4.80</div>
-        <div class="stat-label">Total R&D Cost</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">
-          <i data-lucide="factory" style="width:16px;height:16px;"></i>
-        </div>
-        <div class="stat-value">4</div>
-        <div class="stat-label">Factories Evaluated</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">
-          <i data-lucide="shield-check" style="width:16px;height:16px;"></i>
-        </div>
-        <div class="stat-value">100%</div>
-        <div class="stat-label">EU Compliance Rate</div>
-      </div>
-    </div>
-
     <!-- ─── Section Header ────────────────────────────────────── -->
     <div id="departments" class="section-header">
       <div class="section-header-text">
@@ -599,9 +563,7 @@
     let count = 1247;
     setInterval(() => {
       count += Math.floor(Math.random() * 3) + 1;
-      const formatted = count.toLocaleString();
-      document.getElementById('formula-counter').textContent = formatted;
-      document.getElementById('stat-formulas').textContent = formatted;
+      document.getElementById('formula-counter').textContent = count.toLocaleString();
     }, 3000);
   </script>
 </body>
