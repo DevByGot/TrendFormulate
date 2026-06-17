@@ -177,7 +177,7 @@
     /* ─── Stats row ─────────────────────────────────────────────── */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 1px;
       background: var(--border);
       border: 1px solid var(--border);
@@ -185,7 +185,7 @@
       overflow: hidden;
       margin: 3rem 0;
     }
-    @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
     .stat-cell {
       background: var(--surface);
       padding: 1.5rem 1.25rem;
@@ -351,32 +351,6 @@
       border-radius: var(--radius-pill);
       padding: 0.2rem 0.6rem;
       align-self: flex-start;
-    }
-
-    /* ─── Testimonial / quote block ─────────────────────────────── */
-    .quote-block {
-      background: linear-gradient(135deg, rgba(196,120,138,0.07) 0%, rgba(222,175,148,0.04) 100%);
-      border: 1px solid var(--accent-mid);
-      border-left: 3px solid var(--accent);
-      border-radius: var(--radius);
-      padding: 1.75rem 2rem;
-      margin: 0 0 3.5rem;
-      text-align: center;
-    }
-    .quote-text {
-      font-family: var(--font-display);
-      font-size: 1.35rem;
-      font-style: italic;
-      font-weight: 300;
-      color: var(--text);
-      line-height: 1.55;
-      margin-bottom: 1rem;
-    }
-    .quote-meta {
-      font-size: 0.78rem;
-      color: var(--text-faint);
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
     }
 
     /* ─── CTA banner ────────────────────────────────────────────── */
@@ -759,27 +733,11 @@
       <p class="hero-hint">Beta access is limited · Priority given to active founders</p>
     </div>
 
-    <!-- ─── Trend ticker ───────────────────────────────────────────── -->
-    <div class="trend-ticker">
-      <span class="ticker-label">Live trends</span>
-      <div class="ticker-items">
-        <span>Glass Skin Alternatives <span class="ticker-badge">+340%</span></span>
-        <span class="ticker-sep">·</span>
-        <span>Bakuchiol replacing retinol in 68% of new formulas</span>
-        <span class="ticker-sep">·</span>
-        <span>Reef-safe SPF requests <span class="ticker-badge">+220%</span></span>
-      </div>
-    </div>
-
     <!-- ─── Stats ─────────────────────────────────────────────────── -->
     <div class="stats-row">
       <div class="stat-cell">
         <div class="stat-cell-val"><em>48h</em></div>
         <div class="stat-cell-label">From trend to formula</div>
-      </div>
-      <div class="stat-cell">
-        <div class="stat-cell-val">6</div>
-        <div class="stat-cell-label">AI departments</div>
       </div>
       <div class="stat-cell">
         <div class="stat-cell-val"><em>100%</em></div>
@@ -800,9 +758,16 @@
       <div class="section-header-line"></div>
     </div>
 
-    <div class="quote-block">
-      <p class="quote-text">"Building a beauty brand used to require a lab, a chemist, a compliance lawyer, a marketing agency, and a sourcing team — and still took 6–18 months. TrendFormulate replaces all of them with a single AI OS."</p>
-      <p class="quote-meta">TrendFormulate OS · Built for the next generation of beauty founders</p>
+    <div style="margin-bottom:3.5rem;">
+      <p style="font-size:1rem;color:var(--text);line-height:1.8;margin-bottom:1rem;">
+        TrendFormulate is an AI operating system built for indie beauty founders who want to move fast without cutting corners. It replaces the traditional R&D stack — the labs, the chemists, the compliance lawyers, the marketing agencies, the sourcing calls — with a set of interconnected AI modules that cover every stage of bringing a product to market.
+      </p>
+      <p style="font-size:1rem;color:var(--text-muted);line-height:1.8;margin-bottom:1rem;">
+        The platform starts where every great product starts: a trend. Our Sentiment Engine monitors TikTok, Reddit, and beauty communities in real time to surface ingredient signals before they peak. From there, the R&D Formulation module generates a production-ready formula sheet — fully cross-referenced against EU and FDA regulations, with no chemist required.
+      </p>
+      <p style="font-size:1rem;color:var(--text-muted);line-height:1.8;">
+        Once you have a formula, TrendFormulate keeps moving. The Marketing Engine writes your TikTok launch scripts. The Finance Simulator models your unit economics. The Operations module finds you a certified contract manufacturer matched to your region and MOQ. What used to take 6–18 months now takes under 48 hours.
+      </p>
     </div>
 
     <!-- ─── How it works ───────────────────────────────────────────── -->
@@ -862,6 +827,18 @@
         Join the Waitlist
       </button>
       <p class="cta-scarcity">Beta capacity is limited · <strong>Priority given to founders with an active launch</strong></p>
+    </div>
+
+    <!-- ─── Trend ticker ─────────────────────────────────────────────── -->
+    <div class="trend-ticker" style="margin-bottom:2rem;">
+      <span class="ticker-label">Live trends</span>
+      <div class="ticker-items">
+        <span>Glass Skin Alternatives <span class="ticker-badge">+340%</span></span>
+        <span class="ticker-sep">·</span>
+        <span>Bakuchiol replacing retinol in 68% of new formulas</span>
+        <span class="ticker-sep">·</span>
+        <span>Reef-safe SPF requests <span class="ticker-badge">+220%</span></span>
+      </div>
     </div>
 
     <!-- ─── Footer ─────────────────────────────────────────────────── -->
