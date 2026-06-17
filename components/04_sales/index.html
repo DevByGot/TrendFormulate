@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Waitlist Nurturing Agent — TrendFormulate</title>
+  <title>TrendFormulate — Early Access</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="../../assets/config.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -32,47 +32,6 @@
       display: flex;
     }
 
-    /* ─── Hero banner ──────────────────────────────────────── */
-    .beta-banner {
-      background: linear-gradient(135deg, rgba(196,120,138,0.1) 0%, rgba(196,120,138,0.04) 100%);
-      border: 1px solid rgba(196,120,138,0.25);
-      border-radius: var(--radius);
-      padding: 1rem 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
-    }
-    .beta-banner-icon {
-      width: 40px; height: 40px;
-      border-radius: var(--radius-sm);
-      background: rgba(196,120,138,0.15);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--accent);
-      flex-shrink: 0;
-    }
-    .beta-banner-text { flex: 1; }
-    .beta-banner-text strong { font-size: 0.9375rem; color: var(--text); display: block; }
-    .beta-banner-text span { font-size: 0.8125rem; color: var(--text-muted); }
-    .capacity-pill {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--warning);
-      background: rgba(212,168,67,0.1);
-      border: 1px solid rgba(212,168,67,0.25);
-      border-radius: 999px;
-      padding: 0.25rem 0.75rem;
-      flex-shrink: 0;
-    }
-    .capacity-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--warning);
-    }
-
     /* ─── Chat window ──────────────────────────────────────── */
     .chat-card {
       background: var(--surface);
@@ -80,7 +39,8 @@
       border-radius: var(--radius);
       display: flex;
       flex-direction: column;
-      height: 620px;
+      height: calc(100vh - 5.5rem);
+      min-height: 400px;
     }
 
     .chat-header {
@@ -536,32 +496,7 @@
     </div>
   </nav>
 
-  <div class="page-wrapper">
-
-    <!-- Page header -->
-    <div style="margin-bottom:1.25rem;">
-      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
-        <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
-          <i data-lucide="user-check" style="width:18px;height:18px;"></i>
-        </div>
-        <h1 style="font-size:1.5rem;">AI Waitlist Nurturing Agent</h1>
-      </div>
-    </div>
-
-    <!-- Beta capacity banner -->
-    <div class="beta-banner">
-      <div class="beta-banner-icon">
-        <i data-lucide="lock" style="width:18px;height:18px;"></i>
-      </div>
-      <div class="beta-banner-text">
-        <strong>TrendFormulate Beta — Access Currently Closed</strong>
-        <span>Speak with our AI to determine if your brand qualifies for priority early access.</span>
-      </div>
-      <div class="capacity-pill">
-        <span class="capacity-dot"></span>
-        Waitlist Only
-      </div>
-    </div>
+  <div class="page-wrapper" style="padding-top:1rem;padding-bottom:0;">
 
     <div class="sales-layout">
 
@@ -811,7 +746,7 @@ RESPONSE RULES:
         label: "Greeting",
         guardrail: false,
         keywords: ["hi", "hello", "hey", "good morning", "good evening", "what can you", "what do you"],
-        response: "TrendFormulate's beta is currently at full capacity. I'm here to determine if your brand qualifies for priority early access. To get started — what's the name of your beauty brand and what product are you planning to launch next?"
+        response: "TrendFormulate Beta is currently closed to the public. I'm here to determine if your brand qualifies for priority early access — what's the name of your brand, and what product are you developing next?"
       }
     ];
 
@@ -1236,7 +1171,7 @@ RESPONSE RULES:
 
     // ─── Boot ─────────────────────────────────────────────────
     function bootChat() {
-      const WELCOME = "TrendFormulate's beta platform is currently at full capacity. I'm here to determine if your brand qualifies for priority early access. To get started — what's the name of your beauty brand, and what product are you planning to launch next?";
+      const WELCOME = "TrendFormulate Beta — access is currently closed to the public. I'm Forma, your qualification agent. In a few quick questions, I'll determine whether your brand meets the criteria for priority early access. To get started — what's the name of your brand, and what product are you developing next?";
       appendAgentMessage(WELCOME);
       conversationHistory.push({ role: "assistant", content: WELCOME });
       showQuickReplies(QUICK_REPLIES_INITIAL);
