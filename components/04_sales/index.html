@@ -11,13 +11,25 @@
     /* ─── Page layout ──────────────────────────────────────── */
     .sales-layout {
       display: grid;
-      grid-template-columns: 1fr 300px;
+      grid-template-columns: 1fr;
       gap: 1.25rem;
       align-items: start;
+      transition: grid-template-columns 0.25s ease;
+    }
+    .sales-layout.panel-open {
+      grid-template-columns: 1fr 300px;
     }
     @media (max-width: 900px) {
-      .sales-layout { grid-template-columns: 1fr; }
+      .sales-layout.panel-open { grid-template-columns: 1fr; }
       .presenter-panel { order: -1; }
+    }
+
+    /* Presenter panel hidden by default */
+    .presenter-panel {
+      display: none;
+    }
+    .sales-layout.panel-open .presenter-panel {
+      display: flex;
     }
 
     /* ─── Hero banner ──────────────────────────────────────── */
@@ -336,8 +348,7 @@
     .send-btn:hover { background: var(--accent-hover); }
 
     /* ─── Presenter panel ───────────────────────────────────── */
-    .presenter-panel {
-      display: flex;
+    .sales-layout.panel-open .presenter-panel {
       flex-direction: column;
       gap: 1rem;
     }
@@ -535,11 +546,7 @@
           <i data-lucide="user-check" style="width:18px;height:18px;"></i>
         </div>
         <h1 style="font-size:1.5rem;">AI Waitlist Nurturing Agent</h1>
-        <span class="badge badge-accent">Component 04</span>
       </div>
-      <p style="color:var(--text-muted);font-size:0.875rem;max-width:640px;">
-        Enterprise-grade SDR gatekeeper — qualifies inbound leads, protects compute budget from unauthorized access, and converts high-intent founders into waitlist signups.
-      </p>
     </div>
 
     <!-- Beta capacity banner -->
@@ -1240,5 +1247,89 @@ RESPONSE RULES:
     bootChat();
   </script>
 
+  <!-- ─── Presenter floating controls (hidden from users) ── -->
+  <div style="
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  ">
+    <!-- Toggle presenter panel -->
+    <button id="toggle-panel-btn" onclick="togglePresenterPanel()" title="Toggle presenter panel" style="
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.9rem;
+      background: rgba(20,12,14,0.88);
+      color: #b8862e;
+      border: 1px solid rgba(184,134,46,0.35);
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      opacity: 0.65;
+      transition: opacity 0.2s, box-shadow 0.2s;
+      backdrop-filter: blur(6px);
+    "
+    onmouseover="this.style.opacity='1';"
+    onmouseout="this.style.opacity='0.65';">
+      <i data-lucide="eye" style="width:13px;height:13px;"></i>
+      Presenter View
+    </button>
+
+    <!-- Validate access -->
+    <button id="validate-access-btn" onclick="presenterValidate()" title="Manually grant platform access" style="
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.5rem 0.9rem;
+      background: rgba(20,12,14,0.88);
+      color: #5e9e47;
+      border: 1px solid rgba(94,158,71,0.35);
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      opacity: 0.65;
+      transition: opacity 0.2s, box-shadow 0.2s;
+      backdrop-filter: blur(6px);
+    "
+    onmouseover="this.style.opacity='1';"
+    onmouseout="this.style.opacity='0.65';">
+      <i data-lucide="shield-check" style="width:13px;height:13px;"></i>
+      Validate Access
+    </button>
+  </div>
+
+  <script>
+    function togglePresenterPanel() {
+      const layout = document.querySelector('.sales-layout');
+      const btn    = document.getElementById('toggle-panel-btn');
+      const isOpen = layout.classList.toggle('panel-open');
+      const icon   = btn.querySelector('[data-lucide]');
+      icon.setAttribute('data-lucide', isOpen ? 'eye-off' : 'eye');
+      lucide.createIcons({ nodes: [btn] });
+    }
+
+    function presenterValidate() {
+      localStorage.setItem('tf_waitlist_access', '1');
+      window.location.replace('../../index.html');
+    }
+
+    lucide.createIcons({
+      nodes: [
+        document.getElementById('toggle-panel-btn'),
+        document.getElementById('validate-access-btn')
+      ]
+    });
+  </script>
 </body>
 </html>
