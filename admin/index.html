@@ -342,6 +342,182 @@
       background: var(--accent-soft);
     }
 
+    /* ─── Presenter view ────────────────────────────────────── */
+    .presenter-view-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 900px) {
+      .presenter-view-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .presenter-view-grid { grid-template-columns: 1fr; }
+    }
+
+    .pv-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .pv-card-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    /* Score ring */
+    .lead-score-ring {
+      width: 80px; height: 80px;
+      margin: 0 auto 0.875rem;
+      position: relative;
+    }
+    .lead-score-ring svg { transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: var(--surface-2); stroke-width: 6; }
+    .ring-fill {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 219.9;
+      stroke-dashoffset: 219.9;
+      transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease;
+    }
+    .ring-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+    .ring-label span { font-size: 0.625rem; color: var(--text-muted); margin-top: 2px; }
+    .score-grade {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      display: block;
+      margin: 0 auto 1rem;
+    }
+
+    /* Pipeline stages */
+    .pipeline-stages {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .stage-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      padding: 0.3rem 0.5rem;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+    }
+    .stage-item.active {
+      background: rgba(196,120,138,0.1);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .stage-item.done { color: var(--success); }
+    .stage-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .stage-item.active .stage-dot { background: var(--accent); }
+    .stage-item.done .stage-dot  { background: var(--success); }
+
+    /* Stat rows inside pv-cards */
+    .pv-stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8125rem;
+      padding: 0.35rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .pv-stat-row:last-child { border-bottom: none; }
+    .pv-stat-row .label { color: var(--text-muted); }
+    .pv-stat-row .value { font-weight: 600; color: var(--text); max-width: 140px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Intent log */
+    .intent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .intent-item {
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-muted);
+    }
+    .intent-item .tag {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      background: rgba(196,120,138,0.12);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 0.1rem 0.45rem;
+      flex-shrink: 0;
+    }
+    .intent-item .tag.guardrail-tag {
+      background: rgba(212,168,67,0.12);
+      color: var(--warning);
+    }
+
+    /* Live badge */
+    .pv-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--warning);
+      background: rgba(212,168,67,0.08);
+      border: 1px solid rgba(212,168,67,0.2);
+      border-radius: var(--radius-pill);
+      padding: 0.2rem 0.65rem;
+    }
+    .pv-live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--warning);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* No-session placeholder */
+    .pv-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-faint);
+      font-size: 0.875rem;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+    }
+
     /* ─── Top header ────────────────────────────────────────── */
     .admin-page-header {
       margin-bottom: 2.5rem;
@@ -397,6 +573,24 @@
         Validate Waitlist Access
       </button>
     </div>
+
+    <!-- ─── Presenter View ──────────────────────────────────── -->
+    <div class="admin-section-title">
+      <h2>Presenter View</h2>
+      <div class="admin-section-line"></div>
+      <span class="pv-live-badge" id="pv-live-badge">
+        <span class="pv-live-dot"></span> Live
+      </span>
+      <a href="../components/04_sales/index.html" class="admin-nav-link" style="margin-left:0.5rem;">
+        <i data-lucide="external-link" style="width:12px;height:12px;"></i> Open Waitlist Agent
+      </a>
+    </div>
+
+    <div class="presenter-view-grid" id="presenter-view-grid">
+      <!-- Injected by JS -->
+    </div>
+
+    <hr class="admin-divider" />
 
     <!-- ─── Internal Departments ────────────────────────────── -->
     <div class="admin-section-title">
@@ -493,6 +687,130 @@
 
   <script>
     lucide.createIcons();
+
+    /* ─── Presenter View ─────────────────────────────────────── */
+    const STAGES_LIST = ["greeting", "qualifying", "pitching", "capturing", "converted"];
+
+    function getScoreGrade(score) {
+      if (score >= 80) return { label: 'Waitlist Ready', cls: 'badge-success' };
+      if (score >= 55) return { label: 'High Intent',    cls: 'badge-warning' };
+      if (score >= 25) return { label: 'Qualifying',     cls: 'badge-accent'  };
+      return { label: 'Unqualified', cls: 'badge-muted' };
+    }
+
+    function renderPresenterView() {
+      const grid = document.getElementById('presenter-view-grid');
+      let raw;
+      try { raw = JSON.parse(localStorage.getItem('tf_presenter_state') || 'null'); } catch(e) { raw = null; }
+
+      if (!raw) {
+        grid.innerHTML = `<div class="pv-empty">No active waitlist session — open the <a href="../components/04_sales/index.html" style="color:var(--accent);">Waitlist Agent</a> to start a session.</div>`;
+        lucide.createIcons({ nodes: [grid] });
+        return;
+      }
+
+      const {
+        leadScore = 0, exchangeCount = 0, guardrailCount = 0,
+        currentStage = 'greeting',
+        capturedName, capturedBrand, capturedEmail, capturedTimeline,
+        intentLog = [], updatedAt
+      } = raw;
+
+      const circumference = 219.9;
+      const offset = circumference - (leadScore / 100) * circumference;
+      let ringStroke = 'var(--accent)';
+      if (leadScore >= 70) ringStroke = 'var(--success)';
+      else if (leadScore >= 40) ringStroke = 'var(--warning)';
+      const { label: gradeLabel, cls: gradeCls } = getScoreGrade(leadScore);
+
+      const currentStageIdx = STAGES_LIST.indexOf(currentStage);
+      const stagesHtml = STAGES_LIST.map((s, i) => {
+        let cls = '';
+        if (i < currentStageIdx) cls = 'done';
+        else if (i === currentStageIdx) cls = 'active';
+        return `<div class="stage-item ${cls}">
+          <span class="stage-dot"></span>
+          ${s.charAt(0).toUpperCase() + s.slice(1)}
+        </div>`;
+      }).join('');
+
+      const intentHtml = intentLog.length === 0
+        ? `<span style="font-size:0.75rem;color:var(--text-faint);">Awaiting visitor…</span>`
+        : intentLog.slice(0, 20).map(e =>
+            `<div class="intent-item">
+              <span class="tag${e.isGuardrail ? ' guardrail-tag' : ''}">${escHtml(e.label)}</span>
+              <span>${escHtml(e.text)}</span>
+            </div>`
+          ).join('');
+
+      const lastUpdated = updatedAt
+        ? `Updated ${timeAgo(updatedAt)}`
+        : '';
+
+      grid.innerHTML = `
+        <!-- Score card -->
+        <div class="pv-card">
+          <div class="pv-card-title">Qualification Score</div>
+          <div class="lead-score-ring">
+            <svg viewBox="0 0 80 80" width="80" height="80">
+              <circle class="ring-bg" cx="40" cy="40" r="35" />
+              <circle class="ring-fill" cx="40" cy="40" r="35"
+                style="stroke-dashoffset:${offset};stroke:${ringStroke};" />
+            </svg>
+            <div class="ring-label">
+              <span>${leadScore}</span>
+              <span>/ 100</span>
+            </div>
+          </div>
+          <span class="score-grade ${gradeCls}">${gradeLabel}</span>
+          <div class="pipeline-stages">${stagesHtml}</div>
+          <div style="margin-top:0.875rem;border-top:1px solid var(--border);padding-top:0.75rem;">
+            <div class="pv-stat-row">
+              <span class="label">Exchanges</span>
+              <span class="value">${exchangeCount}</span>
+            </div>
+            <div class="pv-stat-row">
+              <span class="label">Guardrails triggered</span>
+              <span class="value">${guardrailCount}</span>
+            </div>
+            ${lastUpdated ? `<div style="margin-top:0.5rem;font-size:0.68rem;color:var(--text-faint);">${escHtml(lastUpdated)}</div>` : ''}
+          </div>
+        </div>
+
+        <!-- Captured lead data -->
+        <div class="pv-card">
+          <div class="pv-card-title">Captured Lead Data</div>
+          <div class="pv-stat-row">
+            <span class="label">Full name</span>
+            <span class="value">${escHtml(capturedName || '—')}</span>
+          </div>
+          <div class="pv-stat-row">
+            <span class="label">Brand</span>
+            <span class="value">${escHtml(capturedBrand || '—')}</span>
+          </div>
+          <div class="pv-stat-row">
+            <span class="label">Email</span>
+            <span class="value">${escHtml(capturedEmail || '—')}</span>
+          </div>
+          <div class="pv-stat-row">
+            <span class="label">Launch timeline</span>
+            <span class="value">${escHtml(capturedTimeline || '—')}</span>
+          </div>
+        </div>
+
+        <!-- Intent log -->
+        <div class="pv-card">
+          <div class="pv-card-title">Conversation Log</div>
+          <div class="intent-list">${intentHtml}</div>
+        </div>
+      `;
+
+      lucide.createIcons({ nodes: [grid] });
+    }
+
+    // Poll every 2 seconds for live updates
+    renderPresenterView();
+    setInterval(renderPresenterView, 2000);
 
     /* ─── Presenter: validate waitlist access ────────────────── */
     function presenterValidate() {
