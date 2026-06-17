@@ -45,9 +45,13 @@
     .hero-sub {
       font-size: 1.05rem;
       color: var(--text-muted);
-      max-width: 620px;
+      max-width: 900px;
       margin: 0 auto 2rem;
       line-height: 1.7;
+      white-space: nowrap;
+    }
+    @media (max-width: 780px) {
+      .hero-sub { white-space: normal; max-width: 480px; }
     }
     .hero-ornament {
       display: flex;
@@ -453,8 +457,9 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       width: 100%;
-      max-width: 580px;
-      max-height: 88vh;
+      max-width: 760px;
+      height: 90vh;
+      max-height: 820px;
       display: flex;
       flex-direction: column;
       box-shadow: 0 24px 64px rgba(0,0,0,0.35);
@@ -722,9 +727,14 @@
       </div>
       <span class="logo-text">TrendFormulate</span>
     </div>
-    <div class="beta-pill">
-      <i data-lucide="lock" style="width:12px;height:12px;"></i>
-      Beta · Waitlist Only
+    <div style="display:flex;align-items:center;gap:0.625rem;">
+      <div class="beta-pill">
+        <i data-lucide="lock" style="width:12px;height:12px;"></i>
+        Beta · Waitlist Only
+      </div>
+      <button onclick="grantDemoAccess()" title="Grant demo access and enter platform" style="display:flex;align-items:center;gap:0.375rem;font-size:0.75rem;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:var(--radius-pill);padding:0.35rem 0.75rem;cursor:pointer;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='var(--surface-2)';this.style.color='var(--text)';" onmouseout="this.style.background='transparent';this.style.color='var(--text-muted)';">
+        <i data-lucide="unlock" style="width:12px;height:12px;"></i> Demo Access
+      </button>
     </div>
   </nav>
 
@@ -732,10 +742,6 @@
 
     <!-- ─── Hero ──────────────────────────────────────────────────── -->
     <div class="hero">
-      <div class="hero-tag">
-        <i data-lucide="sparkles" style="width:12px;height:12px;"></i>
-        AI-Powered Cosmetic R&D OS
-      </div>
       <h1>Where <em>indie beauty</em> meets intelligent R&amp;D</h1>
       <p class="hero-sub">
         From trend detection to factory selection — every department your brand needs, powered by AI.
@@ -986,6 +992,12 @@
 
   <script>
     lucide.createIcons();
+
+    // ─── Demo access bypass ────────────────────────────────────────
+    function grantDemoAccess() {
+      localStorage.setItem('tf_waitlist_access', '1');
+      window.location.replace('../../index.html');
+    }
 
     // ─── Modal control ─────────────────────────────────────────────
     let chatBooted = false;
