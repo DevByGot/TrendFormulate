@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — TrendFormulate</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ─── Admin overrides ───────────────────────────────────── */
+    body {
+      background-color: #0f0c0d;
+      background-image:
+        radial-gradient(ellipse 70% 40% at 80% 0%, rgba(196,120,138,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 35% at 10% 100%, rgba(100,60,70,0.08) 0%, transparent 55%);
+      color: #e8d8d4;
+    }
+
+    .admin-navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 2rem;
+      background: rgba(20,14,16,0.95);
+      border-bottom: 1px solid rgba(196,120,138,0.18);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+    }
+    .admin-navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .admin-logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #3a1a22 0%, #5a2830 100%);
+      border: 1px solid rgba(196,120,138,0.3);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      color: #c4788a;
+    }
+    .admin-logo-text {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 400;
+      font-style: italic;
+      color: #d4a8b0;
+      letter-spacing: 0.01em;
+    }
+    .admin-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      background: rgba(196,120,138,0.15);
+      border: 1px solid rgba(196,120,138,0.3);
+      color: #c4788a;
+      border-radius: 999px;
+      padding: 0.2rem 0.65rem;
+    }
+    .admin-navbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .admin-nav-link {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.8rem;
+      color: #9a7b76;
+      text-decoration: none;
+      padding: 0.35rem 0.75rem;
+      border: 1px solid rgba(196,120,138,0.15);
+      border-radius: 999px;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .admin-nav-link:hover {
+      color: #d4a8b0;
+      border-color: rgba(196,120,138,0.35);
+      background: rgba(196,120,138,0.07);
+      text-decoration: none;
+    }
+
+    /* ─── Page layout ───────────────────────────────────────── */
+    .admin-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    /* ─── Section title ─────────────────────────────────────── */
+    .admin-section-title {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+      margin-bottom: 1.25rem;
+    }
+    .admin-section-title h2 {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-style: italic;
+      font-weight: 300;
+      color: #d4a8b0;
+      white-space: nowrap;
+    }
+    .admin-section-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(196,120,138,0.15);
+    }
+    .admin-section-tag {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #6b4a46;
+      white-space: nowrap;
+    }
+
+    /* ─── Department cards ──────────────────────────────────── */
+    .admin-dept-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+    .admin-dept-card {
+      background: rgba(30,18,22,0.9);
+      border: 1px solid rgba(196,120,138,0.18);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .admin-dept-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 3px;
+      background: transparent;
+      transition: background 0.2s;
+    }
+    .admin-dept-card:hover {
+      border-color: rgba(196,120,138,0.35);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(-2px);
+    }
+    .admin-dept-card:hover::before {
+      background: linear-gradient(180deg, #c4788a, rgba(196,120,138,0.3));
+    }
+    .admin-dept-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .admin-dept-icon {
+      width: 44px; height: 44px;
+      background: rgba(196,120,138,0.1);
+      border: 1px solid rgba(196,120,138,0.22);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #c4788a;
+    }
+    .admin-dept-badge {
+      font-size: 0.62rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      background: rgba(184,134,46,0.12);
+      border: 1px solid rgba(184,134,46,0.28);
+      color: #b8862e;
+      border-radius: 999px;
+      padding: 0.2rem 0.65rem;
+    }
+    .admin-dept-name {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-style: italic;
+      font-weight: 400;
+      color: #d4a8b0;
+      margin-bottom: 0.2rem;
+    }
+    .admin-dept-sub {
+      font-size: 0.76rem;
+      color: #6b4a46;
+      margin-bottom: 1rem;
+    }
+    .admin-launch-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.6rem 1rem;
+      background: rgba(196,120,138,0.12);
+      color: #c4788a;
+      border: 1px solid rgba(196,120,138,0.3);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+      cursor: pointer;
+    }
+    .admin-launch-btn:hover {
+      background: rgba(196,120,138,0.22);
+      color: #e8c4cc;
+      text-decoration: none;
+    }
+
+    /* ─── Database section ──────────────────────────────────── */
+    .db-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .db-card {
+      background: rgba(22,13,16,0.95);
+      border: 1px solid rgba(196,120,138,0.14);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .db-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 1.125rem;
+      border-bottom: 1px solid rgba(196,120,138,0.1);
+      background: rgba(196,120,138,0.04);
+    }
+    .db-card-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #c4788a;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+    .db-card-count {
+      font-size: 0.72rem;
+      color: #6b4a46;
+      background: rgba(196,120,138,0.08);
+      border: 1px solid rgba(196,120,138,0.14);
+      border-radius: 999px;
+      padding: 0.15rem 0.6rem;
+    }
+    .db-card-body {
+      padding: 0.875rem 1.125rem;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    .db-card-body::-webkit-scrollbar { width: 4px; }
+    .db-card-body::-webkit-scrollbar-track { background: transparent; }
+    .db-card-body::-webkit-scrollbar-thumb { background: rgba(196,120,138,0.2); border-radius: 2px; }
+
+    /* Status row */
+    .db-status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 0.5rem 0;
+    }
+    .db-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .db-dot.active { background: #5e9e47; box-shadow: 0 0 0 3px rgba(94,158,71,0.15); }
+    .db-dot.inactive { background: #6b4a46; }
+    .db-status-label { font-size: 0.85rem; color: #9a7b76; }
+    .db-status-value { font-size: 0.85rem; color: #d4a8b0; font-weight: 500; }
+
+    /* Data items */
+    .db-item {
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(196,120,138,0.07);
+    }
+    .db-item:last-child { border-bottom: none; }
+    .db-item-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #d4a8b0;
+      margin-bottom: 0.25rem;
+    }
+    .db-item-meta {
+      font-size: 0.75rem;
+      color: #6b4a46;
+      line-height: 1.5;
+    }
+    .db-item-tag {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.12rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(196,120,138,0.1);
+      border: 1px solid rgba(196,120,138,0.2);
+      color: #c4788a;
+      margin: 0.1rem 0.15rem 0.1rem 0;
+    }
+    .db-empty {
+      padding: 1.5rem 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #4a3030;
+    }
+    .db-empty i { display: block; margin: 0 auto 0.5rem; color: #3a2525; }
+
+    /* Refresh button */
+    .db-refresh-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      width: 100%;
+      margin-top: 1.5rem;
+      padding: 0.55rem 1rem;
+      background: transparent;
+      color: #6b4a46;
+      border: 1px solid rgba(196,120,138,0.12);
+      border-radius: 999px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .db-refresh-btn:hover {
+      color: #c4788a;
+      border-color: rgba(196,120,138,0.28);
+      background: rgba(196,120,138,0.05);
+    }
+
+    /* ─── Top header ────────────────────────────────────────── */
+    .admin-page-header {
+      margin-bottom: 2.5rem;
+    }
+    .admin-page-header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-style: italic;
+      font-weight: 300;
+      color: #d4a8b0;
+      margin-bottom: 0.4rem;
+    }
+    .admin-page-header p {
+      font-size: 0.875rem;
+      color: #4a3030;
+    }
+    .admin-divider {
+      margin: 2.5rem 0;
+      border: none;
+      border-top: 1px solid rgba(196,120,138,0.1);
+    }
+
+    /* Scrollbar for whole page */
+    html { scrollbar-color: rgba(196,120,138,0.2) transparent; }
+  </style>
+</head>
+<body>
+
+  <!-- ─── Navbar ───────────────────────────────────────────── -->
+  <nav class="admin-navbar">
+    <div class="admin-navbar-brand">
+      <div class="admin-logo">
+        <i data-lucide="shield" style="width:16px;height:16px;"></i>
+      </div>
+      <span class="admin-logo-text">TrendFormulate</span>
+      <span class="admin-badge">Admin</span>
+    </div>
+    <div class="admin-navbar-actions">
+      <a href="../index.html" class="admin-nav-link">
+        <i data-lucide="layout-dashboard" style="width:13px;height:13px;"></i>
+        User Dashboard
+      </a>
+    </div>
+  </nav>
+
+  <div class="admin-content">
+
+    <!-- ─── Page header ─────────────────────────────────────── -->
+    <div class="admin-page-header">
+      <h1>Backend Dashboard</h1>
+      <p>Internal tools — not visible to users</p>
+    </div>
+
+    <!-- ─── Internal Departments ────────────────────────────── -->
+    <div class="admin-section-title">
+      <h2>Internal Departments</h2>
+      <div class="admin-section-line"></div>
+      <span class="admin-section-tag">Admin only</span>
+    </div>
+
+    <div class="admin-dept-grid">
+
+      <!-- 05 HR -->
+      <div class="admin-dept-card">
+        <div class="admin-dept-top">
+          <div class="admin-dept-icon">
+            <i data-lucide="brain-circuit" style="width:20px;height:20px;"></i>
+          </div>
+          <span class="admin-dept-badge">Internal</span>
+        </div>
+        <p class="admin-dept-name">Workforce Architect</p>
+        <p class="admin-dept-sub">2-Phase AI: Skill-Gap Analysis → JD Generator</p>
+        <a href="../components/05_hr/index.html" class="admin-launch-btn">
+          Open Component 05 <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </a>
+      </div>
+
+      <!-- 06 Finance -->
+      <div class="admin-dept-card">
+        <div class="admin-dept-top">
+          <div class="admin-dept-icon">
+            <i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i>
+          </div>
+          <span class="admin-dept-badge">Internal</span>
+        </div>
+        <p class="admin-dept-name">Finance / CFO</p>
+        <p class="admin-dept-sub">Unit Economics & Compute Trade-off Simulator</p>
+        <a href="../components/06_finance/index.html" class="admin-launch-btn">
+          Open Component 06 <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </a>
+      </div>
+
+    </div>
+
+    <hr class="admin-divider" />
+
+    <!-- ─── Data / Database ──────────────────────────────────── -->
+    <div class="admin-section-title">
+      <h2>Session Data</h2>
+      <div class="admin-section-line"></div>
+      <span class="admin-section-tag">localStorage</span>
+    </div>
+
+    <div class="db-grid" id="db-grid">
+      <!-- Injected by JS -->
+    </div>
+
+    <button class="db-refresh-btn" onclick="renderDatabase()">
+      <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i>
+      Refresh Data
+    </button>
+
+    <hr class="admin-divider" />
+
+    <!-- ─── Quick links to all components ───────────────────── -->
+    <div class="admin-section-title">
+      <h2>All Components</h2>
+      <div class="admin-section-line"></div>
+      <span class="admin-section-tag">Quick access</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.625rem;margin-bottom:2rem;">
+      <a href="../components/01_sentiment/index.html" class="admin-nav-link">
+        <i data-lucide="message-circle" style="width:13px;height:13px;"></i> 01 Sentiment
+      </a>
+      <a href="../components/02_formulation/index.html" class="admin-nav-link">
+        <i data-lucide="flask-conical" style="width:13px;height:13px;"></i> 02 Formulation
+      </a>
+      <a href="../components/03_marketing/index.html" class="admin-nav-link">
+        <i data-lucide="video" style="width:13px;height:13px;"></i> 03 Marketing
+      </a>
+      <a href="../components/04_sales/index.html" class="admin-nav-link">
+        <i data-lucide="bot" style="width:13px;height:13px;"></i> 04 Waitlist
+      </a>
+      <a href="../components/05_hr/index.html" class="admin-nav-link">
+        <i data-lucide="brain-circuit" style="width:13px;height:13px;"></i> 05 HR
+      </a>
+      <a href="../components/06_finance/index.html" class="admin-nav-link">
+        <i data-lucide="bar-chart-2" style="width:13px;height:13px;"></i> 06 Finance
+      </a>
+      <a href="../components/07_ops/index.html" class="admin-nav-link">
+        <i data-lucide="factory" style="width:13px;height:13px;"></i> 07 Ops
+      </a>
+    </div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    /* ─── Helpers ────────────────────────────────────────────── */
+    function timeAgo(iso) {
+      if (!iso) return '';
+      const diff = Date.now() - new Date(iso).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1)  return 'just now';
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ago`;
+      return `${Math.floor(h / 24)}d ago`;
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    /* ─── Card builder ───────────────────────────────────────── */
+    function makeCard(title, icon, countLabel, bodyHtml) {
+      return `
+        <div class="db-card">
+          <div class="db-card-header">
+            <div class="db-card-title">
+              <i data-lucide="${icon}" style="width:14px;height:14px;"></i>
+              ${escHtml(title)}
+            </div>
+            <span class="db-card-count">${escHtml(countLabel)}</span>
+          </div>
+          <div class="db-card-body">${bodyHtml}</div>
+        </div>
+      `;
+    }
+
+    function emptyState(msg) {
+      return `<div class="db-empty">
+        <i data-lucide="inbox" style="width:24px;height:24px;"></i>
+        ${escHtml(msg)}
+      </div>`;
+    }
+
+    /* ─── Render database ────────────────────────────────────── */
+    function renderDatabase() {
+      const grid = document.getElementById('db-grid');
+
+      /* ── 1. Waitlist Access ── */
+      const accessVal = localStorage.getItem('tf_waitlist_access');
+      const accessBody = `
+        <div class="db-status-row">
+          <div class="db-dot ${accessVal ? 'active' : 'inactive'}"></div>
+          <span class="db-status-label">Access granted:</span>
+          <span class="db-status-value">${accessVal ? 'Yes' : 'No'}</span>
+        </div>
+        <div class="db-status-row" style="padding-top:0;">
+          <div class="db-dot inactive" style="opacity:0;"></div>
+          <span class="db-status-label" style="font-size:0.72rem;color:#4a3030;">
+            Key: <code style="font-size:0.72rem;color:#6b4a46;">tf_waitlist_access</code>
+          </span>
+        </div>
+        ${accessVal ? `<div style="margin-top:0.75rem;">
+          <button onclick="localStorage.removeItem('tf_waitlist_access');renderDatabase();" style="
+            font-size:0.72rem;color:#c9575e;background:rgba(201,87,94,0.08);
+            border:1px solid rgba(201,87,94,0.22);border-radius:999px;
+            padding:0.25rem 0.75rem;cursor:pointer;transition:background 0.15s;"
+            onmouseover="this.style.background='rgba(201,87,94,0.15)';"
+            onmouseout="this.style.background='rgba(201,87,94,0.08)';">
+            Revoke access
+          </button>
+        </div>` : `<div style="margin-top:0.75rem;">
+          <button onclick="localStorage.setItem('tf_waitlist_access','1');renderDatabase();" style="
+            font-size:0.72rem;color:#5e9e47;background:rgba(94,158,71,0.08);
+            border:1px solid rgba(94,158,71,0.22);border-radius:999px;
+            padding:0.25rem 0.75rem;cursor:pointer;transition:background 0.15s;"
+            onmouseover="this.style.background='rgba(94,158,71,0.15)';"
+            onmouseout="this.style.background='rgba(94,158,71,0.08)';">
+            Grant access
+          </button>
+        </div>`}
+      `;
+
+      /* ── 2. Sentiment Results (Component 01) ── */
+      let c1Data = [];
+      try { c1Data = JSON.parse(localStorage.getItem('tf_c1_results') || '[]'); } catch(e) {}
+      let c1Body = '';
+      if (!Array.isArray(c1Data) || c1Data.length === 0) {
+        c1Body = emptyState('No sentiment analysis run yet');
+      } else {
+        const byTrend = {};
+        c1Data.forEach(r => {
+          const t = r.trend || r.keyword || 'Unknown';
+          byTrend[t] = (byTrend[t] || 0) + 1;
+        });
+        c1Body = Object.entries(byTrend).map(([trend, count]) => `
+          <div class="db-item">
+            <div class="db-item-name">${escHtml(trend)}</div>
+            <div class="db-item-meta">${count} comment${count !== 1 ? 's' : ''} mapped</div>
+          </div>
+        `).join('');
+      }
+
+      /* ── 3. Saved Formulas (Component 02) ── */
+      let formulas = [];
+      try { formulas = JSON.parse(localStorage.getItem('tf_saved_formulas') || '[]'); } catch(e) {}
+      let fBody = '';
+      if (!Array.isArray(formulas) || formulas.length === 0) {
+        fBody = emptyState('No formulas saved yet');
+      } else {
+        fBody = formulas.map(f => {
+          const claims = Array.isArray(f.benefit_stack) ? f.benefit_stack : [];
+          return `
+            <div class="db-item">
+              <div class="db-item-name">${escHtml(f.name || 'Unnamed formula')}</div>
+              <div class="db-item-meta" style="margin-bottom:0.35rem;">
+                ${f.hero_inci ? `Hero: <strong style="color:#9a7b76;">${escHtml(f.hero_inci)}</strong>` : ''}
+                ${f.savedAt ? `<span style="margin-left:0.5rem;opacity:0.6;">${timeAgo(f.savedAt)}</span>` : ''}
+              </div>
+              ${claims.slice(0, 3).map(c => `<span class="db-item-tag">${escHtml(c)}</span>`).join('')}
+            </div>
+          `;
+        }).join('');
+      }
+
+      grid.innerHTML = [
+        makeCard('Waitlist Access', 'key-round', accessVal ? 'Granted' : 'No access', accessBody),
+        makeCard('Sentiment Results', 'message-circle', `${c1Data.length} comment${c1Data.length !== 1 ? 's' : ''}`, c1Body),
+        makeCard('Saved Formulas', 'flask-conical', `${formulas.length} formula${formulas.length !== 1 ? 's' : ''}`, fBody),
+      ].join('');
+
+      lucide.createIcons();
+    }
+
+    renderDatabase();
+  </script>
+</body>
+</html>
