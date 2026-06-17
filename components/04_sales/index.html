@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sales Agent — TrendFormulate</title>
+  <title>AI Waitlist Nurturing Agent — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="../../assets/config.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -11,13 +11,54 @@
     /* ─── Page layout ──────────────────────────────────────── */
     .sales-layout {
       display: grid;
-      grid-template-columns: 1fr 280px;
+      grid-template-columns: 1fr 300px;
       gap: 1.25rem;
       align-items: start;
     }
-    @media (max-width: 860px) {
+    @media (max-width: 900px) {
       .sales-layout { grid-template-columns: 1fr; }
       .presenter-panel { order: -1; }
+    }
+
+    /* ─── Hero banner ──────────────────────────────────────── */
+    .beta-banner {
+      background: linear-gradient(135deg, rgba(196,120,138,0.1) 0%, rgba(196,120,138,0.04) 100%);
+      border: 1px solid rgba(196,120,138,0.25);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .beta-banner-icon {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-sm);
+      background: rgba(196,120,138,0.15);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .beta-banner-text { flex: 1; }
+    .beta-banner-text strong { font-size: 0.9375rem; color: var(--text); display: block; }
+    .beta-banner-text span { font-size: 0.8125rem; color: var(--text-muted); }
+    .capacity-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--warning);
+      background: rgba(212,168,67,0.1);
+      border: 1px solid rgba(212,168,67,0.25);
+      border-radius: 999px;
+      padding: 0.25rem 0.75rem;
+      flex-shrink: 0;
+    }
+    .capacity-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--warning);
     }
 
     /* ─── Chat window ──────────────────────────────────────── */
@@ -27,7 +68,7 @@
       border-radius: var(--radius);
       display: flex;
       flex-direction: column;
-      height: 600px;
+      height: 620px;
     }
 
     .chat-header {
@@ -37,6 +78,7 @@
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
+      background: linear-gradient(90deg, rgba(196,120,138,0.05) 0%, transparent 100%);
     }
     .chat-header-agent {
       display: flex;
@@ -44,10 +86,9 @@
       gap: 0.75rem;
     }
     .agent-avatar {
-      width: 36px;
-      height: 36px;
+      width: 38px; height: 38px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent) 0%, #227f8b 100%);
+      background: linear-gradient(135deg, var(--accent) 0%, #a05060 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -58,22 +99,22 @@
     .agent-name { font-size: 0.9375rem; font-weight: 600; color: var(--text); }
     .agent-role { font-size: 0.75rem; color: var(--text-muted); }
 
-    .online-pill {
+    .status-pill {
       display: flex;
       align-items: center;
       gap: 0.375rem;
       font-size: 0.75rem;
-      color: var(--success);
-      background: rgba(109,170,69,0.1);
-      border: 1px solid rgba(109,170,69,0.2);
+      font-weight: 600;
+      color: var(--warning);
+      background: rgba(212,168,67,0.08);
+      border: 1px solid rgba(212,168,67,0.2);
       border-radius: 999px;
-      padding: 0.2rem 0.65rem;
+      padding: 0.25rem 0.7rem;
     }
-    .online-dot {
+    .status-dot {
       width: 6px; height: 6px;
       border-radius: 50%;
-      background: var(--success);
-      box-shadow: 0 0 6px var(--success);
+      background: var(--warning);
       animation: pulse 2s ease-in-out infinite;
     }
 
@@ -100,23 +141,21 @@
       width: 28px; height: 28px;
       border-radius: 50%;
       background: var(--surface-2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
       color: var(--accent);
     }
     .msg-avatar.user-av {
-      background: rgba(196, 120, 138, 0.15);
+      background: rgba(196,120,138,0.12);
       color: var(--accent);
     }
 
     .msg-bubble {
       max-width: 72%;
-      padding: 0.7rem 1rem;
+      padding: 0.75rem 1rem;
       border-radius: 1rem;
       font-size: 0.875rem;
-      line-height: 1.55;
+      line-height: 1.6;
     }
     .msg-bubble.agent {
       background: var(--surface-2);
@@ -128,6 +167,12 @@
       background: var(--accent);
       color: #fff;
       border-bottom-right-radius: 0.25rem;
+    }
+
+    /* ─── Guardrail flash ───────────────────────────────────── */
+    .msg-bubble.agent.guardrail {
+      border-color: rgba(212,168,67,0.4);
+      background: rgba(212,168,67,0.06);
     }
 
     /* ─── Typing indicator ──────────────────────────────────── */
@@ -169,8 +214,8 @@
     .qr-chip {
       font-size: 0.8125rem;
       color: var(--accent);
-      border: 1px solid rgba(196, 120, 138, 0.35);
-      background: rgba(196, 120, 138, 0.07);
+      border: 1px solid rgba(196,120,138,0.35);
+      background: rgba(196,120,138,0.07);
       border-radius: 999px;
       padding: 0.3rem 0.85rem;
       cursor: pointer;
@@ -178,53 +223,80 @@
       white-space: nowrap;
     }
     .qr-chip:hover {
-      background: rgba(196, 120, 138, 0.18);
-      border-color: rgba(196, 120, 138, 0.6);
+      background: rgba(196,120,138,0.18);
+      border-color: rgba(196,120,138,0.6);
     }
 
-    /* ─── Lead capture form ─────────────────────────────────── */
+    /* ─── Waitlist application form ─────────────────────────── */
     .lead-form-bar {
       margin: 0 1.25rem 1rem;
-      background: linear-gradient(90deg, rgba(196, 120, 138, 0.08) 0%, rgba(196, 120, 138, 0.04) 100%);
-      border: 1px solid rgba(196, 120, 138, 0.25);
+      background: linear-gradient(135deg, rgba(196,120,138,0.08) 0%, rgba(196,120,138,0.03) 100%);
+      border: 1px solid rgba(196,120,138,0.3);
       border-radius: var(--radius-sm);
-      padding: 0.875rem 1rem;
+      padding: 1rem 1.125rem;
       animation: slideIn 0.3s ease forwards;
     }
-    .lead-form-bar p {
-      font-size: 0.8125rem;
+    .lead-form-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .lead-form-subtitle {
+      font-size: 0.75rem;
       color: var(--text-muted);
+      margin-bottom: 0.875rem;
+    }
+    .lead-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
       margin-bottom: 0.625rem;
     }
-    .lead-form-bar strong { color: var(--text); }
-    .lead-form-row {
-      display: flex;
-      gap: 0.5rem;
-    }
-    .lead-form-row input {
-      flex: 1;
-      background: var(--surface-2);
+    .lead-form-grid input,
+    .lead-form-full input {
+      width: 100%;
+      background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       color: var(--text);
       font-size: 0.8125rem;
-      padding: 0.45rem 0.75rem;
+      padding: 0.5rem 0.75rem;
       outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.15s;
     }
-    .lead-form-row input:focus { border-color: var(--accent); }
+    .lead-form-grid input:focus,
+    .lead-form-full input:focus { border-color: var(--accent); }
+    .lead-form-full { margin-bottom: 0.625rem; }
     .lead-submit-btn {
+      width: 100%;
       font-size: 0.8125rem;
-      font-weight: 500;
+      font-weight: 600;
       background: var(--accent);
       color: #fff;
       border: none;
       border-radius: var(--radius-sm);
-      padding: 0.45rem 0.9rem;
+      padding: 0.6rem;
       cursor: pointer;
-      white-space: nowrap;
       transition: background 0.15s;
+      letter-spacing: 0.02em;
     }
     .lead-submit-btn:hover { background: var(--accent-hover); }
+
+    /* ─── Lead captured confirmation ────────────────────────── */
+    .lead-captured {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      font-size: 0.8125rem;
+      color: var(--success);
+      padding: 0.75rem 1rem;
+      background: rgba(109,170,69,0.08);
+      border: 1px solid rgba(109,170,69,0.2);
+      border-radius: var(--radius-sm);
+      animation: slideIn 0.3s ease forwards;
+    }
 
     /* ─── Chat input bar ─────────────────────────────────────── */
     .chat-input-bar {
@@ -292,9 +364,6 @@
       border-radius: var(--radius);
       padding: 1.25rem;
     }
-    .score-card .card-title {
-      margin-bottom: 0.875rem;
-    }
 
     .lead-score-ring {
       width: 80px; height: 80px;
@@ -332,10 +401,44 @@
       font-weight: 600;
       padding: 0.2rem 0.6rem;
       border-radius: 999px;
-      display: inline-block;
+      display: block;
       margin: 0 auto 1rem;
-      width: 100%;
     }
+
+    /* ─── Pipeline stages ───────────────────────────────────── */
+    .pipeline-stages {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      margin-bottom: 0.875rem;
+    }
+    .stage-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      padding: 0.3rem 0.5rem;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      transition: background 0.2s, color 0.2s;
+    }
+    .stage-item.active {
+      background: rgba(196,120,138,0.1);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .stage-item.done {
+      color: var(--success);
+    }
+    .stage-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .stage-item.active .stage-dot { background: var(--accent); }
+    .stage-item.done .stage-dot { background: var(--success); }
 
     .stat-row {
       display: flex;
@@ -347,7 +450,14 @@
     }
     .stat-row:last-child { border-bottom: none; }
     .stat-row .label { color: var(--text-muted); }
-    .stat-row .value { font-weight: 600; color: var(--text); }
+    .stat-row .value { font-weight: 600; color: var(--text); max-width: 130px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .captured-data-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+    }
 
     .intent-log {
       background: var(--surface);
@@ -360,7 +470,7 @@
       display: flex;
       flex-direction: column;
       gap: 0.375rem;
-      max-height: 160px;
+      max-height: 140px;
       overflow-y: auto;
     }
     .intent-item {
@@ -374,11 +484,15 @@
     .intent-item .tag {
       font-size: 0.6875rem;
       font-weight: 600;
-      background: rgba(196, 120, 138, 0.12);
+      background: rgba(196,120,138,0.12);
       color: var(--accent);
       border-radius: 999px;
       padding: 0.1rem 0.45rem;
       flex-shrink: 0;
+    }
+    .intent-item .tag.guardrail-tag {
+      background: rgba(212,168,67,0.12);
+      color: var(--warning);
     }
 
     .reset-btn {
@@ -393,20 +507,6 @@
       transition: background 0.15s, color 0.15s;
     }
     .reset-btn:hover { background: var(--surface-2); color: var(--text); }
-
-    /* ─── Lead captured confirmation ────────────────────────── */
-    .lead-captured {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.8125rem;
-      color: var(--success);
-      padding: 0.5rem 0.75rem;
-      background: rgba(109,170,69,0.08);
-      border: 1px solid rgba(109,170,69,0.2);
-      border-radius: var(--radius-sm);
-      animation: slideIn 0.3s ease forwards;
-    }
   </style>
 </head>
 <body>
@@ -428,50 +528,65 @@
   <div class="page-wrapper">
 
     <!-- Page header -->
-    <div style="margin-bottom:1.5rem;">
+    <div style="margin-bottom:1.25rem;">
       <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
         <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
-          <i data-lucide="bot" style="width:18px;height:18px;"></i>
+          <i data-lucide="user-check" style="width:18px;height:18px;"></i>
         </div>
         <h1 style="font-size:1.5rem;">AI Waitlist Nurturing Agent</h1>
         <span class="badge badge-accent">Component 04</span>
       </div>
-      <p style="color:var(--text-muted);font-size:0.875rem;max-width:600px;">
-        Autonomous B2B sales chatbot powered by Groq LLaMA — qualifies inbound leads, references live trend data and factory options, maintains full conversation memory.
+      <p style="color:var(--text-muted);font-size:0.875rem;max-width:640px;">
+        Enterprise-grade SDR gatekeeper — qualifies inbound leads, protects compute budget from unauthorized access, and converts high-intent founders into waitlist signups.
       </p>
+    </div>
+
+    <!-- Beta capacity banner -->
+    <div class="beta-banner">
+      <div class="beta-banner-icon">
+        <i data-lucide="lock" style="width:18px;height:18px;"></i>
+      </div>
+      <div class="beta-banner-text">
+        <strong>TrendFormulate Beta — Access Currently Closed</strong>
+        <span>Speak with our AI to determine if your brand qualifies for priority early access.</span>
+      </div>
+      <div class="capacity-pill">
+        <span class="capacity-dot"></span>
+        Waitlist Only
+      </div>
     </div>
 
     <div class="sales-layout">
 
       <!-- ─── Chat Window ─────────────────────────────────────── -->
-      <div style="display:flex;flex-direction:column;gap:0;">
+      <div>
         <div class="chat-card">
 
           <!-- Chat header -->
           <div class="chat-header">
             <div class="chat-header-agent">
               <div class="agent-avatar">
-                <i data-lucide="sparkles" style="width:16px;height:16px;"></i>
+                <i data-lucide="shield-check" style="width:16px;height:16px;"></i>
               </div>
               <div class="agent-info">
                 <div class="agent-name">Forma</div>
-                <div class="agent-role">TrendFormulate AI Sales Agent</div>
+                <div class="agent-role">TrendFormulate Access &amp; Qualification Agent</div>
               </div>
             </div>
-            <div class="online-pill">
-              <span class="online-dot"></span>
-              Online
+            <div class="status-pill">
+              <span class="status-dot"></span>
+              Beta · Waitlist Active
             </div>
           </div>
 
           <!-- Messages -->
           <div class="messages-area" id="messages-area"></div>
 
-          <!-- Typing indicator (hidden by default) -->
+          <!-- Typing indicator -->
           <div id="typing-indicator" style="display:none;padding:0 1.25rem 0.5rem;">
             <div class="typing-row">
               <div class="msg-avatar">
-                <i data-lucide="sparkles" style="width:13px;height:13px;"></i>
+                <i data-lucide="shield-check" style="width:13px;height:13px;"></i>
               </div>
               <div class="typing-bubble">
                 <div class="typing-dot"></div>
@@ -484,12 +599,12 @@
           <!-- Quick replies -->
           <div class="quick-replies" id="quick-replies"></div>
 
-          <!-- Lead capture form (hidden until 3 exchanges) -->
+          <!-- Waitlist application form (hidden until triggered) -->
           <div id="lead-form-container" style="display:none;"></div>
 
           <!-- Input bar -->
           <div class="chat-input-bar">
-            <input type="text" id="chat-input" placeholder="Type a message…" autocomplete="off" />
+            <input type="text" id="chat-input" placeholder="Ask about early access…" autocomplete="off" />
             <button class="send-btn" id="send-btn" title="Send">
               <i data-lucide="send" style="width:15px;height:15px;"></i>
             </button>
@@ -509,7 +624,7 @@
 
         <!-- Lead score -->
         <div class="score-card">
-          <p class="card-title">Lead Score</p>
+          <p class="card-title" style="margin-bottom:0.875rem;">Qualification Score</p>
 
           <div class="lead-score-ring">
             <svg viewBox="0 0 80 80" width="80" height="80">
@@ -522,29 +637,67 @@
             </div>
           </div>
 
-          <div id="score-grade" class="score-grade badge-muted" style="text-align:center;">Cold Lead</div>
+          <span id="score-grade" class="score-grade badge-muted">Unqualified</span>
 
-          <div style="margin-top:0.875rem;">
+          <!-- Pipeline stages -->
+          <div class="pipeline-stages">
+            <div class="stage-item active" id="stage-greeting">
+              <span class="stage-dot"></span> Greeting
+            </div>
+            <div class="stage-item" id="stage-qualifying">
+              <span class="stage-dot"></span> Qualifying
+            </div>
+            <div class="stage-item" id="stage-pitching">
+              <span class="stage-dot"></span> Pitching
+            </div>
+            <div class="stage-item" id="stage-capturing">
+              <span class="stage-dot"></span> Capturing
+            </div>
+            <div class="stage-item" id="stage-converted">
+              <span class="stage-dot"></span> Converted
+            </div>
+          </div>
+
+          <div>
             <div class="stat-row">
               <span class="label">Exchanges</span>
               <span class="value" id="stat-exchanges">0</span>
             </div>
             <div class="stat-row">
-              <span class="label">Intents matched</span>
-              <span class="value" id="stat-intents">0</span>
+              <span class="label">Guardrails triggered</span>
+              <span class="value" id="stat-guardrails">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Captured lead data -->
+        <div class="captured-data-card">
+          <p class="card-title" style="margin-bottom:0.75rem;">Captured Lead Data</p>
+          <div>
+            <div class="stat-row">
+              <span class="label">Full name</span>
+              <span class="value" id="cap-name">—</span>
             </div>
             <div class="stat-row">
-              <span class="label">Email captured</span>
-              <span class="value" id="stat-email">—</span>
+              <span class="label">Brand</span>
+              <span class="value" id="cap-brand">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="label">Email</span>
+              <span class="value" id="cap-email">—</span>
+            </div>
+            <div class="stat-row">
+              <span class="label">Launch timeline</span>
+              <span class="value" id="cap-timeline">—</span>
             </div>
           </div>
         </div>
 
         <!-- Intent log -->
         <div class="intent-log">
-          <p class="card-title">Intent Log</p>
+          <p class="card-title">Conversation Log</p>
           <div class="intent-list" id="intent-list">
-            <span style="font-size:0.75rem;color:var(--text-muted);">Awaiting messages…</span>
+            <span style="font-size:0.75rem;color:var(--text-muted);">Awaiting visitor…</span>
           </div>
         </div>
 
@@ -568,190 +721,147 @@
                           window.location.hostname !== "127.0.0.1";
     const GROQ_ENDPOINT = ON_SERVER ? "/api/groq" : GROQ_DIRECT;
 
-    // ─── Data loading ─────────────────────────────────────────
-    let ingredientsList = [];
-    let factoriesList   = [];
-    let trendsList      = [];
+    // ─── SDR System Prompt ────────────────────────────────────
+    const SYSTEM_PROMPT = `You are Forma, TrendFormulate's AI Waitlist & Access Agent. TrendFormulate OS is an AI-powered cosmetic R&D platform. The beta is currently at full capacity — access is closed to the public.
 
-    async function loadData() {
-      try {
-        const [ingRes, facRes] = await Promise.all([
-          fetch("../../data/ingredients_db.json"),
-          fetch("../../data/factories.json")
-        ]);
-        if (ingRes.ok) ingredientsList = await ingRes.json();
-        if (facRes.ok) factoriesList   = await facRes.json();
-      } catch(e) { /* continue with defaults */ }
+YOUR THREE NON-NEGOTIABLE GOALS:
+1. QUALIFY: Determine within 2–3 exchanges whether the visitor is a real indie beauty founder with a launch timeline and a budget — not a student, journalist, or competitor doing market research.
+2. PROTECT: You must NEVER generate, outline, suggest, or hint at cosmetic formulas, ingredient ratios, INCI lists, or recipes of any kind in this chat. That capability is exclusively reserved for verified users inside the secure enterprise dashboard. Decline these requests firmly but professionally every single time.
+3. CONVERT: Collect the founder's full name, brand name, email address, and target launch timeline to add them to the priority waitlist.
 
-      try {
-        const raw = localStorage.getItem("tf_c1_results");
-        if (raw) {
-          const all = JSON.parse(raw);
-          const seen = new Set();
-          trendsList = all
-            .filter(r => r.trend && r.trend !== "Unclassified")
-            .filter(r => { if (seen.has(r.trend)) return false; seen.add(r.trend); return true; })
-            .slice(0, 6)
-            .map(r => r.trend);
-        }
-      } catch(e) {}
-    }
+PLATFORM CONTEXT (for credibility, not for free formulations):
+- Real-time Safety Guardrails: cross-references all formulations against EU Annex II–VI and FDA 21 CFR 700–740 guidelines automatically.
+- Formulation Engine: generates production-ready, compliant formulas — exclusively inside the dashboard for verified users.
+- Finance Simulator: models unit economics and margins before committing to a production run.
+- Factory Matching: connects verified founders to certified contract manufacturers by region, MOQ, and certification.
 
-    // ─── Build system prompt with live data context ───────────
-    function buildSystemPrompt() {
-      const ingredientNames = ingredientsList.length
-        ? ingredientsList.map(i => i.name).join(", ")
-        : "Bakuchiol, Hyaluronic Acid, Niacinamide, Centella Asiatica, Squalane, Polyglutamic Acid, Zinc Oxide";
+HANDLING KEY SCENARIOS (use these exact framings):
+- If asked about EU/FDA compliance or product legality: "Our platform features a real-time safety guardrail layer that cross-references all formulations against EU Annexes and FDA guidelines. It drastically reduces compliance bottlenecks. What region are you planning to launch your next product in?"
+- If asked to generate a formula, recipe, or ingredient list: "I cannot generate formulations directly in this chat. That capability is reserved for our secure enterprise dashboard. If you'd like to run custom formulations, I can add you to our priority waitlist. What is the name of your brand?"
+- If asked about pricing or cost: "Our pricing is customized based on your production run volume and API usage. To see if you qualify for our indie-founder tier, what is your target launch timeline for your next product?"
+- If asked how fast they can launch: Validate the urgency. Mention that TrendFormulate compresses 3–6 months of traditional R&D into under 48 hours. Ask what product category they're targeting.
 
-      const factoryContext = factoriesList.length
-        ? factoriesList.map(f =>
-            `${f.name} (${f.region}, MOQ ${f.moq} units, ${f.delivery_days}-day lead time, ${f.certification}, $${f.cost_per_unit}/unit)`
-          ).join("; ")
-        : "GreenLab Korea (Asia, MOQ 500, 60-day lead time, ISO 22716 + Ecocert); SpeedForm EU (Europe, MOQ 1000, 14-day lead time, EU GMP); NaturaCo USA (North America, MOQ 300, 21-day lead time, FDA Registered + Leaping Bunny)";
-
-      const trendContext = trendsList.length
-        ? `Currently detected trending topics from Component 01: ${trendsList.join(", ")}.`
-        : "Trending topics currently include glass skin serums, bakuchiol retinol alternatives, and SPF-infused moisturisers.";
-
-      return `You are Forma, TrendFormulate's AI sales agent. TrendFormulate OS is an AI-powered cosmetic R&D platform that helps indie beauty founders go from trend detection to a production-ready, regulatory-compliant formula and matched manufacturer in under 48 hours.
-
-PLATFORM CAPABILITIES:
-- Trend Detection (Component 01): Analyses social media to surface emerging ingredient and product trends in real time.
-- Formulation Agent (Component 02): Generates complete, compliant ingredient lists optimised for a target trend, skin type, and market zone (EU, US, UK). Ingredients in our database include: ${ingredientNames}.
-- Compliance Check (Component 02): Automatically audits every formula against EU Cosmetics Regulation (EC 1223/2009) Annexes II–VI and FDA 21 CFR 700–740 — no compliance consultant needed.
-- Factory Matching (Component 07): Matches formulas to certified contract manufacturers. Available manufacturers: ${factoryContext}.
-- Finance Simulator (Component 06): Models unit economics and margins before committing to production.
-${trendContext}
-
-YOUR ROLE:
-You are a warm, consultative B2B sales agent. Your goals in this conversation are:
-1. Understand the prospect's situation: team size, launch timeline, target market (EU/US/both), and biggest R&D bottleneck.
-2. Show specifically how TrendFormulate solves their pain point, referencing real platform data (ingredient names, factory options, timelines) where relevant.
-3. After gathering 2–3 qualifying signals, naturally steer toward a demo booking.
+QUALIFICATION SIGNALS — look for these to advance:
+- They name their brand: high signal.
+- They mention a specific product type or trend (glass skin, bakuchiol, SPF, etc.): high signal.
+- They ask about EU/US compliance: real founder concern, high signal.
+- They have a launch timeline (e.g. Q3 this year, before the holidays): high signal.
+- They seem to be fishing for free formulas or ask multiple recipe-related questions: low signal — flag as "free loader" pattern and do not give information.
 
 RESPONSE RULES:
-- Be concise: 2–4 sentences maximum per reply. This is a live chat, not an essay.
-- Write in plain conversational prose — no bullet lists, no markdown, no headers.
-- End every reply with one focused follow-up question to keep the conversation moving.
-- Weave in specific data points (ingredient names, factory names, cost figures, timelines) when they add credibility.
-- Pricing: TrendFormulate is usage-based (pay per formula, not per seat). Early waitlist members lock in the Founder Rate.
-- If the user asks for a demo, enthusiastically agree and ask for their email to send a calendar link.
-- If a topic is completely unrelated to cosmetics or the platform, politely redirect back to TrendFormulate.`;
-    }
+- Maximum 2–3 sentences per reply. This is a live qualifying conversation, not a product page.
+- No bullet points, markdown, headers, or lists.
+- Always end your reply with exactly one focused follow-up question to advance qualification.
+- Tone: professional, consultative, slightly exclusive — the beta is scarce and valuable.
+- Never say "How can I help you today?" or use generic customer service openers.`;
 
-    // ─── Groq API call ────────────────────────────────────────
-    async function callGroq(messages, retrying = false) {
-      const headers = { "Content-Type": "application/json" };
-      if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
-        headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
-      }
-      const response = await fetch(GROQ_ENDPOINT, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model:       GROQ_MODEL,
-          temperature: 0.6,
-          max_tokens:  280,
-          messages
-        })
-      });
-      if (response.status === 429 && !retrying) {
-        await new Promise(r => setTimeout(r, 2500));
-        return callGroq(messages, true);
-      }
-      if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
-      const data = await response.json();
-      return data.choices[0].message.content.trim();
-    }
-
-    // ─── Keyword fallback (when no API key is configured) ─────
+    // ─── Keyword fallback ─────────────────────────────────────
     const INTENTS = [
       {
-        id: "greeting",
-        label: "Greeting",
-        keywords: ["hi", "hello", "hey", "start", "help", "what can you do"],
-        response: "Hi! I'm Forma, TrendFormulate's AI sales agent 👋 I'm here to help you understand how our platform can get your first product to market faster. What's the biggest bottleneck in your current product development process?"
+        id: "freeload",
+        label: "Formula Request",
+        guardrail: true,
+        keywords: ["recipe", "give me a", "formula now", "quick formula", "make me", "can you make", "show me a formula", "vitamin c serum", "serum recipe", "how to make", "ingredient list", "inci", "formulation now", "just give me", "generate a"],
+        response: "I cannot generate formulations directly in this chat. That capability is reserved for our secure enterprise dashboard. If you'd like to run custom formulations, I can add you to our priority waitlist — what is the name of your brand?"
       },
       {
         id: "compliance",
         label: "Compliance",
-        keywords: ["eu", "regulation", "compliance", "lawyer", "legal", "fda", "annex"],
-        response: "Great question! Our Formulation Agent automatically cross-references every formula against EU Annex V regulations and FDA monograph rules in real time — no compliance consultant needed. What's your target launch market: EU, US, or both?"
+        guardrail: false,
+        keywords: ["eu", "regulation", "compliance", "legal", "fda", "annex", "guarantee", "legal to sell", "lawsuit", "safe", "safety", "certif"],
+        response: "Our platform features a real-time safety guardrail layer that cross-references all formulations against EU Annexes and FDA guidelines. It drastically reduces compliance bottlenecks. What region are you planning to launch your next product in?"
       },
       {
         id: "pricing",
         label: "Pricing",
-        keywords: ["price", "cost", "pricing", "how much", "expensive", "fee", "subscription"],
-        response: "TrendFormulate runs on a usage-based model — you pay per formula generated, not per seat. Founders who join the waitlist now lock in our Founder Rate before we move to standard pricing. What's your estimated monthly formula volume?"
+        guardrail: false,
+        keywords: ["price", "cost", "pricing", "how much", "expensive", "fee", "subscription", "afford", "budget", "pay"],
+        response: "Our pricing is customized based on your production run volume and API usage. To see if you qualify for our indie-founder tier, what is your target launch timeline for your next product?"
+      },
+      {
+        id: "timeline",
+        label: "Launch Timeline",
+        guardrail: false,
+        keywords: ["timeline", "launch", "when", "how long", "how fast", "speed", "fast", "quick", "48 hours", "weeks", "days"],
+        response: "TrendFormulate compresses what takes a traditional R&D lab 3–6 months into under 48 hours — from trend detection to a production-ready, compliant formula sheet. What product category are you targeting for your next launch?"
       },
       {
         id: "factory",
         label: "Manufacturing",
-        keywords: ["factory", "manufacture", "production", "supplier", "moq", "minimum order", "contract"],
-        response: "Our Factory Matching module scores contract manufacturers against your speed, MOQ, and certification requirements. Options range from SpeedForm EU with a 14-day lead time to GreenLab Korea at $1/unit with Ecocert certification. Which matters more to you right now — speed to shelf or cost per unit?"
+        guardrail: false,
+        keywords: ["factory", "manufacture", "production", "supplier", "moq", "minimum order", "contract", "lab"],
+        response: "Our Factory Matching module pairs your verified formula with certified contract manufacturers filtered by your region, MOQ, and certification requirements — options range from 14-day EU turnaround to cost-optimized Asia runs. To access that, you'd need a dashboard account. What's your brand name so I can start your waitlist application?"
       },
       {
-        id: "timeline",
-        label: "Timeline",
-        keywords: ["timeline", "launch", "when", "how long", "speed", "fast", "quick", "48 hours"],
-        response: "From trend detection to a production-ready formula sheet, TrendFormulate compresses what takes a traditional R&D lab 3–6 months into under 48 hours. What's your target shelf date?"
+        id: "access",
+        label: "Access Request",
+        guardrail: false,
+        keywords: ["early access", "waitlist", "join", "sign up", "get in", "beta", "apply", "access"],
+        response: "Beta access is prioritized for founders who have an active launch in progress. To get you on the priority waitlist, I'll need a few details — what is the name of your brand and your target launch timeline?"
       },
       {
-        id: "demo",
-        label: "Demo request",
-        keywords: ["demo", "trial", "show me", "walkthrough", "see it", "how does it work"],
-        response: "Absolutely! Our demo covers the full pipeline — trend detection to a compliant formula sheet — in about 15 minutes. Drop your email below and I'll send you a calendar link right away."
-      },
-      {
-        id: "ingredients",
-        label: "Ingredients / Formulation",
-        keywords: ["ingredient", "formula", "formulation", "serum", "cream", "r&d", "research", "bakuchiol", "retinol", "spf", "niacinamide", "hyaluronic"],
-        response: "TrendFormulate's formulation engine builds complete ingredient lists optimised for your target trend, skin type, and regulatory zone — everything from Bakuchiol and Hyaluronic Acid to Zinc Oxide for SPF products. Every formula is automatically safety-checked. Want me to show you an example output?"
+        id: "greeting",
+        label: "Greeting",
+        guardrail: false,
+        keywords: ["hi", "hello", "hey", "good morning", "good evening", "what can you", "what do you"],
+        response: "TrendFormulate's beta is currently at full capacity. I'm here to determine if your brand qualifies for priority early access. To get started — what's the name of your beauty brand and what product are you planning to launch next?"
       }
     ];
 
-    const FALLBACK = "That's a great point to explore. Can you tell me more about your current team size and R&D setup? That'll help me show you the most relevant part of our platform.";
+    const FALLBACK_RESPONSE = "I want to make sure I'm giving you the most relevant information. Could you tell me the name of your brand and what product category you're currently developing?";
 
     function getFallbackResponse(input) {
       const lower = input.toLowerCase();
       for (const intent of INTENTS) {
         if (intent.keywords.some(k => lower.includes(k))) {
-          return intent.response;
+          return { text: intent.response, label: intent.label, guardrail: intent.guardrail };
         }
       }
-      return FALLBACK;
+      return { text: FALLBACK_RESPONSE, label: "Open question", guardrail: false };
     }
 
-    // ─── Intent detection for presenter panel ─────────────────
-    function detectIntentLabel(input) {
+    function detectIntent(input) {
       const lower = input.toLowerCase();
       for (const intent of INTENTS) {
-        if (intent.keywords.some(k => lower.includes(k))) return intent.label;
+        if (intent.keywords.some(k => lower.includes(k))) {
+          return { label: intent.label, guardrail: intent.guardrail };
+        }
       }
-      return "Open question";
+      return { label: "Open question", guardrail: false };
     }
 
-    const LEAD_SCORE_KEYWORDS = ["eu", "launch", "price", "factory", "timeline", "formula", "moq", "demo", "compliance", "ingredient", "niacinamide", "bakuchiol", "serum", "budget", "team"];
+    const LEAD_SCORE_SIGNALS = [
+      { keywords: ["brand", "my brand", "called", "our brand", "company"], score: 18, label: "brand_mention" },
+      { keywords: ["launch", "timeline", "q1", "q2", "q3", "q4", "2025", "2026", "this year", "next year", "holiday", "spring"], score: 18, label: "timeline_mention" },
+      { keywords: ["eu", "fda", "compliance", "regulation", "legal"], score: 14, label: "compliance_concern" },
+      { keywords: ["budget", "afford", "price", "cost", "fee", "invest"], score: 10, label: "budget_signal" },
+      { keywords: ["serum", "moisturis", "spf", "sunscreen", "toner", "cleanser", "eye cream", "retinol", "bakuchiol", "niacinamide", "hyaluronic"], score: 12, label: "product_specificity" }
+    ];
 
     const QUICK_REPLIES_INITIAL = [
-      "Tell me about compliance",
-      "How does pricing work?",
-      "How fast can I launch?",
-      "Show me the factory options"
+      "Does this guarantee my formula will be legal to sell in the EU?",
+      "Can you give me a quick recipe for a serum right now?",
+      "How much does it cost?",
+      "How fast can I get in?"
     ];
 
     // ─── State ────────────────────────────────────────────────
     let leadScore         = 0;
     let exchangeCount     = 0;
-    let intentsMatched    = 0;
-    let capturedEmail     = null;
+    let guardrailCount    = 0;
     let leadFormShown     = false;
     let isTyping          = false;
     let conversationHistory = [];
-    let systemPrompt      = null;
+    const scoredSignals   = new Set();
 
-    // Track scored keywords to avoid double-counting
-    const scoredKeywords = new Set();
+    // Captured data
+    let capturedName     = null;
+    let capturedBrand    = null;
+    let capturedEmail    = null;
+    let capturedTimeline = null;
+
+    // Pipeline stages: greeting → qualifying → pitching → capturing → converted
+    let currentStage = "greeting";
 
     // ─── DOM refs ─────────────────────────────────────────────
     const messagesArea  = document.getElementById('messages-area');
@@ -776,14 +886,14 @@ RESPONSE RULES:
       scrollToBottom();
     }
 
-    function appendAgentMessage(html) {
+    function appendAgentMessage(html, isGuardrail = false) {
       const row = document.createElement('div');
       row.className = 'msg-row';
       row.innerHTML = `
         <div class="msg-avatar">
-          <i data-lucide="sparkles" style="width:13px;height:13px;"></i>
+          <i data-lucide="shield-check" style="width:13px;height:13px;"></i>
         </div>
-        <div class="msg-bubble agent">${html}</div>
+        <div class="msg-bubble agent${isGuardrail ? ' guardrail' : ''}">${html}</div>
       `;
       messagesArea.appendChild(row);
       lucide.createIcons({ nodes: [row] });
@@ -815,50 +925,122 @@ RESPONSE RULES:
     }
     function clearQuickReplies() { quickReplies.innerHTML = ''; }
 
-    // ─── Lead capture form ────────────────────────────────────
+    // ─── Waitlist application form ────────────────────────────
     function showLeadForm() {
       if (leadFormShown) return;
       leadFormShown = true;
+      advanceStage("capturing");
       leadContainer.style.display = 'block';
       leadContainer.innerHTML = `
         <div class="lead-form-bar">
-          <p><strong>Want a personalised demo?</strong> Leave your email and we'll send you a calendar link.</p>
-          <div class="lead-form-row">
-            <input type="email" id="lead-email" placeholder="founder@yourbrand.com" />
-            <button class="lead-submit-btn" onclick="submitEmail()">Get Demo →</button>
+          <div class="lead-form-title">Priority Waitlist Application</div>
+          <div class="lead-form-subtitle">Beta access is limited. Complete your application to reserve your spot.</div>
+          <div class="lead-form-grid">
+            <input type="text" id="lead-name" placeholder="Full name" />
+            <input type="text" id="lead-brand" placeholder="Brand name" />
           </div>
+          <div class="lead-form-full">
+            <input type="email" id="lead-email" placeholder="Work email (founder@yourbrand.com)" />
+          </div>
+          <div class="lead-form-full" style="margin-bottom:0.625rem;">
+            <input type="text" id="lead-timeline" placeholder="Launch timeline (e.g. Q3 2026, before the holidays)" />
+          </div>
+          <button class="lead-submit-btn" onclick="submitLead()">Apply for Early Access →</button>
         </div>
       `;
     }
 
-    function submitEmail() {
-      const emailEl = document.getElementById('lead-email');
-      const val = emailEl ? emailEl.value.trim() : '';
+    function submitLead() {
+      const nameEl     = document.getElementById('lead-name');
+      const brandEl    = document.getElementById('lead-brand');
+      const emailEl    = document.getElementById('lead-email');
+      const timelineEl = document.getElementById('lead-timeline');
+
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!val || !emailRegex.test(val)) {
-        emailEl.style.borderColor = 'var(--error)';
-        return;
+      let valid = true;
+
+      [nameEl, brandEl, timelineEl].forEach(el => {
+        if (!el.value.trim()) { el.style.borderColor = 'var(--error)'; valid = false; }
+        else el.style.borderColor = '';
+      });
+      if (!emailRegex.test(emailEl.value.trim())) {
+        emailEl.style.borderColor = 'var(--error)'; valid = false;
+      } else {
+        emailEl.style.borderColor = '';
       }
-      capturedEmail = val;
-      leadScore = Math.min(leadScore + 25, 100);
+      if (!valid) return;
+
+      capturedName     = nameEl.value.trim();
+      capturedBrand    = brandEl.value.trim();
+      capturedEmail    = emailEl.value.trim();
+      capturedTimeline = timelineEl.value.trim();
+
+      leadScore = Math.min(leadScore + 30, 100);
+      advanceStage("converted");
       updatePresenterPanel();
 
       leadContainer.innerHTML = `
         <div class="lead-captured" style="margin:0 1.25rem 1rem;">
-          <i data-lucide="check-circle" style="width:16px;height:16px;"></i>
-          Demo request received — <strong style="color:var(--success);">${escHtml(val)}</strong>
+          <i data-lucide="check-circle" style="width:18px;height:18px;flex-shrink:0;"></i>
+          <div>
+            <strong style="display:block;color:var(--success);">Application received — ${escHtml(capturedBrand)}</strong>
+            <span style="color:var(--text-muted);font-size:0.75rem;">Confirmation sent to ${escHtml(capturedEmail)}</span>
+          </div>
         </div>
       `;
       lucide.createIcons({ nodes: [leadContainer] });
 
-      const confirmMsg = `Perfect — I've sent a calendar link to <strong>${escHtml(val)}</strong>. A TrendFormulate specialist will walk you through the full pipeline. Is there anything else you'd like to know before the demo?`;
+      const confirmMsg = `Your application for ${escHtml(capturedBrand)} has been received, ${escHtml(capturedName)}. You're now on our priority waitlist — we'll reach out to ${escHtml(capturedEmail)} within 48 hours with next steps. Is there anything else you'd like to know while you wait?`;
       setTimeout(() => {
         appendAgentMessage(confirmMsg);
-        conversationHistory.push({ role: "assistant", content: `Perfect — I've sent a calendar link to ${val}. A TrendFormulate specialist will walk you through the full pipeline. Is there anything else you'd like to know before the demo?` });
+        conversationHistory.push({ role: "assistant", content: confirmMsg });
       }, 400);
     }
 
-    // ─── Send flow (async — Groq or fallback) ─────────────────
+    // ─── Pipeline stage management ────────────────────────────
+    const STAGES = ["greeting", "qualifying", "pitching", "capturing", "converted"];
+
+    function advanceStage(to) {
+      const fromIdx = STAGES.indexOf(currentStage);
+      const toIdx   = STAGES.indexOf(to);
+      if (toIdx <= fromIdx) return;
+
+      for (let i = 0; i <= toIdx; i++) {
+        const el = document.getElementById(`stage-${STAGES[i]}`);
+        if (!el) continue;
+        el.classList.remove("active", "done");
+        if (i < toIdx)       el.classList.add("done");
+        else if (i === toIdx) el.classList.add("active");
+      }
+      currentStage = to;
+    }
+
+    // ─── Groq API call ────────────────────────────────────────
+    async function callGroq(messages, retrying = false) {
+      const headers = { "Content-Type": "application/json" };
+      if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
+        headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
+      }
+      const response = await fetch(GROQ_ENDPOINT, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model:       GROQ_MODEL,
+          temperature: 0.55,
+          max_tokens:  220,
+          messages
+        })
+      });
+      if (response.status === 429 && !retrying) {
+        await new Promise(r => setTimeout(r, 2500));
+        return callGroq(messages, true);
+      }
+      if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
+      const data = await response.json();
+      return data.choices[0].message.content.trim();
+    }
+
+    // ─── Send flow ────────────────────────────────────────────
     async function sendMessage(text) {
       text = text.trim();
       if (!text || isTyping) return;
@@ -870,22 +1052,26 @@ RESPONSE RULES:
       chatInput.disabled = true;
       sendBtn.disabled = true;
 
-      // Update lead score (deduplicated per keyword)
+      // Score signals from user input
       const lower = text.toLowerCase();
-      for (const kw of LEAD_SCORE_KEYWORDS) {
-        if (lower.includes(kw) && !scoredKeywords.has(kw)) {
-          scoredKeywords.add(kw);
-          leadScore = Math.min(leadScore + 12, 100);
+      for (const sig of LEAD_SCORE_SIGNALS) {
+        if (!scoredSignals.has(sig.label) && sig.keywords.some(k => lower.includes(k))) {
+          scoredSignals.add(sig.label);
+          leadScore = Math.min(leadScore + sig.score, 100);
         }
       }
       exchangeCount++;
 
-      // Log intent for presenter panel
-      const intentLabel = detectIntentLabel(text);
-      if (intentLabel !== "Greeting" && intentLabel !== "Open question") intentsMatched++;
-      logIntent(intentLabel, text.slice(0, 40) + (text.length > 40 ? '…' : ''));
-      updatePresenterPanel();
+      // Detect intent for presenter panel
+      const intent = detectIntent(text);
+      if (intent.guardrail) guardrailCount++;
+      logIntent(intent.label, text.slice(0, 42) + (text.length > 42 ? '…' : ''), intent.guardrail);
 
+      // Advance pipeline stage based on exchange count
+      if (exchangeCount === 1) advanceStage("qualifying");
+      else if (exchangeCount === 3) advanceStage("pitching");
+
+      updatePresenterPanel();
       showTyping();
 
       const apiConfigured = ON_SERVER ||
@@ -893,39 +1079,54 @@ RESPONSE RULES:
          GROQ_API_KEY &&
          GROQ_API_KEY !== "gsk_YOUR_KEY_HERE");
 
-      let reply;
+      let replyText;
+      let isGuardrail = false;
+
       if (apiConfigured) {
         try {
           conversationHistory.push({ role: "user", content: text });
           const messages = [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: SYSTEM_PROMPT },
             ...conversationHistory
           ];
-          reply = await callGroq(messages);
-          conversationHistory.push({ role: "assistant", content: reply });
+          replyText = await callGroq(messages);
+          conversationHistory.push({ role: "assistant", content: replyText });
+          // Detect guardrail from LLM response
+          isGuardrail = replyText.toLowerCase().includes("cannot generate") ||
+                        replyText.toLowerCase().includes("not generate") ||
+                        replyText.toLowerCase().includes("reserved for");
         } catch(e) {
-          reply = getFallbackResponse(text);
-          // Remove the user message we added since the call failed
+          const fallback = getFallbackResponse(text);
+          replyText = fallback.text;
+          isGuardrail = fallback.guardrail;
           conversationHistory.pop();
         }
       } else {
-        await new Promise(r => setTimeout(r, 600 + Math.random() * 700));
-        reply = getFallbackResponse(text);
+        await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
+        const fallback = getFallbackResponse(text);
+        replyText = fallback.text;
+        isGuardrail = fallback.guardrail;
       }
 
       hideTyping();
-      appendAgentMessage(escHtml(reply).replace(/\n{2,}/g, '<br><br>').replace(/\n/g, ' '));
+      appendAgentMessage(
+        escHtml(replyText).replace(/\n{2,}/g, '<br><br>').replace(/\n/g, ' '),
+        isGuardrail
+      );
+
       isTyping = false;
       chatInput.disabled = false;
       sendBtn.disabled = false;
       chatInput.focus();
 
-      if (exchangeCount >= 3 && !leadFormShown) showLeadForm();
+      // Show waitlist form after 2 substantive exchanges
+      if (exchangeCount >= 2 && !leadFormShown) showLeadForm();
 
-      if (exchangeCount <= 1) {
-        showQuickReplies(["How does pricing work?", "Tell me about EU compliance", "How fast can I launch?"]);
+      // Progressive quick replies
+      if (exchangeCount === 1) {
+        showQuickReplies(["How much does it cost?", "How fast can I get in?", "Can you give me a formula now?"]);
       } else if (exchangeCount === 2) {
-        showQuickReplies(["Show me the factory options", "Can I see a demo?"]);
+        showQuickReplies(["Apply for early access", "Tell me about EU compliance"]);
       }
     }
 
@@ -943,30 +1144,37 @@ RESPONSE RULES:
       else                      ring.style.stroke = 'var(--accent)';
 
       const gradeEl = document.getElementById('score-grade');
-      if (leadScore >= 75) {
-        gradeEl.textContent = '🔥 Hot Lead';
+      if (leadScore >= 80) {
+        gradeEl.textContent = 'Waitlist Ready';
         gradeEl.className = 'score-grade badge-success';
-      } else if (leadScore >= 40) {
-        gradeEl.textContent = '⚡ Warm Lead';
+      } else if (leadScore >= 55) {
+        gradeEl.textContent = 'High Intent';
         gradeEl.className = 'score-grade badge-warning';
+      } else if (leadScore >= 25) {
+        gradeEl.textContent = 'Qualifying';
+        gradeEl.className = 'score-grade badge-accent';
       } else {
-        gradeEl.textContent = 'Cold Lead';
+        gradeEl.textContent = 'Unqualified';
         gradeEl.className = 'score-grade badge-muted';
       }
 
       document.getElementById('stat-exchanges').textContent = exchangeCount;
-      document.getElementById('stat-intents').textContent = intentsMatched;
-      document.getElementById('stat-email').textContent = capturedEmail || '—';
+      document.getElementById('stat-guardrails').textContent = guardrailCount;
+
+      document.getElementById('cap-name').textContent     = capturedName     || '—';
+      document.getElementById('cap-brand').textContent    = capturedBrand    || '—';
+      document.getElementById('cap-email').textContent    = capturedEmail    || '—';
+      document.getElementById('cap-timeline').textContent = capturedTimeline || '—';
     }
 
     // ─── Intent log ───────────────────────────────────────────
-    function logIntent(label, text) {
+    function logIntent(label, text, isGuardrail) {
       const list = document.getElementById('intent-list');
       const placeholder = list.querySelector('span');
       if (placeholder) placeholder.remove();
       const item = document.createElement('div');
       item.className = 'intent-item';
-      item.innerHTML = `<span class="tag">${label}</span><span>${escHtml(text)}</span>`;
+      item.innerHTML = `<span class="tag${isGuardrail ? ' guardrail-tag' : ''}">${label}</span><span>${escHtml(text)}</span>`;
       list.prepend(item);
     }
 
@@ -974,20 +1182,29 @@ RESPONSE RULES:
     function resetChat() {
       leadScore         = 0;
       exchangeCount     = 0;
-      intentsMatched    = 0;
-      capturedEmail     = null;
+      guardrailCount    = 0;
       leadFormShown     = false;
       isTyping          = false;
       conversationHistory = [];
-      scoredKeywords.clear();
+      scoredSignals.clear();
+      capturedName = capturedBrand = capturedEmail = capturedTimeline = null;
+      currentStage = "greeting";
 
       messagesArea.innerHTML = '';
       quickReplies.innerHTML = '';
       leadContainer.innerHTML = '';
       leadContainer.style.display = 'none';
-      document.getElementById('intent-list').innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);">Awaiting messages…</span>';
+      document.getElementById('intent-list').innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);">Awaiting visitor…</span>';
       chatInput.disabled = false;
       sendBtn.disabled = false;
+
+      // Reset pipeline stages
+      STAGES.forEach(s => {
+        const el = document.getElementById(`stage-${s}`);
+        if (el) { el.classList.remove("active", "done"); }
+      });
+      document.getElementById('stage-greeting').classList.add('active');
+
       updatePresenterPanel();
       bootChat();
     }
@@ -1002,15 +1219,12 @@ RESPONSE RULES:
     });
 
     // ─── Boot ─────────────────────────────────────────────────
-    async function bootChat() {
-      await loadData();
-      systemPrompt = buildSystemPrompt();
-
-      const WELCOME = "Hi! I'm Forma, TrendFormulate's AI sales agent 👋 I'm here to help you understand how our platform can get your first product to market faster. What's the biggest bottleneck in your current product development process?";
+    function bootChat() {
+      const WELCOME = "TrendFormulate's beta platform is currently at full capacity. I'm here to determine if your brand qualifies for priority early access. To get started — what's the name of your beauty brand, and what product are you planning to launch next?";
       appendAgentMessage(WELCOME);
       conversationHistory.push({ role: "assistant", content: WELCOME });
       showQuickReplies(QUICK_REPLIES_INITIAL);
-      logIntent("Greeting", "Session started");
+      logIntent("Session Start", "Visitor arrived", false);
     }
 
     bootChat();
