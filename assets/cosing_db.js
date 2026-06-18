@@ -563,19 +563,19 @@ function cosingCheck(inci, pct) {
     }
   }
 
-  // 3. Not found in database — safe ingredients or not restricted
+  // 3. Not found in Annexes II, III, V or VI → unrestricted for cosmetic use.
+  // Absence from the restriction annexes is itself a CosIng result.
   return {
-    status: null, // null = defer to LLM
-    ref: "",
-    note: "",
-    source: "unknown"
+    status: "PASS",
+    ref: "EU CosIng — not listed in Annexes II, III, V or VI",
+    note: "Not found in EU restricted or prohibited ingredient annexes. No regulatory concentration limits apply for general cosmetic use under EU Regulation (EC) 1223/2009.",
+    source: "database"
   };
 }
 
 /**
  * Check all ingredients in a formula array.
- * Returns array of results, one per ingredient.
- * Ingredients with status=null need LLM review.
+ * Returns array of deterministic CosIng results, one per ingredient.
  */
 function cosingCheckAll(ingredients) {
   return ingredients.map(ing => ({

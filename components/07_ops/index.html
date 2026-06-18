@@ -7,58 +7,23 @@
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
-    /* ── Layout ─────────────────────────────────────────────── */
-    .ops-layout {
+    /* ── Single-column container ─────────────────────────────── */
+    .ops-container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Context card: 3-column input row ────────────────────── */
+    .context-grid {
       display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 1.25rem;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
       align-items: start;
     }
-    @media (max-width: 900px) {
-      .ops-layout { grid-template-columns: 1fr; }
+    @media (max-width: 700px) {
+      .context-grid { grid-template-columns: 1fr; }
     }
 
-    /* ── Sliders ─────────────────────────────────────────────── */
-    .slider-row { margin-bottom: 1.25rem; }
-    .slider-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 0.4rem;
-    }
-    .slider-label {
-      font-size: 0.8125rem;
-      font-weight: 500;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 0.3rem;
-    }
-    .slider-value {
-      font-size: 0.875rem;
-      font-weight: 700;
-      min-width: 2rem;
-      text-align: right;
-    }
-    .weight-display {
-      margin-top: 1rem;
-      padding: 0.75rem;
-      background: var(--surface-2);
-      border-radius: var(--radius-sm);
-      display: flex;
-      gap: 0.5rem;
-    }
-    .weight-chip { flex: 1; text-align: center; }
-    .weight-chip-value { font-size: 0.9375rem; font-weight: 700; color: var(--text); }
-    .weight-chip-label {
-      font-size: 0.6875rem;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--text-muted);
-      margin-top: 0.1rem;
-    }
-
-    /* ── Formula description ─────────────────────────────────── */
     .formula-desc {
       font-size: 0.78rem;
       color: var(--text-muted);
@@ -67,110 +32,145 @@
       background: var(--surface-2);
       border-radius: var(--radius-sm);
       border-left: 2px solid var(--accent);
-      margin-top: 0.5rem;
+      margin-top: 0.875rem;
     }
 
-    /* ── Pipeline architecture (empty state) ─────────────────── */
-    .pipeline-empty {
-      border: 1px dashed rgba(196, 120, 138, 0.2);
-      border-radius: var(--radius);
-      padding: 2rem 1.75rem;
-      background: linear-gradient(160deg, rgba(196,120,138,0.02) 0%, transparent 60%);
-    }
-    .pipeline-empty-title {
-      font-family: var(--font-display);
-      font-size: 1.0625rem;
-      font-style: italic;
-      color: var(--text-muted);
-      text-align: center;
-      margin-bottom: 1.5rem;
-      letter-spacing: 0.01em;
-    }
-    .pipeline-flow {
+    /* ── Strategy tiles ──────────────────────────────────────── */
+    .strategy-grid {
       display: grid;
-      grid-template-columns: 1fr 36px 1fr;
+      grid-template-columns: repeat(4, 1fr);
       gap: 0.625rem;
-      align-items: stretch;
-      margin-bottom: 1.25rem;
+      margin-top: 1rem;
     }
-    .pipeline-tier {
-      background: var(--surface);
-      border: 1px solid var(--border);
+    @media (max-width: 700px) {
+      .strategy-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .strategy-tile {
+      border: 1.5px solid var(--border);
       border-radius: var(--radius);
-      padding: 1rem 1.125rem;
+      padding: 0.875rem 0.875rem 0.75rem;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s;
+      background: var(--surface);
+      text-align: left;
+      position: relative;
+      width: 100%;
+    }
+    .strategy-tile:hover {
+      border-color: rgba(196,120,138,0.45);
+      background: rgba(196,120,138,0.03);
+    }
+    .strategy-tile.selected {
+      border-color: var(--accent);
+      background: rgba(196,120,138,0.06);
+    }
+
+    .strategy-tile-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-sm);
       display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.6rem;
     }
-    .pipeline-tier-label {
-      font-size: 0.5875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      margin-bottom: 0.1rem;
-    }
-    .pipeline-tier-name {
+    .strategy-tile-name {
       font-size: 0.875rem;
       font-weight: 600;
       color: var(--text);
+      margin-bottom: 0.2rem;
+      line-height: 1.2;
     }
-    .pipeline-tier-engine {
+    .strategy-tile-desc {
       font-size: 0.7rem;
       color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 0.3rem;
+      line-height: 1.45;
     }
-    .pipeline-tier-steps {
-      list-style: none;
-      padding: 0;
-      margin: 0.35rem 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-    }
-    .pipeline-tier-steps li {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      line-height: 1.4;
-    }
-    .pipeline-tier-output {
-      margin-top: auto;
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--text);
-      background: var(--surface-2);
-      border-radius: var(--radius-sm);
-      padding: 0.35rem 0.5rem;
-      font-family: 'Courier New', monospace;
-      text-align: center;
-    }
-    .pipeline-arrow {
-      display: flex;
+    .strategy-check {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      width: 16px;
+      height: 16px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: none;
       align-items: center;
       justify-content: center;
-      color: var(--text-muted);
     }
-    .pipeline-db {
+    .strategy-tile.selected .strategy-check {
+      display: flex;
+    }
+
+    .strategy-bar-row {
+      display: flex;
+      gap: 0.25rem;
+      margin-top: 0.625rem;
+    }
+    .strategy-bar-seg {
+      height: 3px;
+      border-radius: 2px;
+      opacity: 0.5;
+    }
+    .strategy-tile.selected .strategy-bar-seg { opacity: 1; }
+
+    /* ── Run row ─────────────────────────────────────────────── */
+    .run-section {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      padding: 0.625rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      margin-bottom: 1.25rem;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 1.25rem;
+      flex-wrap: wrap;
     }
-    .pipeline-cta {
-      text-align: center;
+    .run-hint {
       font-size: 0.8rem;
       color: var(--text-muted);
+    }
+
+    /* ── Empty state: 3-step value statement ─────────────────── */
+    .value-steps {
+      display: grid;
+      grid-template-columns: 1fr 28px 1fr 28px 1fr;
+      gap: 0.5rem;
+      align-items: center;
+      padding: 2.5rem 1.5rem;
+      border: 1px dashed rgba(196, 120, 138, 0.2);
+      border-radius: var(--radius);
+      background: linear-gradient(160deg, rgba(196,120,138,0.02) 0%, transparent 60%);
+    }
+    @media (max-width: 600px) {
+      .value-steps { grid-template-columns: 1fr; }
+      .value-step-arrow { display: none; }
+    }
+    .value-step { text-align: center; padding: 0.875rem 0.625rem; }
+    .value-step-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.75rem;
+    }
+    .value-step-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+    .value-step-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .value-step-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      opacity: 0.5;
     }
 
     /* ── Loading ─────────────────────────────────────────────── */
@@ -533,8 +533,7 @@
       border: 1px solid var(--border);
     }
     @media print {
-      .ops-left, .no-print { display: none !important; }
-      .ops-layout { grid-template-columns: 1fr; }
+      .config-area, .no-print { display: none !important; }
     }
   </style>
 </head>
@@ -553,185 +552,191 @@
   </nav>
 
   <div class="page-wrapper">
+    <div class="ops-container">
 
-    <!-- Page header -->
-    <div style="margin-bottom:1.75rem;">
-      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
-        <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
-          <i data-lucide="network" style="width:18px;height:18px;"></i>
+      <!-- Page header -->
+      <div style="margin-bottom:1.75rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.375rem;">
+          <div style="width:36px;height:36px;background:var(--surface-2);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:var(--accent);">
+            <i data-lucide="network" style="width:18px;height:18px;"></i>
+          </div>
+          <h1 style="font-size:1.5rem;">AI Supply Chain Architect</h1>
         </div>
-        <h1 style="font-size:1.5rem;">AI Supply Chain Architect</h1>
+        <p style="color:var(--text-muted);font-size:0.875rem;max-width:680px;line-height:1.65;">Select your formula, target market, and launch strategy. The AI pipeline screens every certified facility and returns a ranked shortlist with a clear recommendation.</p>
       </div>
-      <p style="color:var(--text-muted);font-size:0.875rem;max-width:880px;line-height:1.65;">Select your approved formula and the pipeline runs in two stages: first an AI procurement director reads the formula and extracts a structured manufacturing brief (regulatory scope, MOQ, special handling requirements), then a deterministic scoring matrix evaluates every contract manufacturer in the database against your weighted criteria — cost, lead time, certifications, MOQ fit — and returns a ranked shortlist with a clear recommendation.</p>
-    </div>
 
-    <div class="ops-layout">
-
-      <!-- ── LEFT: Config ──────────────────────────────────── -->
-      <div class="ops-left">
+      <!-- Config area -->
+      <div class="config-area">
 
         <!-- Formula Context -->
         <div class="card" style="margin-bottom:1rem;">
-          <p class="card-title">Formula Context</p>
+          <p class="card-title" style="margin-bottom:0.875rem;">Formula Context</p>
 
-          <div class="form-row">
-            <label for="formula-select">Product formula</label>
-            <select id="formula-select">
-              <option value="Glass Skin Serum">Glass Skin Serum</option>
-              <option value="Bakuchiol Night Cream">Bakuchiol Night Cream</option>
-              <option value="Zinc SPF 30">Zinc SPF 30</option>
-              <option value="Peptide Eye Cream">Peptide Eye Cream</option>
-              <option value="Vitamin C Brightening Serum">Vitamin C Brightening Serum</option>
-            </select>
+          <div class="context-grid">
+            <div class="form-row" style="margin:0;">
+              <label for="formula-select">Product formula</label>
+              <select id="formula-select">
+                <option value="Glass Skin Serum">Glass Skin Serum</option>
+                <option value="Bakuchiol Night Cream">Bakuchiol Night Cream</option>
+                <option value="Zinc SPF 30">Zinc SPF 30</option>
+                <option value="Peptide Eye Cream">Peptide Eye Cream</option>
+                <option value="Vitamin C Brightening Serum">Vitamin C Brightening Serum</option>
+              </select>
+            </div>
+
+            <div class="form-row" style="margin:0;">
+              <label for="target-market">Target market</label>
+              <select id="target-market">
+                <option value="EU">European Union</option>
+                <option value="US">United States</option>
+                <option value="EU + US">EU + US (dual launch)</option>
+                <option value="Global">Global</option>
+              </select>
+            </div>
+
+            <div class="form-row" style="margin:0;">
+              <label for="launch-date">Target launch date</label>
+              <input type="date" id="launch-date" class="input" />
+            </div>
           </div>
 
           <div class="formula-desc" id="formula-desc"></div>
-
-          <div class="form-row" style="margin-top:0.875rem;">
-            <label for="target-market">Target market</label>
-            <select id="target-market">
-              <option value="EU">European Union</option>
-              <option value="US">United States</option>
-              <option value="EU + US">EU + US (dual launch)</option>
-              <option value="Global">Global</option>
-            </select>
-          </div>
-
-          <div class="form-row">
-            <label for="launch-date">Target launch date</label>
-            <input type="date" id="launch-date" class="input" />
-          </div>
         </div>
 
-        <!-- Priority Weights -->
+        <!-- Launch Strategy -->
         <div class="card" style="margin-bottom:1rem;">
-          <p class="card-title">Priority Weights</p>
-          <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">Drag each slider to weight the scoring criteria. Values auto-normalise to 100%.</p>
-
-          <div class="slider-row">
-            <div class="slider-header">
-              <span class="slider-label" style="color:#6daa45;">
-                <i data-lucide="dollar-sign" style="width:13px;height:13px;flex-shrink:0;"></i>
-                Cost Efficiency &nbsp;<span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">(W<sub>cost</sub>)</span>
-              </span>
-              <span class="slider-value" id="val-cost" style="color:#6daa45;">25</span>
-            </div>
-            <input type="range" id="sl-cost" min="0" max="100" value="25" />
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+            <p class="card-title" style="margin:0;">Launch Strategy</p>
+            <span style="font-size:0.75rem;color:var(--text-muted);">Shapes how facilities are ranked</span>
           </div>
 
-          <div class="slider-row">
-            <div class="slider-header">
-              <span class="slider-label" style="color:var(--accent);">
-                <i data-lucide="shield-check" style="width:13px;height:13px;flex-shrink:0;"></i>
-                Compliance &nbsp;<span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">(W<sub>compliance</sub>)</span>
-              </span>
-              <span class="slider-value" id="val-comply" style="color:var(--accent);">50</span>
-            </div>
-            <input type="range" id="sl-comply" min="0" max="100" value="50" />
-          </div>
+          <div class="strategy-grid" id="strategy-grid">
 
-          <div class="slider-row" style="margin-bottom:0;">
-            <div class="slider-header">
-              <span class="slider-label" style="color:#4f98a3;">
-                <i data-lucide="clock" style="width:13px;height:13px;flex-shrink:0;"></i>
-                Lead Time &nbsp;<span style="font-size:0.7rem;font-weight:400;color:var(--text-muted);">(W<sub>lead</sub>)</span>
-              </span>
-              <span class="slider-value" id="val-lead" style="color:#4f98a3;">25</span>
-            </div>
-            <input type="range" id="sl-lead" min="0" max="100" value="25" />
-          </div>
+            <button class="strategy-tile selected" data-strategy="balanced"
+              data-cost="33" data-comply="34" data-lead="33">
+              <div class="strategy-check">
+                <i data-lucide="check" style="width:9px;height:9px;color:#fff;"></i>
+              </div>
+              <div class="strategy-tile-icon" style="background:rgba(148,148,148,0.12);color:#888;">
+                <i data-lucide="sliders" style="width:16px;height:16px;"></i>
+              </div>
+              <div class="strategy-tile-name">Balanced</div>
+              <div class="strategy-tile-desc">Equal weight across cost, compliance, and speed.</div>
+              <div class="strategy-bar-row">
+                <div class="strategy-bar-seg" style="flex:33;background:#6daa45;"></div>
+                <div class="strategy-bar-seg" style="flex:34;background:var(--accent);"></div>
+                <div class="strategy-bar-seg" style="flex:33;background:#4f98a3;"></div>
+              </div>
+            </button>
 
-          <div class="weight-display">
-            <div class="weight-chip">
-              <div class="weight-chip-value" id="norm-cost" style="color:#6daa45;">25%</div>
-              <div class="weight-chip-label">Cost</div>
-            </div>
-            <div style="width:1px;background:var(--border);"></div>
-            <div class="weight-chip">
-              <div class="weight-chip-value" id="norm-comply" style="color:var(--accent);">50%</div>
-              <div class="weight-chip-label">Compliance</div>
-            </div>
-            <div style="width:1px;background:var(--border);"></div>
-            <div class="weight-chip">
-              <div class="weight-chip-value" id="norm-lead" style="color:#4f98a3;">25%</div>
-              <div class="weight-chip-label">Lead Time</div>
-            </div>
+            <button class="strategy-tile" data-strategy="compliance"
+              data-cost="15" data-comply="70" data-lead="15">
+              <div class="strategy-check">
+                <i data-lucide="check" style="width:9px;height:9px;color:#fff;"></i>
+              </div>
+              <div class="strategy-tile-icon" style="background:rgba(196,120,138,0.12);color:var(--accent);">
+                <i data-lucide="shield-check" style="width:16px;height:16px;"></i>
+              </div>
+              <div class="strategy-tile-name">Compliance First</div>
+              <div class="strategy-tile-desc">Prioritises certifications. Ideal for EU or regulated markets.</div>
+              <div class="strategy-bar-row">
+                <div class="strategy-bar-seg" style="flex:15;background:#6daa45;"></div>
+                <div class="strategy-bar-seg" style="flex:70;background:var(--accent);"></div>
+                <div class="strategy-bar-seg" style="flex:15;background:#4f98a3;"></div>
+              </div>
+            </button>
+
+            <button class="strategy-tile" data-strategy="speed"
+              data-cost="20" data-comply="30" data-lead="50">
+              <div class="strategy-check">
+                <i data-lucide="check" style="width:9px;height:9px;color:#fff;"></i>
+              </div>
+              <div class="strategy-tile-icon" style="background:rgba(79,152,163,0.12);color:#4f98a3;">
+                <i data-lucide="zap" style="width:16px;height:16px;"></i>
+              </div>
+              <div class="strategy-tile-name">Speed to Market</div>
+              <div class="strategy-tile-desc">Minimises lead time. Best for trend-reactive launches.</div>
+              <div class="strategy-bar-row">
+                <div class="strategy-bar-seg" style="flex:20;background:#6daa45;"></div>
+                <div class="strategy-bar-seg" style="flex:30;background:var(--accent);"></div>
+                <div class="strategy-bar-seg" style="flex:50;background:#4f98a3;"></div>
+              </div>
+            </button>
+
+            <button class="strategy-tile" data-strategy="cost"
+              data-cost="55" data-comply="30" data-lead="15">
+              <div class="strategy-check">
+                <i data-lucide="check" style="width:9px;height:9px;color:#fff;"></i>
+              </div>
+              <div class="strategy-tile-icon" style="background:rgba(109,170,69,0.12);color:#6daa45;">
+                <i data-lucide="dollar-sign" style="width:16px;height:16px;"></i>
+              </div>
+              <div class="strategy-tile-name">Cost Optimised</div>
+              <div class="strategy-tile-desc">Maximises unit economics. Suited for budget or pilot runs.</div>
+              <div class="strategy-bar-row">
+                <div class="strategy-bar-seg" style="flex:55;background:#6daa45;"></div>
+                <div class="strategy-bar-seg" style="flex:30;background:var(--accent);"></div>
+                <div class="strategy-bar-seg" style="flex:15;background:#4f98a3;"></div>
+              </div>
+            </button>
+
           </div>
         </div>
 
-        <!-- Run button -->
-        <button class="btn btn-primary" id="run-btn" style="width:100%;justify-content:center;">
-          <i data-lucide="play-circle" style="width:16px;height:16px;"></i>
-          Run Analysis
-        </button>
-        <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:0.75rem;">
-          Evaluating <strong style="color:var(--text);">6 certified facilities</strong> across 4 regions
-        </p>
+        <!-- Run row -->
+        <div class="run-section no-print">
+          <p class="run-hint">Evaluating <strong style="color:var(--text);">6 certified facilities</strong> across 4 regions</p>
+          <button class="btn btn-primary" id="run-btn" style="padding-left:1.75rem;padding-right:1.75rem;">
+            <i data-lucide="play-circle" style="width:16px;height:16px;"></i>
+            Run Analysis
+          </button>
+        </div>
 
-      </div><!-- /ops-left -->
+      </div><!-- /config-area -->
 
-      <!-- ── RIGHT: Results panel ──────────────────────────── -->
-      <div id="results-panel">
+      <!-- Results panel -->
+      <div id="results-panel" style="margin-top:1.5rem;">
 
-        <!-- Empty state: pipeline architecture diagram -->
-        <div class="pipeline-empty">
-          <p class="pipeline-empty-title">Autonomous Supply Chain Pipeline</p>
+        <!-- Empty state: 3-step value statement -->
+        <div class="value-steps">
 
-          <div class="pipeline-flow">
-            <!-- Tier 1 -->
-            <div class="pipeline-tier" style="border-color:rgba(79,152,163,0.35);">
-              <div class="pipeline-tier-label" style="color:#4f98a3;">Tier 1</div>
-              <div class="pipeline-tier-name">AI Semantic Extraction</div>
-              <div class="pipeline-tier-engine">
-                <i data-lucide="sparkles" style="width:11px;height:11px;color:#4f98a3;flex-shrink:0;"></i>
-                Groq LLM · Procurement Director
-              </div>
-              <ul class="pipeline-tier-steps">
-                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#4f98a3;flex-shrink:0;"></i>Ingredient chemistry scan</li>
-                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#4f98a3;flex-shrink:0;"></i>Certification requirement extraction</li>
-                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#4f98a3;flex-shrink:0;"></i>Batch tier classification</li>
-                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#4f98a3;flex-shrink:0;"></i>Capability profiling</li>
-              </ul>
-              <div class="pipeline-tier-output">{ Requirements JSON }</div>
+          <div class="value-step">
+            <div class="value-step-icon" style="background:rgba(79,152,163,0.1);">
+              <i data-lucide="sparkles" style="width:22px;height:22px;color:#4f98a3;"></i>
             </div>
-
-            <!-- Arrow -->
-            <div class="pipeline-arrow">
-              <i data-lucide="arrow-right" style="width:18px;height:18px;"></i>
-            </div>
-
-            <!-- Tier 2 -->
-            <div class="pipeline-tier" style="border-color:rgba(109,170,69,0.35);">
-              <div class="pipeline-tier-label" style="color:#6daa45;">Tier 2</div>
-              <div class="pipeline-tier-name">Deterministic Scoring</div>
-              <div class="pipeline-tier-engine">
-                <i data-lucide="calculator" style="width:11px;height:11px;color:#6daa45;flex-shrink:0;"></i>
-                Multi-Criteria Matrix
-              </div>
-              <ul class="pipeline-tier-steps">
-                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#6daa45;flex-shrink:0;"></i>Hard-filter compliance rules</li>
-                <li style="font-family:'Courier New',monospace;font-size:0.68rem;"><i data-lucide="circle-dot" style="width:10px;height:10px;color:#6daa45;flex-shrink:0;"></i>Score = &Sigma;(W<sub>i</sub> &times; S<sub>i</sub>)</li>
-                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#6daa45;flex-shrink:0;"></i>Multi-criteria candidate ranking</li>
-                <li><i data-lucide="circle-dot" style="width:10px;height:10px;color:#6daa45;flex-shrink:0;"></i>Automated narrative report</li>
-              </ul>
-              <div class="pipeline-tier-output">Ranked Top 3 + Report</div>
-            </div>
+            <div class="value-step-label">Reads your formula</div>
+            <div class="value-step-sub">AI extracts certifications, required capabilities, and regulatory scope from the ingredient list.</div>
           </div>
 
-          <!-- DB row -->
-          <div class="pipeline-db">
-            <i data-lucide="database" style="width:14px;height:14px;color:var(--text-muted);flex-shrink:0;"></i>
-            <span>Factory Database &mdash; 6 certified CMs &middot; 4 regions (Asia, Europe, North America)</span>
+          <div class="value-step-arrow">
+            <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
           </div>
 
-          <p class="pipeline-cta">
-            Configure priorities on the left, then click <strong>Run Analysis</strong> to activate the pipeline.
-          </p>
+          <div class="value-step">
+            <div class="value-step-icon" style="background:rgba(196,120,138,0.08);">
+              <i data-lucide="database" style="width:22px;height:22px;color:var(--accent);"></i>
+            </div>
+            <div class="value-step-label">Screens 6 facilities</div>
+            <div class="value-step-sub">Every certified contract manufacturer is scored against your launch strategy and hard compliance filters.</div>
+          </div>
+
+          <div class="value-step-arrow">
+            <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
+          </div>
+
+          <div class="value-step">
+            <div class="value-step-icon" style="background:rgba(109,170,69,0.1);">
+              <i data-lucide="list-ordered" style="width:22px;height:22px;color:#6daa45;"></i>
+            </div>
+            <div class="value-step-label">Returns a ranked shortlist</div>
+            <div class="value-step-sub">Top 3 facilities with a clear recommendation, cost breakdown, and lead time estimate.</div>
+          </div>
+
         </div>
 
       </div><!-- /results-panel -->
 
-    </div><!-- /ops-layout -->
+    </div>
   </div>
 
   <script>
@@ -815,7 +820,7 @@
       }
     };
 
-    /* ─── Show formula description on select ─────────────────── */
+    /* ─── Formula description ────────────────────────────────── */
     const formulaSel  = document.getElementById('formula-select');
     const formulaDesc = document.getElementById('formula-desc');
 
@@ -826,40 +831,46 @@
     formulaSel.addEventListener('change', updateFormulaDesc);
     updateFormulaDesc();
 
-    /* ─── Slider logic ───────────────────────────────────────── */
-    const slCost   = document.getElementById('sl-cost');
-    const slComply = document.getElementById('sl-comply');
-    const slLead   = document.getElementById('sl-lead');
+    /* ─── Strategy tile selection ────────────────────────────── */
+    const strategyGrid = document.getElementById('strategy-grid');
 
-    const SL_COLORS = { cost: '#6daa45', comply: '#c4788a', lead: '#4f98a3' };
-
-    function setSliderBg(el, color) {
-      const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
-      el.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${pct}%, var(--surface-2) ${pct}%)`;
+    function selectStrategy(tile) {
+      strategyGrid.querySelectorAll('.strategy-tile').forEach(t => t.classList.remove('selected'));
+      tile.classList.add('selected');
     }
 
-    function updateWeights() {
-      const c = parseInt(slCost.value);
-      const o = parseInt(slComply.value);
-      const l = parseInt(slLead.value);
-      const sum = c + o + l;
+    strategyGrid.querySelectorAll('.strategy-tile').forEach(tile => {
+      tile.addEventListener('click', () => selectStrategy(tile));
+    });
 
-      document.getElementById('val-cost').textContent   = c;
-      document.getElementById('val-comply').textContent = o;
-      document.getElementById('val-lead').textContent   = l;
+    /* ─── Auto-suggest strategy from market ─────────────────── */
+    const marketSel = document.getElementById('target-market');
 
-      const pct = (v) => (sum === 0 ? '—' : Math.round(v / sum * 100) + '%');
-      document.getElementById('norm-cost').textContent   = pct(c);
-      document.getElementById('norm-comply').textContent = pct(o);
-      document.getElementById('norm-lead').textContent   = pct(l);
+    function autoSuggestStrategy() {
+      const market = marketSel.value;
+      const isEU = market === 'EU' || market === 'EU + US';
+      const currentStrategy = strategyGrid.querySelector('.strategy-tile.selected')?.dataset.strategy;
 
-      setSliderBg(slCost,   SL_COLORS.cost);
-      setSliderBg(slComply, SL_COLORS.comply);
-      setSliderBg(slLead,   SL_COLORS.lead);
+      if (isEU && currentStrategy !== 'compliance') {
+        selectStrategy(strategyGrid.querySelector('[data-strategy="compliance"]'));
+      } else if (!isEU && currentStrategy === 'compliance') {
+        selectStrategy(strategyGrid.querySelector('[data-strategy="balanced"]'));
+      }
     }
 
-    [slCost, slComply, slLead].forEach(sl => sl.addEventListener('input', updateWeights));
-    updateWeights();
+    marketSel.addEventListener('change', autoSuggestStrategy);
+    autoSuggestStrategy();
+
+    /* ─── Read active weights from selected tile ─────────────── */
+    function getWeights() {
+      const tile = strategyGrid.querySelector('.strategy-tile.selected');
+      if (!tile) return { cost: 33, comply: 34, lead: 33 };
+      return {
+        cost:   parseInt(tile.dataset.cost),
+        comply: parseInt(tile.dataset.comply),
+        lead:   parseInt(tile.dataset.lead)
+      };
+    }
 
     /* ─── Tier 1: Groq LLM — extract manufacturing profile ────── */
     async function extractProfile(formulaName, market, launchDate) {
@@ -923,14 +934,12 @@ Extract the manufacturing requirements profile.`;
     function adjustedCompliance(factory, profile) {
       let score = factory.compliance_score;
 
-      /* Hard-filter penalty: each missing required cert deducts 40 pts */
       const hardFilters = profile.hard_filter_certifications || [];
       hardFilters.forEach(req => {
         const has = factory.certifications.some(c => c.toLowerCase().includes(req.toLowerCase()));
         if (!has) score -= 40;
       });
 
-      /* Capability match: +4 per matching required capability */
       const requiredCaps = profile.special_capabilities || [];
       requiredCaps.forEach(cap => {
         if (factory.capabilities.includes(cap)) score += 4;
@@ -969,7 +978,7 @@ Extract the manufacturing requirements profile.`;
       }).sort((a, b) => b.totalScore - a.totalScore);
     }
 
-    /* ─── Narrative generator (deterministic) ────────────────── */
+    /* ─── Narrative generator ─────────────────────────────────── */
     function buildNarrative(ranked, weights, profile, formulaName, market) {
       const top    = ranked[0];
       const runner = ranked[1];
@@ -1171,8 +1180,8 @@ Total production budget at MOQ: $${totalCost}`;
           </div>
         </div>`;
 
-      const medals     = ['#1', '#2', '#3'];
-      const rankClass  = ['rank-1', 'rank-2', 'rank-3'];
+      const medals    = ['#1', '#2', '#3'];
+      const rankClass = ['rank-1', 'rank-2', 'rank-3'];
       const hardFilters = profile.hard_filter_certifications || [];
 
       const cardsHTML = top3.map((f, i) => {
@@ -1253,7 +1262,6 @@ Total production budget at MOQ: $${totalCost}`;
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner"></span> Analysing…`;
 
-      /* ── Loading UI ───────────────────────────────────────── */
       panel.innerHTML = `
         <div class="card loading-overlay">
           <div class="loading-header">
@@ -1294,45 +1302,27 @@ Total production budget at MOQ: $${totalCost}`;
         </div>`;
       lucide.createIcons();
 
-      /* ── Step animation helpers ───────────────────────────── */
-      const tick   = (ms)     => new Promise(r => setTimeout(r, ms));
-      const done   = (id)     => { const e = document.getElementById(id); if (e) e.className = 'loading-step done'; };
-      const active = (id)     => { const e = document.getElementById(id); if (e) e.className = 'loading-step active'; };
+      const tick   = (ms) => new Promise(r => setTimeout(r, ms));
+      const done   = (id) => { const e = document.getElementById(id); if (e) e.className = 'loading-step done'; };
+      const active = (id) => { const e = document.getElementById(id); if (e) e.className = 'loading-step active'; };
 
       try {
         const formulaName = document.getElementById('formula-select').value;
         const market      = document.getElementById('target-market').value;
         const launchDate  = document.getElementById('launch-date').value;
+        const weights     = getWeights();
 
-        const weights = {
-          cost:   parseInt(slCost.value),
-          comply: parseInt(slComply.value),
-          lead:   parseInt(slLead.value)
-        };
-
-        if (weights.cost + weights.comply + weights.lead === 0) {
-          panel.innerHTML = `<div class="card" style="color:var(--error);text-align:center;padding:2rem;">
-            At least one priority weight must be greater than zero.
-          </div>`;
-          btn.disabled = false;
-          btn.innerHTML = `<i data-lucide="play-circle" style="width:16px;height:16px;"></i> Run Analysis`;
-          lucide.createIcons();
-          return;
-        }
-
-        /* ── Tier 1: fire API call, animate steps in parallel ── */
         const profilePromise = extractProfile(formulaName, market, launchDate);
 
         await tick(350);  done('s1'); active('s2');
         await tick(380);  done('s2'); active('s3');
         await tick(400);  done('s3'); active('s4');
 
-        const profile = await profilePromise;   /* await actual result */
+        const profile = await profilePromise;
 
         done('s4'); active('s5');
         await tick(280); done('s5');
 
-        /* ── Tier 2: load DB and score ─────────────────────── */
         active('s6');
         const factories = await loadFactories();
         await tick(260); done('s6');
@@ -1352,7 +1342,6 @@ Total production budget at MOQ: $${totalCost}`;
 
         await tick(280);
 
-        /* ── Render results ─────────────────────────────────── */
         panel.innerHTML = `
           <div class="results-header no-print">
             <div>

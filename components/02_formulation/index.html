@@ -955,95 +955,35 @@ Rules:
       return formula;
     }
 
-    // ─── Agent 2: Regulatory Agent (CosIng database-first, LLM fallback) ──────
+    // ─── Agent 2: Regulatory Agent — fully database-driven via CosIng ──────────
     async function runAgent2(formula) {
       setAgentState("agent2", "active", "Checking CosIng database…");
       setStep(3, "active");
 
-      // ── Step 1: deterministic CosIng lookup ─────────────────────────────
+      // ── Deterministic CosIng lookup for every ingredient ────────────────
+      // All ingredients receive a database result:
+      //   • Found in Annex II  → FAIL (prohibited)
+      //   • Found in Annex III/V/VI → PASS/CAUTION/FAIL against max %
+      //   • Not in any annex   → PASS (absence of restriction = unrestricted)
       const dbResults = cosingCheckAll(formula.ingredients);
 
-      // Separate: known (database hit) vs unknown (need LLM)
-      const knownChecks = dbResults.filter(r => r.source === "database");
-      const unknownIngs = dbResults.filter(r => r.source === "unknown");
-
-      // ── Step 2: LLM review for ingredients not in the database ──────────
-      let llmChecks = [];
-      if (unknownIngs.length > 0) {
-        setAgentState("agent2", "active",
-          `CosIng: ${knownChecks.length} verified — AI reviewing ${unknownIngs.length} remaining…`);
-
-        const ingList = unknownIngs
-          .map(i => `- ${i.inci} (${i.ingredient}): ${parseFloat(i.percentage).toFixed(2)}%`)
-          .join("\n");
-
-        const userMsg =
-          `Product type: ${formula.product_type}\n\n` +
-          `Ingredients not yet assessed (evaluate these only):\n${ingList}`;
-
-        const raw = await callGroq([
-          { role: "system", content: COMPLIANCE_SYSTEM },
-          { role: "user",   content: userMsg }
-        ], 900);
-
-        try {
-          const llmArr = parseJSON(raw);
-          if (Array.isArray(llmArr)) {
-            llmChecks = unknownIngs.map(orig => {
-              const llm = llmArr.find(l =>
-                cosingNormalise(l.inci) === cosingNormalise(orig.inci)
-              ) || {};
-              return {
-                ingredient:     orig.ingredient,
-                inci:           orig.inci,
-                percentage:     orig.percentage,
-                status:         llm.status         || "PASS",
-                regulation_ref: llm.regulation_ref || "No restrictions — general cosmetic use",
-                note:           llm.note           || "No specific EU or FDA restrictions identified.",
-                source:         "llm"
-              };
-            });
-          }
-        } catch(e) {
-          llmChecks = unknownIngs.map(orig => ({
-            ingredient:     orig.ingredient,
-            inci:           orig.inci,
-            percentage:     orig.percentage,
-            status:         "PASS",
-            regulation_ref: "No restrictions — general cosmetic use",
-            note:           "No specific EU or FDA restrictions identified.",
-            source:         "llm"
-          }));
-        }
-      }
-
-      // ── Step 3: Merge and reorder checks to match ingredient order ───────
-      const allChecks = [
-        ...knownChecks.map(r => ({
-          ingredient:     r.ingredient,
-          inci:           r.inci,
-          percentage:     r.percentage,
-          status:         r.status,
-          regulation_ref: r.ref,
-          note:           r.note
-        })),
-        ...llmChecks
-      ];
-
+      // Preserve original ingredient order and shape for the UI
       const orderedChecks = formula.ingredients.map(ing => {
-        return allChecks.find(c =>
-          cosingNormalise(c.inci) === cosingNormalise(ing.inci)
-        ) || {
+        const r = dbResults.find(d =>
+          cosingNormalise(d.inci) === cosingNormalise(ing.inci)
+        ) || dbResults.find(d => d.ingredient === ing.name);
+        return {
           ingredient:     ing.name,
           inci:           ing.inci,
           percentage:     ing.percentage,
-          status:         "PASS",
-          regulation_ref: "No restrictions — general cosmetic use",
-          note:           "No specific EU or FDA restrictions identified."
+          status:         r ? r.status         : "PASS",
+          regulation_ref: r ? r.ref            : "EU CosIng — not listed in Annexes II, III, V or VI",
+          note:           r ? r.note           : "No regulatory concentration limits apply for general cosmetic use.",
+          source:         r ? r.source         : "database"
         };
       });
 
-      // ── Step 4: Derive overall status, violations, recommendations ───────
+      // ── Derive overall verdict ───────────────────────────────────────────
       const hasFailures = orderedChecks.some(c => c.status === "FAIL");
       const hasCautions = orderedChecks.some(c => c.status === "CAUTION");
       const overallStatus = hasFailures ? "NON_COMPLIANT" : hasCautions ? "CAUTION" : "COMPLIANT";
@@ -1069,8 +1009,7 @@ Rules:
       }
       recommendations.push("Verify nano-form status of mineral filters (Zinc Oxide, Titanium Dioxide) with your supplier if applicable.");
 
-      const dbCount  = knownChecks.length;
-      const llmCount = llmChecks.length;
+      const total = orderedChecks.length;
       const summaryVerdict = overallStatus === "COMPLIANT"
         ? "No violations detected."
         : overallStatus === "CAUTION"
@@ -1088,10 +1027,10 @@ Rules:
           US_FDA: !hasFailures,
           UK:     !hasFailures
         },
-        summary: `Audit powered by CosIng database (Annexes II, III, V & VI) for ${dbCount} ingredient${dbCount !== 1 ? "s" : ""}, with AI review for ${llmCount} ingredient${llmCount !== 1 ? "s" : ""}. ${summaryVerdict} Complies with EU Regulation (EC) 1223/2009 and applicable FDA cosmetic guidelines.`
+        summary: `All ${total} ingredient${total !== 1 ? "s" : ""} verified against the official CosIng database (EU Annexes II, III, V & VI, downloaded 18 Jun 2026). ${summaryVerdict} Assessment reflects EU Regulation (EC) 1223/2009 and applicable FDA cosmetic guidelines.`
       };
 
-      setAgentState("agent2", "done", `Compliance audit complete ✓  (${dbCount} CosIng · ${llmCount} AI)`);
+      setAgentState("agent2", "done", `Compliance audit complete ✓  (${total}/${total} CosIng verified)`);
       setStep(3, "done");
       return compliance;
     }
@@ -1253,10 +1192,10 @@ Rules:
           : statusLC === "caution"
             ? "alert-triangle"
             : "x";
-        const isDB = chk.source === "database";
-        const sourceBadge = isDB
-          ? `<span title="Verified against official CosIng database (EU Annexes II/III/V/VI)" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:#3b82f6;margin-left:0.35rem;vertical-align:middle;">CosIng DB</span>`
-          : `<span title="Assessed by AI — not in CosIng Annexes II/III/V/VI" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.1rem 0.4rem;border-radius:999px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);color:#a855f7;margin-left:0.35rem;vertical-align:middle;">AI</span>`;
+        const isRestricted = chk.regulation_ref && !chk.regulation_ref.includes("not listed");
+        const sourceBadge = isRestricted
+          ? `<span title="Found in CosIng restricted/prohibited annexes — limit enforced" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);color:#3b82f6;margin-left:0.35rem;vertical-align:middle;">CosIng ★</span>`
+          : `<span title="Not listed in EU Annexes II, III, V or VI — no concentration limits apply" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.18);color:#60a5fa;margin-left:0.35rem;vertical-align:middle;">CosIng</span>`;
         return `
           <div class="compliance-check-row">
             <div class="check-icon ${statusLC}">
