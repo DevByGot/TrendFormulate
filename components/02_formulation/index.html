@@ -855,30 +855,7 @@ Critical rules — violating any of these makes the output unusable:
 7. Use only real, approved INCI names
 8. RETURN ONLY THE JSON OBJECT — nothing else`;
 
-    // ─── Agent 2 system prompt (LLM fallback for unknown ingredients) ──
-    // Only called for ingredients NOT found in the CosIng database.
-    const COMPLIANCE_SYSTEM = `You are a cosmetic regulatory expert specializing in EU Cosmetics Regulation (EC 1223/2009) and FDA cosmetic regulations (21 CFR 700–740).
-
-You will receive a list of cosmetic ingredients that are NOT already covered by the official CosIng database (Annexes II–VI). For each ingredient, assess its regulatory status.
-
-Return ONLY a valid JSON array — no markdown fences, no explanation, no extra text.
-
-Use this exact schema (one object per ingredient):
-[
-  {
-    "inci": "<INCI name as provided>",
-    "status": "<PASS | CAUTION | FAIL>",
-    "regulation_ref": "<specific reference or 'No restrictions — general cosmetic use'>",
-    "note": "<specific compliance note>"
-  }
-]
-
-Rules:
-- For common safe base ingredients (Water/Aqua, Glycerin, Squalane, Niacinamide, plant extracts with no known restrictions, emollients, emulsifiers, vitamins C/E): status = PASS, note = "No regulatory restrictions; widely approved for cosmetic use"
-- For Bakuchiol: status = PASS if ≤ 2%; CAUTION if > 2% — no specific EU limit but industry norm
-- For Hyaluronic Acid / Sodium Hyaluronate: status = PASS
-- For any ingredient you recognise as restricted/banned in the EU: set status = FAIL or CAUTION and cite the specific regulation
-- RETURN ONLY THE JSON ARRAY — nothing else`;
+    // Agent 2 is fully database-driven via cosing_db.js — no LLM prompt needed.
 
     // ─── State ──────────────────────────────────────────────────────
     let selectedTrend   = null;
@@ -1234,10 +1211,15 @@ Rules:
 
       wrap.innerHTML = `
         <div class="compliance-card animate-in">
-          <div style="padding:0.5rem 1.375rem;background:rgba(59,130,246,0.06);border-bottom:1px solid rgba(59,130,246,0.15);display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          <div style="padding:0.5rem 1.375rem;background:rgba(59,130,246,0.06);border-bottom:1px solid rgba(59,130,246,0.15);display:flex;align-items:center;gap:0.625rem;flex-wrap:wrap;">
             <i data-lucide="database" style="width:12px;height:12px;color:#3b82f6;flex-shrink:0;"></i>
             <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#3b82f6;">Powered by CosIng</span>
-            <span style="font-size:0.72rem;color:var(--text-muted);">Official EU Cosmetic Ingredients Database — Annexes II, III, V &amp; VI · Downloaded 18 Jun 2026</span>
+            <span style="font-size:0.72rem;color:var(--text-muted);">EU Official Database — Annexes II, III, V &amp; VI · Downloaded 18 Jun 2026</span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:0.4rem;font-size:0.68rem;color:var(--text-faint);">
+              <span style="padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);color:#3b82f6;font-weight:700;">CosIng ★</span> restricted entry
+              &nbsp;
+              <span style="padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.18);color:#60a5fa;font-weight:700;">CosIng</span> no restriction found
+            </span>
           </div>
           <div class="compliance-verdict ${verdictClass}">
             <div class="verdict-label">
