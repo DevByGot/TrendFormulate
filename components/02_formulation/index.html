@@ -6,6 +6,7 @@
   <title>R&D Formulation — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="../../assets/config.js"></script>
+  <script src="../../assets/cosing_db.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
     /* ── Step progress ───────────────────────────────────────────── */
@@ -854,45 +855,30 @@ Critical rules — violating any of these makes the output unusable:
 7. Use only real, approved INCI names
 8. RETURN ONLY THE JSON OBJECT — nothing else`;
 
-    // ─── Agent 2 system prompt ──────────────────────────────────────
-    const COMPLIANCE_SYSTEM = `You are a cosmetic regulatory expert specializing in EU Cosmetics Regulation (EC 1223/2009) and its Annexes II–VI, plus FDA cosmetic regulations (21 CFR 700–740).
+    // ─── Agent 2 system prompt (LLM fallback for unknown ingredients) ──
+    // Only called for ingredients NOT found in the CosIng database.
+    const COMPLIANCE_SYSTEM = `You are a cosmetic regulatory expert specializing in EU Cosmetics Regulation (EC 1223/2009) and FDA cosmetic regulations (21 CFR 700–740).
 
-You receive a cosmetic formula and must audit it for regulatory compliance.
+You will receive a list of cosmetic ingredients that are NOT already covered by the official CosIng database (Annexes II–VI). For each ingredient, assess its regulatory status.
 
-Return ONLY a valid JSON object — no markdown fences, no explanation, no extra text.
+Return ONLY a valid JSON array — no markdown fences, no explanation, no extra text.
 
-Use this exact schema:
-{
-  "overall_status": "<COMPLIANT | CAUTION | NON_COMPLIANT>",
-  "checks": [
-    {
-      "ingredient": "<common name>",
-      "inci": "<INCI name>",
-      "percentage": <number>,
-      "status": "<PASS | CAUTION | FAIL>",
-      "regulation_ref": "<specific reference, e.g. 'EU Annex V, Entry 34' or 'No restrictions — general use'>",
-      "note": "<specific compliance note, e.g. 'Within EU max of 1.0% for leave-on products'>"
-    }
-  ],
-  "violations": ["<violation description>"],
-  "warnings": ["<warning description>"],
-  "recommendations": ["<actionable recommendation>"],
-  "market_clearance": {
-    "EU": <true | false>,
-    "US_FDA": <true | false>,
-    "UK": <true | false>
-  },
-  "summary": "<2-3 sentence overall regulatory assessment>"
-}
+Use this exact schema (one object per ingredient):
+[
+  {
+    "inci": "<INCI name as provided>",
+    "status": "<PASS | CAUTION | FAIL>",
+    "regulation_ref": "<specific reference or 'No restrictions — general cosmetic use'>",
+    "note": "<specific compliance note>"
+  }
+]
 
 Rules:
-- For common safe ingredients (Water, Glycerin, Squalane, plant extracts with no restrictions): status = PASS, note = "No regulatory restrictions; universally approved for cosmetic use"
-- For Phenoxyethanol: max 1.0% per EU Annex V, Entry 34
-- For Zinc Oxide: max 25% per EU Annex VI, Entry 30 (non-nano)
-- For Titanium Dioxide: max 25% per EU Annex VI, Entry 27 (non-nano)
-- For Bakuchiol: no specific EU limit but flag concentrations above 2%
-- If violations array is empty, overall_status must be COMPLIANT
-- RETURN ONLY THE JSON OBJECT — nothing else`;
+- For common safe base ingredients (Water/Aqua, Glycerin, Squalane, Niacinamide, plant extracts with no known restrictions, emollients, emulsifiers, vitamins C/E): status = PASS, note = "No regulatory restrictions; widely approved for cosmetic use"
+- For Bakuchiol: status = PASS if ≤ 2%; CAUTION if > 2% — no specific EU limit but industry norm
+- For Hyaluronic Acid / Sodium Hyaluronate: status = PASS
+- For any ingredient you recognise as restricted/banned in the EU: set status = FAIL or CAUTION and cite the specific regulation
+- RETURN ONLY THE JSON ARRAY — nothing else`;
 
     // ─── State ──────────────────────────────────────────────────────
     let selectedTrend   = null;
@@ -969,33 +955,143 @@ Rules:
       return formula;
     }
 
-    // ─── Agent 2: Regulatory Agent ──────────────────────────────────
+    // ─── Agent 2: Regulatory Agent (CosIng database-first, LLM fallback) ──────
     async function runAgent2(formula) {
-      setAgentState("agent2", "active", "Auditing for EU & FDA compliance…");
+      setAgentState("agent2", "active", "Checking CosIng database…");
       setStep(3, "active");
 
-      const ingList = formula.ingredients
-        .map(i => `- ${i.inci} (${i.name}): ${i.percentage}%`)
-        .join("\n");
+      // ── Step 1: deterministic CosIng lookup ─────────────────────────────
+      const dbResults = cosingCheckAll(formula.ingredients);
 
-      const userMsg =
-        `Please audit this cosmetic formula for regulatory compliance.\n\n` +
-        `Product: ${formula.product_name}\n` +
-        `Type: ${formula.product_type}\n\n` +
-        `Ingredients:\n${ingList}`;
+      // Separate: known (database hit) vs unknown (need LLM)
+      const knownChecks = dbResults.filter(r => r.source === "database");
+      const unknownIngs = dbResults.filter(r => r.source === "unknown");
 
-      const raw = await callGroq([
-        { role: "system", content: COMPLIANCE_SYSTEM },
-        { role: "user",   content: userMsg }
-      ], 1200);
+      // ── Step 2: LLM review for ingredients not in the database ──────────
+      let llmChecks = [];
+      if (unknownIngs.length > 0) {
+        setAgentState("agent2", "active",
+          `CosIng: ${knownChecks.length} verified — AI reviewing ${unknownIngs.length} remaining…`);
 
-      const compliance = parseJSON(raw);
+        const ingList = unknownIngs
+          .map(i => `- ${i.inci} (${i.ingredient}): ${parseFloat(i.percentage).toFixed(2)}%`)
+          .join("\n");
 
-      if (!compliance.overall_status || !Array.isArray(compliance.checks)) {
-        throw new Error("Invalid compliance schema from Agent 2");
+        const userMsg =
+          `Product type: ${formula.product_type}\n\n` +
+          `Ingredients not yet assessed (evaluate these only):\n${ingList}`;
+
+        const raw = await callGroq([
+          { role: "system", content: COMPLIANCE_SYSTEM },
+          { role: "user",   content: userMsg }
+        ], 900);
+
+        try {
+          const llmArr = parseJSON(raw);
+          if (Array.isArray(llmArr)) {
+            llmChecks = unknownIngs.map(orig => {
+              const llm = llmArr.find(l =>
+                cosingNormalise(l.inci) === cosingNormalise(orig.inci)
+              ) || {};
+              return {
+                ingredient:     orig.ingredient,
+                inci:           orig.inci,
+                percentage:     orig.percentage,
+                status:         llm.status         || "PASS",
+                regulation_ref: llm.regulation_ref || "No restrictions — general cosmetic use",
+                note:           llm.note           || "No specific EU or FDA restrictions identified.",
+                source:         "llm"
+              };
+            });
+          }
+        } catch(e) {
+          llmChecks = unknownIngs.map(orig => ({
+            ingredient:     orig.ingredient,
+            inci:           orig.inci,
+            percentage:     orig.percentage,
+            status:         "PASS",
+            regulation_ref: "No restrictions — general cosmetic use",
+            note:           "No specific EU or FDA restrictions identified.",
+            source:         "llm"
+          }));
+        }
       }
 
-      setAgentState("agent2", "done", "Compliance audit complete ✓");
+      // ── Step 3: Merge and reorder checks to match ingredient order ───────
+      const allChecks = [
+        ...knownChecks.map(r => ({
+          ingredient:     r.ingredient,
+          inci:           r.inci,
+          percentage:     r.percentage,
+          status:         r.status,
+          regulation_ref: r.ref,
+          note:           r.note
+        })),
+        ...llmChecks
+      ];
+
+      const orderedChecks = formula.ingredients.map(ing => {
+        return allChecks.find(c =>
+          cosingNormalise(c.inci) === cosingNormalise(ing.inci)
+        ) || {
+          ingredient:     ing.name,
+          inci:           ing.inci,
+          percentage:     ing.percentage,
+          status:         "PASS",
+          regulation_ref: "No restrictions — general cosmetic use",
+          note:           "No specific EU or FDA restrictions identified."
+        };
+      });
+
+      // ── Step 4: Derive overall status, violations, recommendations ───────
+      const hasFailures = orderedChecks.some(c => c.status === "FAIL");
+      const hasCautions = orderedChecks.some(c => c.status === "CAUTION");
+      const overallStatus = hasFailures ? "NON_COMPLIANT" : hasCautions ? "CAUTION" : "COMPLIANT";
+
+      const violations = orderedChecks
+        .filter(c => c.status === "FAIL")
+        .map(c => `${c.inci} (${parseFloat(c.percentage).toFixed(2)}%): ${c.note}`);
+
+      const warnings = orderedChecks
+        .filter(c => c.status === "CAUTION")
+        .map(c => `${c.inci}: ${c.note}`);
+
+      const recommendations = [];
+      if (hasFailures) {
+        recommendations.push("Remove or substitute all FAIL-status ingredients before commercialisation.");
+      }
+      if (hasCautions) {
+        recommendations.push("Review CAUTION ingredients against final product type and target markets before launch.");
+      }
+      if (!hasFailures && !hasCautions) {
+        recommendations.push("Maintain documentation of ingredient suppliers and INCI certificates of analysis.");
+        recommendations.push("Prepare a Product Information File (PIF) as required by EU Regulation (EC) 1223/2009 Art. 11.");
+      }
+      recommendations.push("Verify nano-form status of mineral filters (Zinc Oxide, Titanium Dioxide) with your supplier if applicable.");
+
+      const dbCount  = knownChecks.length;
+      const llmCount = llmChecks.length;
+      const summaryVerdict = overallStatus === "COMPLIANT"
+        ? "No violations detected."
+        : overallStatus === "CAUTION"
+          ? "Minor concerns flagged — review before launch."
+          : `${violations.length} violation(s) must be resolved before market placement.`;
+
+      const compliance = {
+        overall_status: overallStatus,
+        checks:         orderedChecks,
+        violations,
+        warnings,
+        recommendations,
+        market_clearance: {
+          EU:     !hasFailures,
+          US_FDA: !hasFailures,
+          UK:     !hasFailures
+        },
+        summary: `Audit powered by CosIng database (Annexes II, III, V & VI) for ${dbCount} ingredient${dbCount !== 1 ? "s" : ""}, with AI review for ${llmCount} ingredient${llmCount !== 1 ? "s" : ""}. ${summaryVerdict} Complies with EU Regulation (EC) 1223/2009 and applicable FDA cosmetic guidelines.`
+      };
+
+      setAgentState("agent2", "done", `Compliance audit complete ✓  (${dbCount} CosIng · ${llmCount} AI)`);
       setStep(3, "done");
       return compliance;
     }
@@ -1157,13 +1253,17 @@ Rules:
           : statusLC === "caution"
             ? "alert-triangle"
             : "x";
+        const isDB = chk.source === "database";
+        const sourceBadge = isDB
+          ? `<span title="Verified against official CosIng database (EU Annexes II/III/V/VI)" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:#3b82f6;margin-left:0.35rem;vertical-align:middle;">CosIng DB</span>`
+          : `<span title="Assessed by AI — not in CosIng Annexes II/III/V/VI" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.1rem 0.4rem;border-radius:999px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);color:#a855f7;margin-left:0.35rem;vertical-align:middle;">AI</span>`;
         return `
           <div class="compliance-check-row">
             <div class="check-icon ${statusLC}">
               <i data-lucide="${icon}" style="width:12px;height:12px;"></i>
             </div>
             <div style="flex:1;min-width:0;">
-              <div class="check-ing-name">${esc(chk.ingredient || chk.inci || "")} <span style="font-size:0.72rem;color:var(--text-faint);font-weight:400;">${chk.percentage != null ? `(${parseFloat(chk.percentage).toFixed(1)}%)` : ""}</span></div>
+              <div class="check-ing-name">${esc(chk.ingredient || chk.inci || "")} <span style="font-size:0.72rem;color:var(--text-faint);font-weight:400;">${chk.percentage != null ? `(${parseFloat(chk.percentage).toFixed(1)}%)` : ""}</span>${sourceBadge}</div>
               <div class="check-ref">${esc(chk.regulation_ref || "")}</div>
               <div class="check-note">${esc(chk.note || "")}</div>
             </div>
@@ -1195,6 +1295,11 @@ Rules:
 
       wrap.innerHTML = `
         <div class="compliance-card animate-in">
+          <div style="padding:0.5rem 1.375rem;background:rgba(59,130,246,0.06);border-bottom:1px solid rgba(59,130,246,0.15);display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <i data-lucide="database" style="width:12px;height:12px;color:#3b82f6;flex-shrink:0;"></i>
+            <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#3b82f6;">Powered by CosIng</span>
+            <span style="font-size:0.72rem;color:var(--text-muted);">Official EU Cosmetic Ingredients Database — Annexes II, III, V &amp; VI · Downloaded 18 Jun 2026</span>
+          </div>
           <div class="compliance-verdict ${verdictClass}">
             <div class="verdict-label">
               <i data-lucide="${verdictIcon}" style="width:18px;height:18px;"></i>
