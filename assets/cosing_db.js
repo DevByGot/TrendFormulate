@@ -502,6 +502,55 @@ const COSING_RESTRICTED = {
   },
 };
 
+// ─── FDA — Prohibited substances (21 CFR 700 series) ─────────────────────────
+// Source: FDA Prohibited & Restricted Ingredients for Cosmetics
+const FDA_PROHIBITED = new Set([
+  // 21 CFR 700.11 — causes photocontact sensitization
+  "BITHIONOL",
+  // 21 CFR 700.18 — causes cancer in animals (exception: residual from processing)
+  "CHLOROFORM",
+  // 21 CFR 700.15 — halogenated salicylanilides, cause serious skin disorders
+  "DIBROMSALAN", "TRIBROMSALAN", "METABROMSALAN", "TETRACHLOROSALICYLANILIDE",
+  // 21 CFR 700.19 — causes cancer in animals
+  "METHYLENE CHLORIDE", "DICHLOROMETHANE",
+  // 21 CFR 700.14 — causes cancer; prohibited in aerosol products
+  "VINYL CHLORIDE",
+  // 21 CFR 700.16 — toxic to lungs; prohibited in aerosol cosmetic products
+  "ZIRCONIUM", "ZIRCONIUM OXIDE", "ZIRCONIUM HYDROXIDE", "ZIRCONIUM CHLORIDE",
+  // 21 CFR 700.23 — ozone-depleting; prohibited in domestic aerosol cosmetics
+  "TRICHLOROFLUOROMETHANE", "DICHLORODIFLUOROMETHANE",
+]);
+
+// ─── FDA — Restricted substances ─────────────────────────────────────────────
+const FDA_RESTRICTED = {
+  // 21 CFR 250.250 — toxic; only when no other preservative is effective
+  "HEXACHLOROPHENE": {
+    max_pct: 0.1,
+    ref: "FDA 21 CFR 250.250",
+    note: "Max 0.1% as preservative of last resort only. Prohibited in products applied to mucous membranes (lips, around eyes). Use only if no other preservative is effective.",
+    product_scope: "not for mucous membranes"
+  },
+  // 21 CFR 700.13 — mercury compounds: only in eye area at trace levels
+  "MERCURY": {
+    max_pct: 0.0065,
+    ref: "FDA 21 CFR 700.13",
+    note: "Max 0.0065% (65 ppm as Hg) in eye area products ONLY, and only when no other effective safe preservative is available. All other cosmetics: max 0.0001% unavoidable trace.",
+    product_scope: "eye area only"
+  },
+  "THIMEROSAL": {
+    max_pct: 0.0065,
+    ref: "FDA 21 CFR 700.13",
+    note: "Mercury-containing preservative. Max 0.0065% (65 ppm as Hg) in eye area products only. Prohibited in all other cosmetics except unavoidable trace (< 0.0001%).",
+    product_scope: "eye area only"
+  },
+  "PHENYL MERCURIC ACETATE": {
+    max_pct: 0.0065,
+    ref: "FDA 21 CFR 700.13",
+    note: "Mercury compound. Max 0.0065% (65 ppm as Hg) in eye area products only. Prohibited in all other cosmetics.",
+    product_scope: "eye area only"
+  },
+};
+
 // ─── Lookup helper functions ──────────────────────────────────────────────────
 
 /**
@@ -512,76 +561,120 @@ function cosingNormalise(name) {
 }
 
 /**
- * Check a single ingredient against the CosIng database.
+ * Check a single ingredient against the EU CosIng + FDA databases.
  * @param {string} inci   - INCI name of the ingredient
  * @param {number} pct    - percentage in the formula
- * @returns {{ status: "PASS"|"CAUTION"|"FAIL", ref: string, note: string, source: "database"|"unknown" }}
+ * @returns {{ status: "PASS"|"CAUTION"|"FAIL", ref: string, note: string, restricted: boolean }}
  */
 function cosingCheck(inci, pct) {
   const key = cosingNormalise(inci);
 
-  // 1. Check prohibited (Annex II)
+  // 1. EU Annex II — Prohibited
   if (COSING_PROHIBITED.has(key) || COSING_PROHIBITED_EXTENDED.has(key)) {
     return {
       status: "FAIL",
-      ref: "EU Annex II — Prohibited substance",
-      note: `${inci} is prohibited in cosmetic products under EU Regulation (EC) 1223/2009, Annex II. This ingredient must be removed from the formula.`,
-      source: "database"
+      ref: "EU Annex II — Prohibited substance · (EC) 1223/2009",
+      note: `${inci} is prohibited in all cosmetic products under EU Regulation (EC) 1223/2009, Annex II. This ingredient must be removed from the formula.`,
+      restricted: true
     };
   }
 
-  // 2. Check restricted (Annexes III, V, VI)
+  // 2. FDA Prohibited
+  if (FDA_PROHIBITED.has(key)) {
+    return {
+      status: "FAIL",
+      ref: "FDA Prohibited Ingredient",
+      note: `${inci} is prohibited in cosmetic products under FDA regulations (21 CFR 700 series). This ingredient must be removed from the formula.`,
+      restricted: true
+    };
+  }
+
+  // 3. EU Restricted (Annexes III, V, VI) — check concentration
   const entry = COSING_RESTRICTED[key];
   if (entry) {
     const maxPct = entry.max_pct;
     const exceeded = pct > maxPct;
-    const slightlyExceeded = pct > maxPct * 0.9 && pct <= maxPct;
-
+    const nearLimit = pct > maxPct * 0.9 && pct <= maxPct;
     const ref = `EU Annex ${entry.annex}, Entry ${entry.entry} — ${entry.regulation}`;
 
     if (exceeded) {
       return {
         status: "FAIL",
         ref,
-        note: `EXCEEDS LIMIT: ${pct.toFixed(2)}% used but maximum is ${maxPct}%. ${entry.note}`,
-        source: "database"
+        note: `EXCEEDS LIMIT: ${pct.toFixed(2)}% used but EU maximum is ${maxPct}%. ${entry.note}`,
+        restricted: true
       };
-    } else if (slightlyExceeded) {
+    } else if (nearLimit) {
       return {
         status: "CAUTION",
         ref,
-        note: `Within limit (${pct.toFixed(2)}% of max ${maxPct}%) but close to the threshold. ${entry.note}${entry.product_scope ? ` Scope: ${entry.product_scope}.` : ""}`,
-        source: "database"
+        note: `${pct.toFixed(2)}% is within the EU limit of ${maxPct}% but close to the threshold. ${entry.note}${entry.product_scope ? ` Scope: ${entry.product_scope}.` : ""}`,
+        restricted: true
       };
     } else {
       return {
         status: "PASS",
         ref,
-        note: `Within EU limit (${pct.toFixed(2)}% of max ${maxPct}%). ${entry.note}`,
-        source: "database"
+        note: `${pct.toFixed(2)}% is within the EU limit of ${maxPct}%. ${entry.note}`,
+        restricted: true
       };
     }
   }
 
-  // 3. Not found in Annexes II, III, V or VI → unrestricted for cosmetic use.
-  // Absence from the restriction annexes is itself a CosIng result.
+  // 4. FDA Restricted — check concentration
+  const fdaEntry = FDA_RESTRICTED[key];
+  if (fdaEntry) {
+    const exceeded = pct > fdaEntry.max_pct;
+    const nearLimit = pct > fdaEntry.max_pct * 0.9 && pct <= fdaEntry.max_pct;
+    if (exceeded) {
+      return {
+        status: "FAIL",
+        ref: fdaEntry.ref,
+        note: `EXCEEDS FDA LIMIT: ${pct.toFixed(2)}% used but maximum is ${fdaEntry.max_pct}%. ${fdaEntry.note}`,
+        restricted: true
+      };
+    } else if (nearLimit) {
+      return {
+        status: "CAUTION",
+        ref: fdaEntry.ref,
+        note: `${pct.toFixed(2)}% is within the FDA limit of ${fdaEntry.max_pct}% but close to the threshold. ${fdaEntry.note}`,
+        restricted: true
+      };
+    } else {
+      return {
+        status: "PASS",
+        ref: fdaEntry.ref,
+        note: `${pct.toFixed(2)}% is within the FDA limit of ${fdaEntry.max_pct}%. ${fdaEntry.note}`,
+        restricted: true
+      };
+    }
+  }
+
+  // 5. Not found in any restriction list → no limits apply.
   return {
     status: "PASS",
-    ref: "EU CosIng — not listed in Annexes II, III, V or VI",
-    note: "Not found in EU restricted or prohibited ingredient annexes. No regulatory concentration limits apply for general cosmetic use under EU Regulation (EC) 1223/2009.",
-    source: "database"
+    ref: "",
+    note: "",
+    restricted: false
   };
 }
 
 /**
  * Check all ingredients in a formula array.
- * Returns array of deterministic CosIng results, one per ingredient.
+ * Returns array of results, one per ingredient.
+ * Each result has: { ingredient, inci, percentage, status, ref, note, restricted }
  */
 function cosingCheckAll(ingredients) {
-  return ingredients.map(ing => ({
-    ingredient: ing.name,
-    inci: ing.inci,
-    percentage: ing.percentage,
-    ...cosingCheck(ing.inci, parseFloat(ing.percentage) || 0)
-  }));
+  return ingredients.map(ing => {
+    const result = cosingCheck(ing.inci, parseFloat(ing.percentage) || 0);
+    return {
+      ingredient: ing.name,
+      inci:        ing.inci,
+      percentage:  ing.percentage,
+      status:      result.status,
+      ref:         result.ref,
+      note:        result.note,
+      restricted:  result.restricted
+    };
+  });
 }

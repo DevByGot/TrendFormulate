@@ -944,7 +944,7 @@ Critical rules — violating any of these makes the output unusable:
       //   • Not in any annex   → PASS (absence of restriction = unrestricted)
       const dbResults = cosingCheckAll(formula.ingredients);
 
-      // Preserve original ingredient order and shape for the UI
+      // Preserve original ingredient order; keep `restricted` flag for UI filtering
       const orderedChecks = formula.ingredients.map(ing => {
         const r = dbResults.find(d =>
           cosingNormalise(d.inci) === cosingNormalise(ing.inci)
@@ -953,10 +953,10 @@ Critical rules — violating any of these makes the output unusable:
           ingredient:     ing.name,
           inci:           ing.inci,
           percentage:     ing.percentage,
-          status:         r ? r.status         : "PASS",
-          regulation_ref: r ? r.ref            : "EU CosIng — not listed in Annexes II, III, V or VI",
-          note:           r ? r.note           : "No regulatory concentration limits apply for general cosmetic use.",
-          source:         r ? r.source         : "database"
+          status:         r ? r.status     : "PASS",
+          regulation_ref: r ? r.ref        : "",
+          note:           r ? r.note       : "",
+          restricted:     r ? r.restricted : false
         };
       });
 
@@ -984,9 +984,8 @@ Critical rules — violating any of these makes the output unusable:
         recommendations.push("Maintain documentation of ingredient suppliers and INCI certificates of analysis.");
         recommendations.push("Prepare a Product Information File (PIF) as required by EU Regulation (EC) 1223/2009 Art. 11.");
       }
-      recommendations.push("Verify nano-form status of mineral filters (Zinc Oxide, Titanium Dioxide) with your supplier if applicable.");
 
-      const total = orderedChecks.length;
+      const restrictedCount = orderedChecks.filter(c => c.restricted).length;
       const summaryVerdict = overallStatus === "COMPLIANT"
         ? "No violations detected."
         : overallStatus === "CAUTION"
@@ -1001,13 +1000,12 @@ Critical rules — violating any of these makes the output unusable:
         recommendations,
         market_clearance: {
           EU:     !hasFailures,
-          US_FDA: !hasFailures,
-          UK:     !hasFailures
+          US_FDA: !hasFailures
         },
-        summary: `All ${total} ingredient${total !== 1 ? "s" : ""} verified against the official CosIng database (EU Annexes II, III, V & VI, downloaded 18 Jun 2026). ${summaryVerdict} Assessment reflects EU Regulation (EC) 1223/2009 and applicable FDA cosmetic guidelines.`
+        summary: `${restrictedCount} ingredient${restrictedCount !== 1 ? "s" : ""} checked against EU CosIng (Annexes II, III, V & VI) and FDA restricted substance lists. ${summaryVerdict} Assessment reflects EU Regulation (EC) 1223/2009 and FDA 21 CFR 700 series.`
       };
 
-      setAgentState("agent2", "done", `Compliance audit complete ✓  (${total}/${total} CosIng verified)`);
+      setAgentState("agent2", "done", "Compliance audit complete ✓");
       setStep(3, "done");
       return compliance;
     }
@@ -1162,36 +1160,34 @@ Critical rules — violating any of these makes the output unusable:
           ? "Caution — Review Recommended"
           : "Non-Compliant — Violations Found";
 
-      const checks = (c.checks || []).map(chk => {
-        const statusLC = (chk.status || "pass").toLowerCase();
-        const icon = statusLC === "pass"
-          ? "check"
-          : statusLC === "caution"
-            ? "alert-triangle"
-            : "x";
-        const isRestricted = chk.regulation_ref && !chk.regulation_ref.includes("not listed");
-        const sourceBadge = isRestricted
-          ? `<span title="Found in CosIng restricted/prohibited annexes — limit enforced" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);color:#3b82f6;margin-left:0.35rem;vertical-align:middle;">CosIng ★</span>`
-          : `<span title="Not listed in EU Annexes II, III, V or VI — no concentration limits apply" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.18);color:#60a5fa;margin-left:0.35rem;vertical-align:middle;">CosIng</span>`;
-        return `
-          <div class="compliance-check-row">
-            <div class="check-icon ${statusLC}">
-              <i data-lucide="${icon}" style="width:12px;height:12px;"></i>
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div class="check-ing-name">${esc(chk.ingredient || chk.inci || "")} <span style="font-size:0.72rem;color:var(--text-faint);font-weight:400;">${chk.percentage != null ? `(${parseFloat(chk.percentage).toFixed(1)}%)` : ""}</span>${sourceBadge}</div>
-              <div class="check-ref">${esc(chk.regulation_ref || "")}</div>
-              <div class="check-note">${esc(chk.note || "")}</div>
-            </div>
-            <span class="badge ${statusLC === "pass" ? "badge-success" : statusLC === "caution" ? "badge-warning" : "badge-error"}" style="flex-shrink:0;">${(chk.status || "PASS").toUpperCase()}</span>
-          </div>`;
-      }).join("");
+      // Only show ingredients that have an actual regulatory restriction or prohibition
+      const restrictedChecks = (c.checks || []).filter(chk => chk.restricted);
+
+      const checks = restrictedChecks.length === 0
+        ? `<div style="padding:1.25rem 1.375rem;font-size:0.8375rem;color:var(--text-muted);font-style:italic;">
+             No regulated substances found — all ingredients are unrestricted for cosmetic use under EU and FDA rules.
+           </div>`
+        : restrictedChecks.map(chk => {
+            const statusLC = (chk.status || "pass").toLowerCase();
+            const icon = statusLC === "pass" ? "check" : statusLC === "caution" ? "alert-triangle" : "x";
+            return `
+              <div class="compliance-check-row">
+                <div class="check-icon ${statusLC}">
+                  <i data-lucide="${icon}" style="width:12px;height:12px;"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div class="check-ing-name">${esc(chk.ingredient || chk.inci || "")} <span style="font-size:0.72rem;color:var(--text-faint);font-weight:400;">${chk.percentage != null ? `(${parseFloat(chk.percentage).toFixed(1)}%)` : ""}</span></div>
+                  <div class="check-ref">${esc(chk.regulation_ref || "")}</div>
+                  <div class="check-note">${esc(chk.note || "")}</div>
+                </div>
+                <span class="badge ${statusLC === "pass" ? "badge-success" : statusLC === "caution" ? "badge-warning" : "badge-error"}" style="flex-shrink:0;">${(chk.status || "PASS").toUpperCase()}</span>
+              </div>`;
+          }).join("");
 
       const mc = c.market_clearance || {};
       const marketBadges = [
         { label: "EU", key: "EU" },
-        { label: "US (FDA)", key: "US_FDA" },
-        { label: "UK (CPSR)", key: "UK" }
+        { label: "US (FDA)", key: "US_FDA" }
       ].map(m => {
         const cleared = mc[m.key] === true;
         const icon = cleared ? "check-circle" : "x-circle";
@@ -1211,16 +1207,6 @@ Critical rules — violating any of these makes the output unusable:
 
       wrap.innerHTML = `
         <div class="compliance-card animate-in">
-          <div style="padding:0.5rem 1.375rem;background:rgba(59,130,246,0.06);border-bottom:1px solid rgba(59,130,246,0.15);display:flex;align-items:center;gap:0.625rem;flex-wrap:wrap;">
-            <i data-lucide="database" style="width:12px;height:12px;color:#3b82f6;flex-shrink:0;"></i>
-            <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#3b82f6;">Powered by CosIng</span>
-            <span style="font-size:0.72rem;color:var(--text-muted);">EU Official Database — Annexes II, III, V &amp; VI · Downloaded 18 Jun 2026</span>
-            <span style="margin-left:auto;display:flex;align-items:center;gap:0.4rem;font-size:0.68rem;color:var(--text-faint);">
-              <span style="padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.3);color:#3b82f6;font-weight:700;">CosIng ★</span> restricted entry
-              &nbsp;
-              <span style="padding:0.1rem 0.4rem;border-radius:999px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.18);color:#60a5fa;font-weight:700;">CosIng</span> no restriction found
-            </span>
-          </div>
           <div class="compliance-verdict ${verdictClass}">
             <div class="verdict-label">
               <i data-lucide="${verdictIcon}" style="width:18px;height:18px;"></i>
