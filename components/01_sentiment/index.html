@@ -114,6 +114,30 @@
       padding: 0.25rem 0.75rem;
       color: var(--accent);
     }
+    .result-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      margin-bottom: 0.625rem;
+    }
+    .result-meta-pill {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.2rem 0.6rem;
+      color: var(--text-muted);
+    }
+    .ingredient-detail {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 0.35rem;
+    }
+    .ingredient-detail strong { color: var(--text); font-weight: 600; }
 
     /* Source comments inside each result card */
     .source-comments-toggle {
@@ -387,34 +411,144 @@
                           window.location.hostname !== "127.0.0.1";
     const GROQ_ENDPOINT = ON_SERVER ? "/api/groq" : GROQ_DIRECT;
 
-    const SYSTEM_PROMPT = `You are an expert cosmetic trend analyst for an indie beauty brand.
-A user left a social media comment about their skincare routine.
+    const SYSTEM_PROMPT = `You are a cosmetic R&D analyst for an indie beauty brand.
+Your job: extract consumer insight from a single social media comment and map it to a product formula direction.
 
-Analyze it and reply with ONLY a valid JSON object — no extra text, no markdown fences, no explanation.
-Use exactly this schema:
+Analyze the comment and return ONLY a valid JSON object matching this exact schema:
+
 {
-  "trend": "<2–4 word beauty trend name>",
-  "pain_point": "<the specific frustration or unmet need expressed>",
-  "ingredients": ["<ingredient 1>", "<ingredient 2>"],
-  "rationale": "<one sentence explaining why these ingredients address the pain point>"
+  "trend": "<2–4 word marketable beauty trend label>",
+  "pain_point": "<specific frustration or unmet need, quoted as close to the user's own words as possible>",
+  "skin_concern": "<one of: acne | dryness | sensitivity | hyperpigmentation | aging | oiliness | dullness | barrier damage | sun protection | other>",
+  "ingredients": [
+    {
+      "name": "<INCI or common cosmetic name>",
+      "function": "<humectant | emollient | active | SPF filter | antioxidant | exfoliant | soothing agent | preservative | other>",
+      "why": "<one clause explaining its relevance to this specific pain point>"
+    },
+    {
+      "name": "<INCI or common cosmetic name>",
+      "function": "<same controlled vocabulary>",
+      "why": "<one clause explaining its relevance to this specific pain point>"
+    }
+  ],
+  "rationale": "<one sentence of cosmetic-science justification connecting both ingredients to the trend and pain point>",
+  "sentiment": "<frustrated | curious | excited | overwhelmed | hopeful | confused>",
+  "formula_type": "<serum | moisturizer | cleanser | SPF | toner | treatment | mask | other>",
+  "confidence": "<high | medium | low>"
 }
 
 Rules:
-- trend: a marketable, concise label (e.g. "Glass Skin", "Barrier Repair", "Clean Sun Care")
-- ingredients: exactly 2 clean, science-backed cosmetic ingredients relevant to solving the trend
-- rationale: one sentence, grounded in cosmetic science, explaining the ingredient choice
-- Return ONLY the JSON object. No preamble, no suffix, no code block markers.`;
+- trend: a concise, marketable label usable on a product page (e.g. "Glass Skin", "Barrier Repair", "Quiet Luxury SPF")
+- pain_point: preserve the emotional texture of the original comment — do not sanitize it into clinical language
+- skin_concern: pick the single most dominant concern; use ONLY the lowercase values listed above; use "other" only if none apply
+- ingredients: exactly 2 entries; use widely recognized INCI or common formulator names; no vague botanicals without a clear mechanism
+- rationale: ground it in cosmetic science (mechanism of action, skin layer targeted, or regulatory category)
+- sentiment and formula_type: pick the single closest lowercase match from the lists above
+- confidence: high if the comment clearly maps to one trend; medium if plausible but ambiguous; low if the signal is weak
+- Return ONLY the raw JSON object. No preamble, no markdown fences, no trailing text.`;
 
     // ─── Comment dataset loaded from ../../assets/comments.js ─────────────────
 
+    const SKIN_CONCERNS = new Set(["acne", "dryness", "sensitivity", "hyperpigmentation", "aging", "oiliness", "dullness", "barrier damage", "sun protection", "other"]);
+    const ING_FUNCTIONS = new Set(["humectant", "emollient", "active", "SPF filter", "antioxidant", "exfoliant", "soothing agent", "preservative", "other"]);
+    const SENTIMENTS    = new Set(["frustrated", "curious", "excited", "overwhelmed", "hopeful", "confused"]);
+    const FORMULA_TYPES = new Set(["serum", "moisturizer", "cleanser", "SPF", "toner", "treatment", "mask", "other"]);
+    const CONFIDENCE    = new Set(["high", "medium", "low"]);
+
+    function pickFromSet(value, allowed, fallback) {
+      const lower = String(value || "").trim().toLowerCase();
+      for (const item of allowed) {
+        if (item.toLowerCase() === lower) return item;
+      }
+      return fallback;
+    }
+
+    function normalizeIngredient(ing) {
+      if (typeof ing === "string" && ing.trim()) {
+        return { name: ing.trim(), function: "active", why: "" };
+      }
+      if (ing && typeof ing === "object" && ing.name) {
+        return {
+          name: String(ing.name).trim(),
+          function: pickFromSet(ing.function, ING_FUNCTIONS, "active"),
+          why: String(ing.why || "").trim()
+        };
+      }
+      return null;
+    }
+
+    function normalizeIngredients(raw) {
+      if (!Array.isArray(raw)) return [];
+      return raw.map(normalizeIngredient).filter(Boolean).slice(0, 2);
+    }
+
+    function ingredientKey(ing) {
+      return (typeof ing === "string" ? ing : ing.name).trim().toLowerCase();
+    }
+
+    function normalizeAnalysisResult(parsed) {
+      const ingredients = normalizeIngredients(parsed.ingredients);
+      if (!parsed.trend || ingredients.length === 0) throw new Error("Invalid schema");
+      return {
+        trend:        String(parsed.trend).trim(),
+        pain_point:   String(parsed.pain_point || "unknown").trim(),
+        skin_concern: pickFromSet(parsed.skin_concern, SKIN_CONCERNS, "other"),
+        ingredients,
+        rationale:    String(parsed.rationale || "").trim(),
+        sentiment:    pickFromSet(parsed.sentiment, SENTIMENTS, "curious"),
+        formula_type: pickFromSet(parsed.formula_type, FORMULA_TYPES, "serum"),
+        confidence:   pickFromSet(parsed.confidence, CONFIDENCE, "medium")
+      };
+    }
+
     // ─── Keyword fallback map ──────────────────────────────────────────────────
     const KEYWORD_MAP = {
-      "glass-skin":    { trend: "Glass Skin",                  ingredients: ["Polyglutamic Acid", "Centella Asiatica"],        pain_point: "niacinamide irritation",  rationale: "Polyglutamic Acid forms a moisture-retaining film and Centella Asiatica calms irritation without triggering sensitivity." },
-      "slugging":      { trend: "Barrier Repair",              ingredients: ["Squalane", "Snow Mushroom Extract"],             pain_point: "heavy texture",           rationale: "Squalane mimics the skin's natural sebum and Snow Mushroom Extract provides lightweight, deep hydration without occlusive greasiness." },
-      "reef-safe spf": { trend: "Clean Sun Care",              ingredients: ["Zinc Oxide", "Non-nano Titanium Dioxide"],       pain_point: "white cast",              rationale: "Non-nano mineral filters provide broad-spectrum UV protection that is ocean-safe and formulated to minimise white cast on deeper skin tones." },
-      "retinol":       { trend: "Gentle Retinol Alternatives", ingredients: ["Bakuchiol", "Peptide Complex"],                  pain_point: "sensitivity",             rationale: "Bakuchiol activates retinol receptors without photosensitivity and Peptide Complex stimulates collagen synthesis gently." },
-      "k-beauty":      { trend: "Simplified K-Beauty",         ingredients: ["Hyaluronic Acid", "Rice Ferment Filtrate"],      pain_point: "too many steps",          rationale: "Multi-weight Hyaluronic Acid and fermented Rice Filtrate deliver the full K-beauty hydration stack in a single leave-on formula." }
-
+      "glass-skin": {
+        trend: "Glass Skin", pain_point: "niacinamide keeps irritating my skin",
+        skin_concern: "sensitivity", sentiment: "frustrated", formula_type: "serum", confidence: "high",
+        ingredients: [
+          { name: "Polyglutamic Acid", function: "humectant", why: "builds a moisture film without the sting of high-dose niacinamide" },
+          { name: "Centella Asiatica Extract", function: "soothing agent", why: "calms redness while supporting barrier recovery" }
+        ],
+        rationale: "Polyglutamic Acid delivers glass-skin luminosity via surface hydration while Centella Asiatica soothes the irritation driving the user's frustration."
+      },
+      "slugging": {
+        trend: "Barrier Repair", pain_point: "slugging feels way too heavy and greasy",
+        skin_concern: "barrier damage", sentiment: "frustrated", formula_type: "moisturizer", confidence: "high",
+        ingredients: [
+          { name: "Squalane", function: "emollient", why: "mimics natural sebum for barrier support without petrolatum weight" },
+          { name: "Tremella Fuciformis Extract", function: "humectant", why: "provides deep hydration with a lightweight, non-occlusive feel" }
+        ],
+        rationale: "Squalane repairs the lipid barrier while Tremella Extract hydrates at multiple skin layers without the occlusive heaviness of traditional slugging."
+      },
+      "reef-safe spf": {
+        trend: "Clean Sun Care", pain_point: "mineral SPF always leaves a white cast on my skin",
+        skin_concern: "sun protection", sentiment: "frustrated", formula_type: "SPF", confidence: "high",
+        ingredients: [
+          { name: "Zinc Oxide", function: "SPF filter", why: "broad-spectrum mineral UV protection that is reef-safe" },
+          { name: "Titanium Dioxide", function: "SPF filter", why: "boosts UV coverage while formulations can reduce visible white cast" }
+        ],
+        rationale: "Non-nano mineral filters deliver ocean-safe broad-spectrum protection and can be formulated to minimise the white cast the user describes."
+      },
+      "retinol": {
+        trend: "Gentle Retinol Alternatives", pain_point: "retinol makes my skin peel and burn",
+        skin_concern: "sensitivity", sentiment: "frustrated", formula_type: "serum", confidence: "high",
+        ingredients: [
+          { name: "Bakuchiol", function: "active", why: "activates retinoid pathways without the irritation cascade of retinol" },
+          { name: "Palmitoyl Tripeptide-1", function: "active", why: "supports collagen signalling as a peptide-based anti-aging active" }
+        ],
+        rationale: "Bakuchiol offers retinol-like renewal without photosensitivity while peptides support collagen synthesis gently for sensitive skin."
+      },
+      "k-beauty": {
+        trend: "Simplified K-Beauty", pain_point: "my 10-step routine is exhausting and I still don't see results",
+        skin_concern: "dullness", sentiment: "overwhelmed", formula_type: "serum", confidence: "high",
+        ingredients: [
+          { name: "Sodium Hyaluronate", function: "humectant", why: "delivers multi-weight hydration in one step" },
+          { name: "Saccharomyces/Rice Ferment Filtrate", function: "active", why: "provides fermented K-beauty brightening and barrier support" }
+        ],
+        rationale: "Multi-weight hyaluronic acid and rice ferment filtrate condense the hydration and brightening stack of a multi-step routine into a single leave-on serum."
+      }
     };
 
     // ─── Keyword fallback ──────────────────────────────────────────────────────
@@ -425,7 +559,11 @@ Rules:
           return { ...value, source: "keyword" };
         }
       }
-      return { trend: "Unclassified", ingredients: [], pain_point: "unknown", rationale: "", source: "keyword" };
+      return {
+        trend: "Unclassified", pain_point: "unknown", skin_concern: "other",
+        ingredients: [], rationale: "", sentiment: "confused", formula_type: "other",
+        confidence: "low", source: "keyword"
+      };
     }
 
     // ─── Groq AI call with retry on 429 ───────────────────────────────────────
@@ -440,7 +578,7 @@ Rules:
         body: JSON.stringify({
           model: GROQ_MODEL,
           temperature: 0.3,
-          max_tokens: 256,
+          max_tokens: 512,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user",   content: commentText }
@@ -462,14 +600,7 @@ Rules:
         const raw     = await callGroq(text);
         const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
         const parsed  = JSON.parse(cleaned);
-        if (!parsed.trend || !Array.isArray(parsed.ingredients)) throw new Error("Invalid schema");
-        return {
-          trend:       parsed.trend      || "Unknown",
-          pain_point:  parsed.pain_point || "unknown",
-          ingredients: parsed.ingredients.slice(0, 2),
-          rationale:   parsed.rationale  || "",
-          source:      "ai"
-        };
+        return { ...normalizeAnalysisResult(parsed), source: "ai" };
       } catch {
         return { ...analyzeCommentKeyword(text), source: "keyword" };
       }
@@ -506,7 +637,7 @@ Rules:
     }
 
     // ─── Trend groups: in-memory state ────────────────────────────────────────
-    // groups is a Map: trendKey → { trend, pain_points[], ingredients[], rationale, sources[] }
+    // groups is a Map: trendKey → { trend, pain_points[], ingredients[], rationale, meta, sources[] }
     let trendGroups = new Map();
 
     function upsertGroup(result, commentObj) {
@@ -517,19 +648,26 @@ Rules:
           pain_points:  [],
           ingredients:  [],
           rationale:    result.rationale,
+          skin_concern: result.skin_concern || "other",
+          sentiment:    result.sentiment || "curious",
+          formula_type: result.formula_type || "serum",
+          confidence:   result.confidence || "medium",
           sources:      []
         });
       }
       const g = trendGroups.get(key);
 
-      // Merge pain points (deduplicated)
       if (result.pain_point && !g.pain_points.includes(result.pain_point)) {
         g.pain_points.push(result.pain_point);
       }
 
-      // Merge ingredients (deduplicated)
+      const existingKeys = new Set(g.ingredients.map(ingredientKey));
       result.ingredients.forEach(ing => {
-        if (!g.ingredients.includes(ing)) g.ingredients.push(ing);
+        const k = ingredientKey(ing);
+        if (!existingKeys.has(k)) {
+          g.ingredients.push(ing);
+          existingKeys.add(k);
+        }
       });
 
       g.sources.push({ id: commentObj.id, text: commentObj.text });
@@ -539,8 +677,22 @@ Rules:
     // ─── Render: one grouped result card ──────────────────────────────────────
     function renderGroupCard(group, cardId) {
       const pills = group.ingredients.length
-        ? group.ingredients.map(i => `<span class="ingredient-pill">${i}</span>`).join("")
+        ? group.ingredients.map(i => `<span class="ingredient-pill">${i.name}</span>`).join("")
         : `<span style="font-size:0.75rem;color:var(--text-muted);">No ingredients mapped</span>`;
+
+      const ingDetails = group.ingredients.length
+        ? group.ingredients.map(i =>
+            `<div class="ingredient-detail"><strong>${i.name}</strong> · ${i.function}${i.why ? ` — ${i.why}` : ""}</div>`
+          ).join("")
+        : "";
+
+      const metaHTML = `
+        <div class="result-meta">
+          <span class="result-meta-pill">${group.skin_concern || "other"}</span>
+          <span class="result-meta-pill">${group.formula_type || "serum"}</span>
+          <span class="result-meta-pill">${group.sentiment || "curious"}</span>
+          <span class="result-meta-pill">${group.confidence || "medium"} confidence</span>
+        </div>`;
 
       const rationaleHTML = group.rationale
         ? `<div class="result-rationale">${group.rationale}</div>`
@@ -564,9 +716,11 @@ Rules:
         <div class="result-card-header">
           <div class="result-trend">${group.trend}</div>
         </div>
+        ${metaHTML}
         ${painHTML}
         ${rationaleHTML}
         <div class="ingredient-pills">${pills}</div>
+        ${ingDetails}
         <button class="source-comments-toggle" onclick="toggleSources(this)">
           <i data-lucide="message-circle" style="width:12px;height:12px;"></i>
           ${sourceCount} source comment${sourceCount !== 1 ? "s" : ""}
@@ -717,12 +871,17 @@ Rules:
 
     document.getElementById("export-btn").addEventListener("click", () => {
       const payload = analysisResults.map(r => ({
-        comment_id:          r.id,
-        comment_text:        r.text,
-        trend:               r.trend,
-        pain_point:          r.pain_point,
-        target_ingredients:  r.ingredients,
-        rationale:           r.rationale || ""
+        comment_id:    r.id,
+        comment_text:  r.text,
+        trend:         r.trend,
+        pain_point:    r.pain_point,
+        skin_concern:  r.skin_concern,
+        ingredients:   r.ingredients,
+        rationale:     r.rationale || "",
+        sentiment:     r.sentiment,
+        formula_type:  r.formula_type,
+        confidence:    r.confidence,
+        source:        r.source
       }));
       exportJSON(payload, "trendformulate_sentiment_mapping.json");
     });
