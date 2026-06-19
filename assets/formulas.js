@@ -21,7 +21,7 @@ window.TFFormulas = (function () {
   }
 
   function getById(id) {
-    return loadAll().find(f => f.id === id) || null;
+    return loadAll().find(f => f.id == id) || null;
   }
 
   function getByName(name) {
@@ -41,7 +41,7 @@ window.TFFormulas = (function () {
   }
 
   function deleteById(id) {
-    const list = loadAll().filter(f => f.id !== id);
+    const list = loadAll().filter(f => f.id != id);
     persist(list);
   }
 

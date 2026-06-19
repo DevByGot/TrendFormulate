@@ -627,6 +627,12 @@
     </div>
 
     <div style="display:flex;align-items:center;gap:0.75rem;">
+      <div class="live-counter">
+        <div class="live-dot"></div>
+        <span class="count-label">Saved products</span>
+        <span id="formula-counter" class="count-num">0</span>
+        <span class="count-unit">in workspace</span>
+      </div>
       <button onclick="resetDemo()" title="Clear access token and restart from waitlist" style="display:flex;align-items:center;gap:0.375rem;font-size:0.75rem;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:var(--radius-pill);padding:0.35rem 0.75rem;cursor:pointer;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='var(--surface-2)';this.style.color='var(--text)';" onmouseout="this.style.background='transparent';this.style.color='var(--text-muted)';">
         <i data-lucide="rotate-ccw" style="width:12px;height:12px;"></i> Reset Demo
       </button>
@@ -778,8 +784,11 @@
 
     function renderProductsList() {
       const listEl = document.getElementById('products-list');
+      if (!listEl) return;
+
       const formulas = TFFormulas.loadAll();
-      document.getElementById('formula-counter').textContent = formulas.length.toLocaleString();
+      const counter = document.getElementById('formula-counter');
+      if (counter) counter.textContent = formulas.length.toLocaleString();
 
       if (formulas.length === 0) {
         listEl.innerHTML = `
@@ -791,19 +800,22 @@
         return;
       }
 
-      listEl.innerHTML = formulas.map(f => `
-        <div class="product-row" onclick="openProductModal(${f.id})" role="button" tabindex="0"
-             onkeydown="if(event.key==='Enter'||event.key===' ')openProductModal(${f.id})">
+      listEl.innerHTML = formulas.map((f) => {
+        const key = f.id != null ? f.id : f.name;
+        return `
+        <div class="product-row" onclick="openProductModal(${JSON.stringify(key)})" role="button" tabindex="0"
+             onkeydown="if(event.key==='Enter'||event.key===' ')openProductModal(${JSON.stringify(key)})">
           <span class="product-name">${TFFormulas.escHtml(f.name)}</span>
           <span class="product-meta">${formatSavedAt(f.savedAt)}</span>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
 
     function openProductModal(id) {
-      const f = TFFormulas.getById(id);
+      let f = TFFormulas.getById(id);
+      if (!f) f = TFFormulas.getByName(String(id));
       if (!f) return;
-      activeProductId = id;
+      activeProductId = f.id != null ? f.id : id;
 
       document.getElementById('modal-title').textContent = f.name;
 
@@ -846,11 +858,17 @@
     }
 
     function deleteCurrentProduct() {
-      if (!activeProductId) return;
-      const f = TFFormulas.getById(activeProductId);
+      if (activeProductId == null) return;
+      const f = TFFormulas.getById(activeProductId) || TFFormulas.getByName(String(activeProductId));
       if (!f) return;
       if (!confirm(`Delete "${f.name}"? This removes it from all departments.`)) return;
-      TFFormulas.deleteById(activeProductId);
+      if (f.id != null) {
+        TFFormulas.deleteById(f.id);
+      } else {
+        const list = TFFormulas.loadAll().filter(x => x.name !== f.name);
+        localStorage.setItem(TFFormulas.STORE_KEY, JSON.stringify(list));
+        window.dispatchEvent(new CustomEvent('tf-formulas-changed'));
+      }
       closeProductModal();
       renderProductsList();
     }
