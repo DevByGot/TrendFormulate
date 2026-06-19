@@ -396,14 +396,12 @@ Use exactly this schema:
   "trend": "<2–4 word beauty trend name>",
   "pain_point": "<the specific frustration or unmet need expressed>",
   "ingredients": ["<ingredient 1>", "<ingredient 2>"],
-  "confidence": "<High|Medium|Low>",
   "rationale": "<one sentence explaining why these ingredients address the pain point>"
 }
 
 Rules:
 - trend: a marketable, concise label (e.g. "Glass Skin", "Barrier Repair", "Clean Sun Care")
 - ingredients: exactly 2 clean, science-backed cosmetic ingredients relevant to solving the trend
-- confidence: High if the trend is explicitly named, Medium if implied, Low if the comment is vague
 - rationale: one sentence, grounded in cosmetic science, explaining the ingredient choice
 - Return ONLY the JSON object. No preamble, no suffix, no code block markers.`;
 
@@ -416,6 +414,7 @@ Rules:
       "reef-safe spf": { trend: "Clean Sun Care",              ingredients: ["Zinc Oxide", "Non-nano Titanium Dioxide"],       pain_point: "white cast",              rationale: "Non-nano mineral filters provide broad-spectrum UV protection that is ocean-safe and formulated to minimise white cast on deeper skin tones." },
       "retinol":       { trend: "Gentle Retinol Alternatives", ingredients: ["Bakuchiol", "Peptide Complex"],                  pain_point: "sensitivity",             rationale: "Bakuchiol activates retinol receptors without photosensitivity and Peptide Complex stimulates collagen synthesis gently." },
       "k-beauty":      { trend: "Simplified K-Beauty",         ingredients: ["Hyaluronic Acid", "Rice Ferment Filtrate"],      pain_point: "too many steps",          rationale: "Multi-weight Hyaluronic Acid and fermented Rice Filtrate deliver the full K-beauty hydration stack in a single leave-on formula." }
+
     };
 
     // ─── Keyword fallback ──────────────────────────────────────────────────────
@@ -423,10 +422,10 @@ Rules:
       const lower = text.toLowerCase();
       for (const [key, value] of Object.entries(KEYWORD_MAP)) {
         if (lower.includes(key)) {
-          return { ...value, confidence: "High", source: "keyword" };
+          return { ...value, source: "keyword" };
         }
       }
-      return { trend: "Unclassified", ingredients: [], pain_point: "unknown", rationale: "", confidence: "Low", source: "keyword" };
+      return { trend: "Unclassified", ingredients: [], pain_point: "unknown", rationale: "", source: "keyword" };
     }
 
     // ─── Groq AI call with retry on 429 ───────────────────────────────────────
@@ -468,7 +467,6 @@ Rules:
           trend:       parsed.trend      || "Unknown",
           pain_point:  parsed.pain_point || "unknown",
           ingredients: parsed.ingredients.slice(0, 2),
-          confidence:  ["High", "Medium", "Low"].includes(parsed.confidence) ? parsed.confidence : "Medium",
           rationale:   parsed.rationale  || "",
           source:      "ai"
         };
@@ -508,16 +506,14 @@ Rules:
     }
 
     // ─── Trend groups: in-memory state ────────────────────────────────────────
-    // groups is a Map: trendKey → { trend, confidence, pain_points[], ingredients[], rationale, sources[] }
+    // groups is a Map: trendKey → { trend, pain_points[], ingredients[], rationale, sources[] }
     let trendGroups = new Map();
-    const CONFIDENCE_RANK = { High: 3, Medium: 2, Low: 1 };
 
     function upsertGroup(result, commentObj) {
       const key = result.trend.trim().toLowerCase();
       if (!trendGroups.has(key)) {
         trendGroups.set(key, {
           trend:        result.trend,
-          confidence:   result.confidence,
           pain_points:  [],
           ingredients:  [],
           rationale:    result.rationale,
@@ -525,12 +521,6 @@ Rules:
         });
       }
       const g = trendGroups.get(key);
-
-      // Keep highest confidence + its rationale
-      if ((CONFIDENCE_RANK[result.confidence] || 0) > (CONFIDENCE_RANK[g.confidence] || 0)) {
-        g.confidence = result.confidence;
-        g.rationale  = result.rationale;
-      }
 
       // Merge pain points (deduplicated)
       if (result.pain_point && !g.pain_points.includes(result.pain_point)) {
@@ -548,12 +538,6 @@ Rules:
 
     // ─── Render: one grouped result card ──────────────────────────────────────
     function renderGroupCard(group, cardId) {
-      const badgeClass = group.confidence === "High"
-        ? "badge-success"
-        : group.confidence === "Medium"
-          ? "badge-warning"
-          : "badge-error";
-
       const pills = group.ingredients.length
         ? group.ingredients.map(i => `<span class="ingredient-pill">${i}</span>`).join("")
         : `<span style="font-size:0.75rem;color:var(--text-muted);">No ingredients mapped</span>`;
@@ -579,7 +563,6 @@ Rules:
       card.innerHTML = `
         <div class="result-card-header">
           <div class="result-trend">${group.trend}</div>
-          <span class="badge ${badgeClass}">${group.confidence} confidence</span>
         </div>
         ${painHTML}
         ${rationaleHTML}
@@ -659,7 +642,6 @@ Rules:
         "Connecting to AI…",
         "Extracting trend signals…",
         "Mapping to ingredients…",
-        "Calculating confidence…",
         "Finalising results…"
       ];
       let phraseIndex = 0;
@@ -740,7 +722,6 @@ Rules:
         trend:               r.trend,
         pain_point:          r.pain_point,
         target_ingredients:  r.ingredients,
-        confidence:          r.confidence,
         rationale:           r.rationale || ""
       }));
       exportJSON(payload, "trendformulate_sentiment_mapping.json");
