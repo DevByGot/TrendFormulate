@@ -659,28 +659,18 @@
          ══════════════════════════════════════════════════════ -->
     <div class="hidden-section" id="phase23">
 
-      <div class="section-divider">
-        <div class="section-divider-line"></div>
-        <div class="section-divider-label">
-          <i data-lucide="cpu" style="width:11px;height:11px;"></i>
-          AI Pipeline
-        </div>
-        <div class="section-divider-line"></div>
-      </div>
-
       <div class="result-grid">
 
         <!-- Left: Agent pipeline -->
         <div class="agent-pipeline">
 
-          <!-- Agent 1 -->
+          <!-- Formulation step -->
           <div class="agent-card" id="agent1-card">
             <div class="agent-icon">
               <i data-lucide="flask-conical" style="width:17px;height:17px;"></i>
             </div>
             <div style="flex:1;min-width:0;">
-              <div class="agent-role">Agent 1</div>
-              <div class="agent-name">Formulation Agent</div>
+              <div class="agent-name">Formulation</div>
               <div class="agent-status-text" id="agent1-status">
                 <i data-lucide="clock" style="width:11px;height:11px;"></i>
                 Waiting…
@@ -693,17 +683,16 @@
             <i data-lucide="arrow-down" style="width:14px;height:14px;color:var(--text-faint);"></i>
           </div>
 
-          <!-- Agent 2 -->
+          <!-- Compliance step -->
           <div class="agent-card" id="agent2-card">
             <div class="agent-icon">
               <i data-lucide="shield-check" style="width:17px;height:17px;"></i>
             </div>
             <div style="flex:1;min-width:0;">
-              <div class="agent-role">Agent 2</div>
-              <div class="agent-name">Regulatory Agent</div>
+              <div class="agent-name">Compliance Review</div>
               <div class="agent-status-text" id="agent2-status">
                 <i data-lucide="clock" style="width:11px;height:11px;"></i>
-                Waiting for Agent 1…
+                Waiting…
               </div>
             </div>
           </div>
@@ -731,7 +720,7 @@
           <!-- Formula placeholder -->
           <div class="output-empty" id="formula-empty">
             <i data-lucide="flask-conical" style="width:26px;height:26px;margin-bottom:0.625rem;display:block;margin-left:auto;margin-right:auto;color:var(--text-faint);"></i>
-            Agent 1 will generate the complete formula here
+            The formula will appear here once generated
           </div>
           <div id="formula-skeleton" style="display:none;">
             <div class="skeleton-block">
@@ -750,7 +739,7 @@
           <!-- Compliance placeholder -->
           <div class="output-empty" id="compliance-empty">
             <i data-lucide="shield" style="width:26px;height:26px;margin-bottom:0.625rem;display:block;margin-left:auto;margin-right:auto;color:var(--text-faint);"></i>
-            Agent 2 will audit the formula for EU &amp; FDA compliance
+            Compliance audit will appear here
           </div>
           <div id="compliance-skeleton" style="display:none;">
             <div class="skeleton-block">
@@ -1013,6 +1002,9 @@ Critical rules — violating any of these makes the output unusable:
       genState.classList.add("visible");
       errEl.classList.remove("visible");
 
+      // Hide trend selection once generation begins
+      document.getElementById("phase1").style.display = "none";
+
       // Disable trend cards during generation
       document.querySelectorAll(".trend-option-card").forEach(c => c.classList.add("disabled-card"));
 
@@ -1065,7 +1057,8 @@ Critical rules — violating any of these makes the output unusable:
         setAgentState("agent1", "pending", "Waiting…");
         setAgentState("agent2", "pending", "Waiting for Agent 1…");
 
-        // Re-enable cards
+        // Restore trend selection and re-enable cards
+        document.getElementById("phase1").style.display = "";
         document.querySelectorAll(".trend-option-card").forEach(c => c.classList.remove("disabled-card"));
 
       } finally {
@@ -1362,6 +1355,7 @@ Critical rules — violating any of these makes the output unusable:
       document.querySelectorAll(".trend-option-card").forEach(c => {
         c.classList.remove("selected", "disabled-card");
       });
+      document.getElementById("phase1").style.display = "";
       document.getElementById("generate-btn").disabled = true;
       document.getElementById("phase23").classList.remove("visible");
       document.getElementById("formula-output").style.display = "none";
@@ -1372,7 +1366,7 @@ Critical rules — violating any of these makes the output unusable:
       document.getElementById("error-notice").classList.remove("visible");
 
       setAgentState("agent1", "pending", "Waiting…");
-      setAgentState("agent2", "pending", "Waiting for Agent 1…");
+      setAgentState("agent2", "pending", "Waiting…");
 
       // Reset steps
       [1,2,3].forEach(n => {
