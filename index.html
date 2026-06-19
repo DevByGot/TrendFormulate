@@ -650,41 +650,6 @@
       <div class="hero-ornament">✦</div>
     </div>
 
-    <!-- ─── Your Products ─────────────────────────────────────── -->
-    <section class="products-section">
-      <div class="section-header">
-        <div>
-          <h2>Your Products</h2>
-          <p>Formulas saved from R&amp;D Formulation — shared across all departments</p>
-        </div>
-        <div class="section-header-line"></div>
-      </div>
-      <div class="products-panel">
-        <div id="products-list" class="products-list"></div>
-      </div>
-    </section>
-
-    <!-- Product detail modal -->
-    <div class="modal-backdrop" id="product-modal" onclick="if(event.target===this)closeProductModal()">
-      <div class="modal-card" role="dialog" aria-labelledby="modal-title">
-        <div class="modal-header">
-          <h3 id="modal-title"></h3>
-          <button class="modal-close" onclick="closeProductModal()" aria-label="Close">
-            <i data-lucide="x" style="width:18px;height:18px;"></i>
-          </button>
-        </div>
-        <div id="modal-body"></div>
-        <div class="modal-actions">
-          <button class="btn-delete" id="modal-delete-btn" onclick="deleteCurrentProduct()">
-            <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete formula
-          </button>
-          <a href="components/02_formulation/index.html" class="btn-open-lab">
-            <i data-lucide="flask-conical" style="width:14px;height:14px;"></i> Open R&amp;D Lab
-          </a>
-        </div>
-      </div>
-    </div>
-
     <!-- ─── Department Grid ───────────────────────────────────── -->
     <div class="dept-grid">
 
@@ -744,6 +709,41 @@
         </a>
       </div>
 
+    </div>
+
+    <!-- ─── Your Products ─────────────────────────────────────── -->
+    <section class="products-section">
+      <div class="section-header">
+        <div>
+          <h2>Your Products</h2>
+          <p>Formulas saved from R&amp;D Formulation — shared across all departments</p>
+        </div>
+        <div class="section-header-line"></div>
+      </div>
+      <div class="products-panel">
+        <div id="products-list" class="products-list"></div>
+      </div>
+    </section>
+
+    <!-- Product detail modal -->
+    <div class="modal-backdrop" id="product-modal" onclick="if(event.target===this)closeProductModal()">
+      <div class="modal-card" role="dialog" aria-labelledby="modal-title">
+        <div class="modal-header">
+          <h3 id="modal-title"></h3>
+          <button class="modal-close" onclick="closeProductModal()" aria-label="Close">
+            <i data-lucide="x" style="width:18px;height:18px;"></i>
+          </button>
+        </div>
+        <div id="modal-body"></div>
+        <div class="modal-actions">
+          <button class="btn-delete" id="modal-delete-btn" onclick="deleteCurrentProduct()">
+            <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete formula
+          </button>
+          <a href="components/02_formulation/index.html" class="btn-open-lab">
+            <i data-lucide="flask-conical" style="width:14px;height:14px;"></i> Open R&amp;D Lab
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- ─── Trend Banner ──────────────────────────────────────── -->
