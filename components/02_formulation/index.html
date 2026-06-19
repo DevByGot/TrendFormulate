@@ -48,14 +48,34 @@
     }
     .step-line.done { background: var(--success); }
 
-    /* ── Trend cards grid ────────────────────────────────────────── */
-    .trend-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1rem;
+    /* ── Trend carousel (single horizontal row) ──────────────────── */
+    .trend-carousel {
+      position: relative;
       margin-bottom: 1.5rem;
     }
+    .trend-carousel-nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .trend-carousel-viewport {
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding-bottom: 0.25rem;
+    }
+    .trend-carousel-viewport::-webkit-scrollbar { display: none; }
+    .trend-track {
+      display: flex;
+      gap: 1rem;
+    }
     .trend-option-card {
+      flex: 0 0 auto;
+      scroll-snap-align: start;
       background: var(--surface);
       border: 2px solid var(--border);
       border-radius: var(--radius);
@@ -63,6 +83,9 @@
       cursor: pointer;
       transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
       position: relative;
+    }
+    @media (max-width: 900px) {
+      .trend-carousel-nav { margin-bottom: 0.5rem; }
     }
     .trend-option-card:hover {
       border-color: rgba(196,120,138,0.4);
@@ -145,31 +168,6 @@
       margin-top: 0.5rem;
       line-height: 1.4;
     }
-    /* ── Carousel (overflow trends) ─────────────────────────────── */
-    .carousel-section {
-      margin-top: 1rem;
-    }
-    .carousel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.75rem;
-    }
-    .carousel-label {
-      font-size: 0.6875rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .carousel-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
     .carousel-btn {
       width: 30px;
       height: 30px;
@@ -193,21 +191,16 @@
     .carousel-indicator {
       font-size: 0.8rem;
       color: var(--text-muted);
-      min-width: 44px;
+      min-width: 72px;
       text-align: center;
     }
-    .carousel-slide {
-      display: none;
-    }
-    .carousel-slide.active {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1rem;
-      animation: cslidein 0.22s ease;
-    }
-    @keyframes cslidein {
-      from { opacity: 0; transform: translateX(10px); }
-      to   { opacity: 1; transform: translateX(0); }
+    .trend-empty {
+      background: var(--surface);
+      border: 1px dashed rgba(196,120,138,0.3);
+      border-radius: var(--radius);
+      padding: 3rem 2rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
     }
 
     /* ── CTA bar ─────────────────────────────────────────────────── */
@@ -722,26 +715,21 @@
         </div>
       </div>
 
-      <div class="trend-grid" id="trend-grid"></div>
+      <div class="trend-empty" id="trend-empty" style="display:none;"></div>
 
-      <!-- Carousel for trends beyond the first 4 -->
-      <div class="carousel-section" id="carousel-section" style="display:none;">
-        <div class="carousel-header">
-          <div class="carousel-label">
-            <i data-lucide="layers" style="width:13px;height:13px;"></i>
-            <span id="carousel-label-text">More trends</span>
-          </div>
-          <div class="carousel-controls">
-            <button class="carousel-btn" id="carousel-prev" onclick="carouselPrev()" disabled>
-              <i data-lucide="chevron-left" style="width:15px;height:15px;"></i>
-            </button>
-            <span class="carousel-indicator" id="carousel-indicator">1 / 1</span>
-            <button class="carousel-btn" id="carousel-next" onclick="carouselNext()">
-              <i data-lucide="chevron-right" style="width:15px;height:15px;"></i>
-            </button>
-          </div>
+      <div class="trend-carousel" id="trend-carousel" style="display:none;">
+        <div class="trend-carousel-nav">
+          <button class="carousel-btn" id="trend-prev" onclick="trendScrollPrev()" disabled>
+            <i data-lucide="chevron-left" style="width:15px;height:15px;"></i>
+          </button>
+          <span class="carousel-indicator" id="trend-scroll-indicator">1 / 1</span>
+          <button class="carousel-btn" id="trend-next" onclick="trendScrollNext()">
+            <i data-lucide="chevron-right" style="width:15px;height:15px;"></i>
+          </button>
         </div>
-        <div id="carousel-track"></div>
+        <div class="trend-carousel-viewport" id="trend-viewport">
+          <div class="trend-track" id="trend-track"></div>
+        </div>
       </div>
 
       <div class="cta-bar">
@@ -1361,11 +1349,6 @@ Critical rules — violating any of these makes the output unusable:
       lucide.createIcons();
     }
 
-    // ─── Carousel state ──────────────────────────────────────────────
-    let carouselTrends = [];
-    let carouselIndex  = 0;
-    const VISIBLE_COUNT = 4; // trends always shown in the main grid
-
     // ─── Build a single trend card HTML string ───────────────────────
     function buildTrendCard(t) {
       return `
@@ -1389,85 +1372,123 @@ Critical rules — violating any of these makes the output unusable:
         </div>`;
     }
 
-    // ─── Render carousel slide ───────────────────────────────────────
-    function renderCarouselSlide() {
-      const track     = document.getElementById("carousel-track");
-      const indicator = document.getElementById("carousel-indicator");
-      const prevBtn   = document.getElementById("carousel-prev");
-      const nextBtn   = document.getElementById("carousel-next");
-
-      // Each carousel "page" shows one card
-      track.innerHTML = `<div class="carousel-slide active">${buildTrendCard(carouselTrends[carouselIndex])}</div>`;
-
-      indicator.textContent = `${carouselIndex + 1} / ${carouselTrends.length}`;
-      prevBtn.disabled = carouselIndex === 0;
-      nextBtn.disabled = carouselIndex === carouselTrends.length - 1;
-      lucide.createIcons();
-
-      // Restore selected state if the card in view is selected
-      if (selectedTrend && document.getElementById(`trend-card-${selectedTrend.id}`)) {
-        document.getElementById(`trend-card-${selectedTrend.id}`).classList.add("selected");
-      }
+    function getVisibleTrendCount() {
+      if (window.innerWidth <= 560) return 1;
+      if (window.innerWidth <= 900) return 2;
+      return 4;
     }
 
-    function carouselPrev() {
-      if (carouselIndex > 0) { carouselIndex--; renderCarouselSlide(); }
+    function sizeTrendCards() {
+      const viewport = document.getElementById("trend-viewport");
+      const cards = viewport?.querySelectorAll(".trend-option-card");
+      if (!viewport || !cards.length) return;
+
+      const gap = 16;
+      const visible = getVisibleTrendCount();
+      const cardWidth = (viewport.clientWidth - gap * (visible - 1)) / visible;
+
+      cards.forEach(card => {
+        card.style.width = `${cardWidth}px`;
+        card.style.flexBasis = `${cardWidth}px`;
+      });
     }
 
-    function carouselNext() {
-      if (carouselIndex < carouselTrends.length - 1) { carouselIndex++; renderCarouselSlide(); }
+    function getTrendScrollStep() {
+      const viewport = document.getElementById("trend-viewport");
+      const card = viewport?.querySelector(".trend-option-card");
+      if (!viewport || !card) return 0;
+      return card.offsetWidth + 16;
+    }
+
+    function updateTrendScrollNav() {
+      const viewport  = document.getElementById("trend-viewport");
+      const nav       = document.querySelector(".trend-carousel-nav");
+      const prevBtn   = document.getElementById("trend-prev");
+      const nextBtn   = document.getElementById("trend-next");
+      const indicator = document.getElementById("trend-scroll-indicator");
+      if (!viewport || !prevBtn || !nextBtn || !indicator) return;
+
+      const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+      const canScroll = maxScroll > 4;
+      const atStart = viewport.scrollLeft <= 4;
+      const atEnd   = viewport.scrollLeft >= maxScroll - 4;
+
+      if (nav) nav.style.display = canScroll ? "flex" : "none";
+
+      prevBtn.disabled = atStart;
+      nextBtn.disabled = atEnd;
+
+      const step = getTrendScrollStep() || 1;
+      const firstVisible = Math.min(TRENDS.length, Math.floor(viewport.scrollLeft / step) + 1);
+      const visibleCount = getVisibleTrendCount();
+      const lastVisible = Math.min(TRENDS.length, firstVisible + visibleCount - 1);
+
+      indicator.textContent = canScroll
+        ? `${firstVisible}–${lastVisible} of ${TRENDS.length}`
+        : `${TRENDS.length} trend${TRENDS.length !== 1 ? "s" : ""}`;
+    }
+
+    function trendScrollPrev() {
+      const viewport = document.getElementById("trend-viewport");
+      const step = getTrendScrollStep();
+      if (!viewport || !step) return;
+      viewport.scrollBy({ left: -step, behavior: "smooth" });
+    }
+
+    function trendScrollNext() {
+      const viewport = document.getElementById("trend-viewport");
+      const step = getTrendScrollStep();
+      if (!viewport || !step) return;
+      viewport.scrollBy({ left: step, behavior: "smooth" });
+    }
+
+    function bindTrendScrollNav() {
+      const viewport = document.getElementById("trend-viewport");
+      if (!viewport || viewport.dataset.bound === "1") return;
+      viewport.dataset.bound = "1";
+      viewport.addEventListener("scroll", updateTrendScrollNav, { passive: true });
+      window.addEventListener("resize", () => {
+        sizeTrendCards();
+        updateTrendScrollNav();
+      });
     }
 
     // ─── Render: trend selection cards ──────────────────────────────
     function renderTrendCards() {
-      const grid    = document.getElementById("trend-grid");
-      const genBtn  = document.getElementById("generate-btn");
-      const carouselSection = document.getElementById("carousel-section");
+      const carousel = document.getElementById("trend-carousel");
+      const emptyEl  = document.getElementById("trend-empty");
+      const track    = document.getElementById("trend-track");
+      const viewport = document.getElementById("trend-viewport");
+      const genBtn   = document.getElementById("generate-btn");
 
       if (TRENDS.length === 0) {
-        carouselSection.style.display = "none";
-        grid.innerHTML = `
-          <div style="
-            grid-column: 1 / -1;
-            background: var(--surface);
-            border: 1px dashed rgba(196,120,138,0.3);
-            border-radius: var(--radius);
-            padding: 3rem 2rem;
-            text-align: center;
-          ">
-            <div style="width:52px;height:52px;background:var(--accent-soft);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
-              <i data-lucide="message-circle" style="width:22px;height:22px;color:var(--accent);"></i>
-            </div>
-            <div style="font-family:var(--font-display);font-size:1.25rem;font-style:italic;color:var(--text);margin-bottom:0.5rem;">No trends detected yet</div>
-            <p style="font-size:0.875rem;color:var(--text-muted);max-width:400px;margin:0 auto 1.5rem;line-height:1.65;">
-              Run the <strong style="color:var(--text);">Sentiment Engine</strong> first to detect beauty trends from social comments. Results will appear here automatically.
-            </p>
-            <a href="../01_sentiment/index.html" class="btn btn-primary" style="display:inline-flex;text-decoration:none;">
-              <i data-lucide="arrow-right" style="width:15px;height:15px;"></i>
-              Go to Sentiment Engine
-            </a>
-          </div>`;
+        carousel.style.display = "none";
+        emptyEl.style.display = "block";
+        emptyEl.innerHTML = `
+          <div style="width:52px;height:52px;background:var(--accent-soft);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+            <i data-lucide="message-circle" style="width:22px;height:22px;color:var(--accent);"></i>
+          </div>
+          <div style="font-family:var(--font-display);font-size:1.25rem;font-style:italic;color:var(--text);margin-bottom:0.5rem;">No trends detected yet</div>
+          <p style="font-size:0.875rem;color:var(--text-muted);max-width:400px;margin:0 auto 1.5rem;line-height:1.65;">
+            Run the <strong style="color:var(--text);">Sentiment Engine</strong> first to detect beauty trends from social comments. Results will appear here automatically.
+          </p>
+          <a href="../01_sentiment/index.html" class="btn btn-primary" style="display:inline-flex;text-decoration:none;">
+            <i data-lucide="arrow-right" style="width:15px;height:15px;"></i>
+            Go to Sentiment Engine
+          </a>`;
         genBtn.disabled = true;
         lucide.createIcons();
         return;
       }
 
-      // First 4 in the grid, the rest in the carousel
-      const mainTrends = TRENDS.slice(0, VISIBLE_COUNT);
-      carouselTrends   = TRENDS.slice(VISIBLE_COUNT);
-      carouselIndex    = 0;
+      emptyEl.style.display = "none";
+      carousel.style.display = "block";
+      track.innerHTML = TRENDS.map(t => buildTrendCard(t)).join("");
 
-      grid.innerHTML = mainTrends.map(t => buildTrendCard(t)).join("");
-
-      if (carouselTrends.length > 0) {
-        carouselSection.style.display = "block";
-        document.getElementById("carousel-label-text").textContent =
-          `${carouselTrends.length} more trend${carouselTrends.length !== 1 ? "s" : ""}`;
-        renderCarouselSlide();
-      } else {
-        carouselSection.style.display = "none";
-      }
-
+      if (viewport) viewport.scrollLeft = 0;
+      sizeTrendCards();
+      bindTrendScrollNav();
+      updateTrendScrollNav();
       lucide.createIcons();
     }
 
@@ -1566,8 +1587,6 @@ Critical rules — violating any of these makes the output unusable:
 
       // Re-read from localStorage in case Sentiment Engine was re-run
       TRENDS = loadC1Trends();
-      carouselTrends = [];
-      carouselIndex  = 0;
 
       document.querySelectorAll(".trend-option-card").forEach(c => {
         c.classList.remove("selected", "disabled-card");
