@@ -6,6 +6,7 @@
   <title>Sentiment Engine — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="../../assets/config.js"></script>
+  <script src="../../assets/comments.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
     .action-bar {
@@ -406,14 +407,7 @@ Rules:
 - rationale: one sentence, grounded in cosmetic science, explaining the ingredient choice
 - Return ONLY the JSON object. No preamble, no suffix, no code block markers.`;
 
-    // ─── Inline mock data ──────────────────────────────────────────────────────
-    const COMMENTS = [
-      { id: 1, text: "I love the glass-skin look but niacinamide breaks me out, I wish there was something cleaner that plumps skin" },
-      { id: 2, text: "Slugging with petroleum jelly is too heavy, I want something that locks moisture without the greasy feel" },
-      { id: 3, text: "Looking for a reef-safe SPF that doesn't leave a white cast on dark skin tones" },
-      { id: 4, text: "Retinol is too harsh for my sensitive skin, what gives similar anti-aging results?" },
-      { id: 5, text: "I want the dewy K-beauty look without 10 steps, something that does it all in one" }
-    ];
+    // ─── Comment dataset loaded from ../../assets/comments.js ─────────────────
 
     // ─── Keyword fallback map ──────────────────────────────────────────────────
     const KEYWORD_MAP = {
