@@ -612,7 +612,7 @@
         <p class="admin-dept-name">Workforce Architect</p>
         <p class="admin-dept-sub">2-Phase AI: Skill-Gap Analysis → JD Generator</p>
         <a href="../components/05_hr/index.html" class="admin-launch-btn">
-          Open Component 05 <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+          Open Workforce Architect <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
         </a>
       </div>
 
@@ -627,7 +627,7 @@
         <p class="admin-dept-name">Finance / CFO</p>
         <p class="admin-dept-sub">Unit Economics & Compute Trade-off Simulator</p>
         <a href="../components/06_finance/index.html" class="admin-launch-btn">
-          Open Component 06 <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+          Open Finance / CFO <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
         </a>
       </div>
 
@@ -905,7 +905,7 @@
         </div>`}
       `;
 
-      /* ── 2. Sentiment Results (Component 01) ── */
+      /* ── 2. Sentiment Results (Sentiment Engine) ── */
       let c1Data = [];
       try { c1Data = JSON.parse(localStorage.getItem('tf_c1_results') || '[]'); } catch(e) {}
       let c1Body = '';
@@ -925,7 +925,7 @@
         `).join('');
       }
 
-      /* ── 3. Saved Formulas (Component 02) ── */
+      /* ── 3. Saved Formulas (R&D Formulation) ── */
       let formulas = [];
       try { formulas = JSON.parse(localStorage.getItem('tf_saved_formulas') || '[]'); } catch(e) {}
       let fBody = '';
