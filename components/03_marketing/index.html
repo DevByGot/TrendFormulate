@@ -6,6 +6,7 @@
   <title>TikTok Content Engine — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="../../assets/config.js"></script>
+  <script src="../../assets/formulas.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
     /* ── Layout ────────────────────────────────────────────── */
@@ -397,7 +398,7 @@
               <i data-lucide="flask-conical" style="width:12px;height:12px;vertical-align:-1px;margin-right:3px;"></i>
               R&amp;D Lab formulas loaded
             </strong>
-            <span style="color:var(--text-muted);">Formulas saved from R&amp;D Formulation appear at the top of the list.</span>
+            <span style="color:var(--text-muted);">Same product list as your workspace — saved from R&amp;D Formulation.</span>
           </div>
 
           <!-- Formula selector -->
@@ -548,101 +549,46 @@
   <script>
     lucide.createIcons();
 
-    // ─── Default (demo) formula objects ─────────────────────
-    const DEFAULT_FORMULAS = [
-      {
-        name: "Glass Skin Serum",
-        hero_ingredient: "Polyglutamic Acid",
-        ingredient_type: "polysaccharide",
-        mechanism: "forms a moisture-locking film on the skin surface",
-        benefit_stack: ["Glass skin", "Dewy finish", "Zero irritation"],
-        shot_type: "Serum texture drop",
-        fromLab: false
-      },
-      {
-        name: "Bakuchiol Night Cream",
-        hero_ingredient: "Bakuchiol",
-        ingredient_type: "plant-derived retinol alternative",
-        mechanism: "activates retinol receptors without photosensitivity",
-        benefit_stack: ["Anti-ageing", "No photosensitivity", "Safe for sensitive skin"],
-        shot_type: "Cream swipe close-up",
-        fromLab: false
-      },
-      {
-        name: "Zinc SPF 30",
-        hero_ingredient: "Zinc Oxide",
-        ingredient_type: "mineral UV filter",
-        mechanism: "physically deflects UV radiation without chemical absorption",
-        benefit_stack: ["Reef-safe", "No white cast", "Broad spectrum SPF 30"],
-        shot_type: "SPF application B-roll",
-        fromLab: false
-      }
-    ];
-
-    // ─── Load formulas from localStorage workspace ───────────
+    // ─── Load formulas from shared workspace ─────────────────
     let APPROVED_FORMULAS = [];
 
+    function getSelectedFormula() {
+      const id = parseInt(document.getElementById('formula-select').value, 10);
+      return APPROVED_FORMULAS.find(f => f.id === id) || null;
+    }
+
     function loadFormulas() {
-      const STORE_KEY = 'tf_saved_formulas';
-      let labFormulas = [];
-      try { labFormulas = JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch(e) { labFormulas = []; }
+      APPROVED_FORMULAS = TFFormulas.loadAll().map(TFFormulas.toMarketingShape);
 
-      // Map saved lab entries to the APPROVED_FORMULAS shape
-      const labMapped = labFormulas.map(entry => ({
-        name:            entry.name,
-        hero_ingredient: entry.hero_ingredient,
-        ingredient_type: entry.ingredient_type,
-        mechanism:       entry.mechanism,
-        benefit_stack:   entry.benefit_stack,
-        shot_type:       entry.shot_type || 'Product texture close-up',
-        compliance:      entry.compliance,
-        ingredients:     entry.ingredients || [],
-        fromLab:         true
-      }));
-
-      // Lab formulas first, then demo formulas (deduped by name)
-      const labNames = new Set(labMapped.map(f => f.name));
-      const demosFiltered = DEFAULT_FORMULAS.filter(f => !labNames.has(f.name));
-      APPROVED_FORMULAS = [...labMapped, ...demosFiltered];
-
-      // Populate the select
       const sel = document.getElementById('formula-select');
+      const btn = document.getElementById('generate-btn');
       sel.innerHTML = '';
 
-      if (labMapped.length > 0) {
-        const labGroup = document.createElement('optgroup');
-        labGroup.label = '⚗️ From R&D Lab';
-        labMapped.forEach((f, i) => {
-          const opt = document.createElement('option');
-          opt.value = i;
-          const badge = f.compliance === 'compliant' ? ' ✓' : f.compliance === 'violation' ? ' ⚠' : '';
-          opt.textContent = f.name + badge;
-          labGroup.appendChild(opt);
-        });
-        sel.appendChild(labGroup);
-
-        const demoGroup = document.createElement('optgroup');
-        demoGroup.label = '📋 Demo Formulas';
-        demosFiltered.forEach((f, i) => {
-          const opt = document.createElement('option');
-          opt.value = labMapped.length + i;
-          opt.textContent = f.name;
-          demoGroup.appendChild(opt);
-        });
-        if (demosFiltered.length > 0) sel.appendChild(demoGroup);
-
-        document.getElementById('lab-banner').style.display = 'block';
-        lucide.createIcons();
-      } else {
-        DEFAULT_FORMULAS.forEach((f, i) => {
-          const opt = document.createElement('option');
-          opt.value = i;
-          opt.textContent = f.name;
-          sel.appendChild(opt);
-        });
+      if (APPROVED_FORMULAS.length === 0) {
+        sel.innerHTML = '<option value="">No formulas saved yet</option>';
+        sel.disabled = true;
+        btn.disabled = true;
+        document.getElementById('lab-banner').style.display = 'none';
+        document.getElementById('preview-content').innerHTML = `
+          <p style="font-size:0.8125rem;color:var(--text-muted);line-height:1.6;">
+            Save a formula from <a href="../02_formulation/index.html">R&amp;D Formulation</a> — it will appear here automatically.
+          </p>`;
+        return;
       }
 
+      sel.disabled = false;
+      btn.disabled = false;
+      APPROVED_FORMULAS.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        const badge = f.compliance === 'compliant' ? ' ✓' : f.compliance === 'violation' ? ' ⚠' : '';
+        opt.textContent = f.name + badge;
+        sel.appendChild(opt);
+      });
+
+      document.getElementById('lab-banner').style.display = 'block';
       updateFormulaPreview();
+      lucide.createIcons();
     }
 
     // ─── Groq configuration ──────────────────────────────────
@@ -785,19 +731,17 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
     }
 
     function updateFormulaPreview() {
-      const idx = parseInt(document.getElementById('formula-select').value);
-      const f = APPROVED_FORMULAS[idx];
+      const f = getSelectedFormula();
       if (!f) return;
 
-      const complianceLine = f.fromLab
-        ? (() => {
-            if (f.compliance === 'compliant')   return `<span style="font-size:0.72rem;padding:0.15rem 0.5rem;background:rgba(109,170,69,0.1);border:1px solid rgba(109,170,69,0.25);border-radius:999px;color:var(--success);font-weight:600;">✓ EU &amp; FDA Compliant</span>`;
-            if (f.compliance === 'violation')   return `<span style="font-size:0.72rem;padding:0.15rem 0.5rem;background:rgba(221,105,116,0.1);border:1px solid rgba(221,105,116,0.2);border-radius:999px;color:var(--error);font-weight:600;">⚠ Violations present</span>`;
-            return `<span style="font-size:0.72rem;padding:0.15rem 0.5rem;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;color:var(--text-muted);">Not audited</span>`;
-          })()
-        : '';
+      const complianceLine = (() => {
+        if (f.compliance === 'compliant')   return `<span style="font-size:0.72rem;padding:0.15rem 0.5rem;background:rgba(109,170,69,0.1);border:1px solid rgba(109,170,69,0.25);border-radius:999px;color:var(--success);font-weight:600;">✓ EU &amp; FDA Compliant</span>`;
+        if (f.compliance === 'violation')   return `<span style="font-size:0.72rem;padding:0.15rem 0.5rem;background:rgba(221,105,116,0.1);border:1px solid rgba(221,105,116,0.2);border-radius:999px;color:var(--error);font-weight:600;">⚠ Violations present</span>`;
+        if (f.compliance === 'caution')     return `<span style="font-size:0.72rem;padding:0.15rem 0.5rem;background:rgba(222,165,80,0.1);border:1px solid rgba(222,165,80,0.25);border-radius:999px;color:var(--warning);font-weight:600;">Caution</span>`;
+        return '';
+      })();
 
-      const ingredientRows = f.fromLab && f.ingredients && f.ingredients.length > 0
+      const ingredientRows = f.ingredients && f.ingredients.length > 0
         ? `<div style="margin-top:0.625rem;border-top:1px solid var(--border);padding-top:0.625rem;">
             <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:0.35rem;">Ingredients</div>
             ${f.ingredients.slice(0, 5).map(i =>
@@ -814,7 +758,7 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
         <div style="display:flex;flex-direction:column;gap:0.5rem;">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.35rem;">
             <span style="font-size:0.9375rem;font-weight:600;color:var(--text);">${f.name}</span>
-            ${f.fromLab ? '<span style="font-size:0.6875rem;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-mid);border-radius:999px;padding:0.1rem 0.5rem;font-weight:600;">⚗️ From Lab</span>' : ''}
+            <span style="font-size:0.6875rem;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent-mid);border-radius:999px;padding:0.1rem 0.5rem;font-weight:600;">⚗️ From Lab</span>
           </div>
           ${complianceLine ? `<div style="margin-top:0.1rem;">${complianceLine}</div>` : ''}
           <div style="font-size:0.8125rem;color:var(--text-muted);">
@@ -845,8 +789,10 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
 
     document.getElementById('formula-select').addEventListener('change', updateFormulaPreview);
 
-    // Boot: load formulas from localStorage (must come after event listener is set)
+    // Boot: load formulas from shared workspace
     loadFormulas();
+    window.addEventListener('tf-formulas-changed', loadFormulas);
+    window.addEventListener('storage', e => { if (e.key === TFFormulas.STORE_KEY) loadFormulas(); });
 
     // ─── Generate logic ──────────────────────────────────────
     const GEN_STEPS = [
@@ -892,10 +838,20 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
         document.getElementById('gen-label').textContent = GEN_STEPS[step];
       }, 900);
 
-      const formulaIdx = parseInt(document.getElementById('formula-select').value);
-      const formula    = APPROVED_FORMULAS[formulaIdx];
+      const formula = getSelectedFormula();
       const tone       = getSelectedTone();
       const demographic = document.getElementById('demo-select').value;
+
+      if (!formula) {
+        clearInterval(stepInterval);
+        stepInterval = null;
+        genState.classList.remove('visible');
+        document.getElementById('idle-placeholder').style.display = '';
+        btn.disabled = true;
+        btn.classList.remove('generating');
+        showToast('Save a formula in R&D Formulation first.');
+        return;
+      }
 
       try {
         const script = await generateScriptAI(formula, tone, demographic);
@@ -1045,8 +1001,7 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
     // ─── Copy script to clipboard ────────────────────────────
     function copyScript() {
       if (!lastScript) return;
-      const formulaIdx = parseInt(document.getElementById('formula-select').value);
-      const formula = APPROVED_FORMULAS[formulaIdx];
+      const formula = getSelectedFormula();
       const tone = getSelectedTone();
       const demo = document.getElementById('demo-select').value;
 

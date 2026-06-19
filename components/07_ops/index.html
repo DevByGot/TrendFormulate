@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Supply Chain Architect — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
+  <script src="../../assets/formulas.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
     /* ── Single-column container ─────────────────────────────── */
@@ -576,11 +577,7 @@
             <div class="form-row" style="margin:0;">
               <label for="formula-select">Product formula</label>
               <select id="formula-select">
-                <option value="Glass Skin Serum">Glass Skin Serum</option>
-                <option value="Bakuchiol Night Cream">Bakuchiol Night Cream</option>
-                <option value="Zinc SPF 30">Zinc SPF 30</option>
-                <option value="Peptide Eye Cream">Peptide Eye Cream</option>
-                <option value="Vitamin C Brightening Serum">Vitamin C Brightening Serum</option>
+                <!-- populated from workspace -->
               </select>
             </div>
 
@@ -747,89 +744,43 @@
     defaultDate.setDate(defaultDate.getDate() + 90);
     document.getElementById('launch-date').value = defaultDate.toISOString().split('T')[0];
 
-    /* ─── Formula definitions ────────────────────────────────── */
-    const FORMULAS = {
-      "Glass Skin Serum": {
-        desc: "Water-based serum: 2% niacinamide, 1% hyaluronic acid, centella asiatica extract, plant-derived squalane. No synthetic fragrance. Clean beauty positioning."
-      },
-      "Bakuchiol Night Cream": {
-        desc: "Natural retinol alternative: 1% bakuchiol, sea buckthorn oil, rosehip CO₂ extract, organic shea butter. Full USDA Organic ingredient stack."
-      },
-      "Zinc SPF 30": {
-        desc: "Mineral sunscreen: 20% non-nano zinc oxide, cyclopentasiloxane, vitamin E. FDA OTC drug (21 CFR 352). Dual US/EU launch planned."
-      },
-      "Peptide Eye Cream": {
-        desc: "Multi-peptide complex: Argireline 5%, Matrixyl 3000, caffeine, ceramide NP. Heat-sensitive actives — pharma-grade clean-room manufacturing required."
-      },
-      "Vitamin C Brightening Serum": {
-        desc: "15% L-ascorbic acid at pH 3.5 with ferulic acid and vitamin E. Highly oxidation-sensitive — requires N₂ blanket filling and amber glass packaging."
-      }
-    };
-
-    /* ─── Fallback profiles (when Groq API is unavailable) ───── */
-    const FALLBACK_PROFILES = {
-      "Glass Skin Serum": {
-        batch_tier: "pilot",
-        recommended_moq: 500,
-        emulsification_method: "cold-mix",
-        required_certifications: ["ISO 22716"],
-        preferred_regions: ["Asia", "Europe"],
-        special_capabilities: ["cold_mix", "botanical_extracts"],
-        regulatory_notes: "Clean beauty formulation compliant with EU Cosmetics Regulation 1223/2009 and US FDA voluntary guidelines. No OTC classification required. Cold-mix emulsification is recommended to preserve centella asiatica and hyaluronic acid bioactives.",
-        hard_filter_certifications: []
-      },
-      "Bakuchiol Night Cream": {
-        batch_tier: "pilot",
-        recommended_moq: 500,
-        emulsification_method: "hot-mix",
-        required_certifications: ["Ecocert", "COSMOS"],
-        preferred_regions: ["Europe", "Asia"],
-        special_capabilities: ["botanical_extracts", "organic_handling"],
-        regulatory_notes: "Organic ingredient stack demands a COSMOS or Ecocert-certified contract manufacturer. Sea buckthorn and rosehip CO₂ extracts require cold-chain handling during formulation to preserve bioactive integrity. EU COSMOS standard applies.",
-        hard_filter_certifications: ["Ecocert"]
-      },
-      "Zinc SPF 30": {
-        batch_tier: "mid",
-        recommended_moq: 1000,
-        emulsification_method: "hot-mix",
-        required_certifications: ["FDA Registered", "cGMP"],
-        preferred_regions: ["North America"],
-        special_capabilities: ["sunscreen_otc", "mineral_uv"],
-        regulatory_notes: "Classified as OTC drug under FDA 21 CFR 352. Requires an FDA-registered facility with full cGMP compliance. For EU dual launch: verify zinc oxide compliance under Annex VI (Entry 30 — max 25% ZnO). Manufacturer must hold FDA OTC capability.",
-        hard_filter_certifications: ["FDA Registered"]
-      },
-      "Peptide Eye Cream": {
-        batch_tier: "pilot",
-        recommended_moq: 500,
-        emulsification_method: "cold-mix",
-        required_certifications: ["ISO 22716", "EU GMP"],
-        preferred_regions: ["Europe", "North America"],
-        special_capabilities: ["peptide_formulation", "clean_room"],
-        regulatory_notes: "Peptide actives (Argireline, Matrixyl) are heat-labile — cold-mix emulsification is mandatory. High-value formula demands clean-room manufacturing (ISO Class 7 or better) to prevent microbial and cross-contamination. EU GMP compliance recommended for premium positioning.",
-        hard_filter_certifications: []
-      },
-      "Vitamin C Brightening Serum": {
-        batch_tier: "pilot",
-        recommended_moq: 500,
-        emulsification_method: "cold-mix",
-        required_certifications: ["ISO 22716"],
-        preferred_regions: ["Asia", "Europe", "North America"],
-        special_capabilities: ["cold_mix"],
-        regulatory_notes: "L-Ascorbic acid is acutely oxidation-sensitive. Manufacturing must use nitrogen (N₂) blanket filling, maintain a pH-controlled environment (target pH 3.5 ± 0.1), and specify amber glass packaging. Absolutely zero heat exposure during formulation.",
-        hard_filter_certifications: []
-      }
-    };
-
-    /* ─── Formula description ────────────────────────────────── */
+    /* ─── Load formulas from shared workspace ───────────────── */
     const formulaSel  = document.getElementById('formula-select');
     const formulaDesc = document.getElementById('formula-desc');
+    const runBtn      = document.getElementById('run-btn');
+
+    function loadFormulasForOps() {
+      const formulas = TFFormulas.loadAll();
+      formulaSel.innerHTML = '';
+
+      if (formulas.length === 0) {
+        formulaSel.innerHTML = '<option value="">No formulas saved yet</option>';
+        formulaSel.disabled = true;
+        runBtn.disabled = true;
+        formulaDesc.innerHTML = 'Save a formula in <a href="../02_formulation/index.html">R&amp;D Formulation</a> — it will appear here automatically.';
+        return;
+      }
+
+      formulaSel.disabled = false;
+      runBtn.disabled = false;
+      formulas.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.name;
+        opt.textContent = f.name;
+        formulaSel.appendChild(opt);
+      });
+      updateFormulaDesc();
+    }
 
     function updateFormulaDesc() {
-      const f = FORMULAS[formulaSel.value];
-      formulaDesc.textContent = f ? f.desc : '';
+      const name = formulaSel.value;
+      const entry = TFFormulas.getByName(name);
+      formulaDesc.textContent = entry ? TFFormulas.buildDescription(entry) : '';
     }
     formulaSel.addEventListener('change', updateFormulaDesc);
-    updateFormulaDesc();
+    loadFormulasForOps();
+    window.addEventListener('tf-formulas-changed', loadFormulasForOps);
+    window.addEventListener('storage', e => { if (e.key === TFFormulas.STORE_KEY) loadFormulasForOps(); });
 
     /* ─── Strategy tile selection ────────────────────────────── */
     const strategyGrid = document.getElementById('strategy-grid');
@@ -874,7 +825,8 @@
 
     /* ─── Tier 1: Groq LLM — extract manufacturing profile ────── */
     async function extractProfile(formulaName, market, launchDate) {
-      const formulaData = FORMULAS[formulaName];
+      const entry = TFFormulas.getByName(formulaName);
+      const description = entry ? TFFormulas.buildDescription(entry) : formulaName;
 
       const systemPrompt = `You are an expert cosmetic manufacturing procurement director. Analyze the provided beauty formula and extract structured manufacturing requirements.
 Return ONLY a valid JSON object — no markdown, no explanation, no code fences.
@@ -897,7 +849,7 @@ special_capabilities allowed values: cold_mix, hot_mix, botanical_extracts, mine
 hard_filter_certifications: certifications that are absolutely non-negotiable for regulatory or quality reasons (empty array if none strictly required)`;
 
       const userPrompt = `Formula: ${formulaName}
-Description: ${formulaData.desc}
+Description: ${description}
 Target Market: ${market}
 Target Launch Date: ${launchDate}
 
@@ -926,7 +878,9 @@ Extract the manufacturing requirements profile.`;
 
       } catch (err) {
         console.warn('Groq API unavailable — using fallback profile:', err.message);
-        return FALLBACK_PROFILES[formulaName] || FALLBACK_PROFILES['Glass Skin Serum'];
+        return entry
+          ? TFFormulas.buildGenericFallbackProfile(entry)
+          : TFFormulas.buildGenericFallbackProfile({ name: formulaName, description });
       }
     }
 
@@ -1258,6 +1212,11 @@ Total production budget at MOQ: $${totalCost}`;
     document.getElementById('run-btn').addEventListener('click', async () => {
       const panel = document.getElementById('results-panel');
       const btn   = document.getElementById('run-btn');
+
+      if (!formulaSel.value) {
+        alert('Save a formula in R&D Formulation first.');
+        return;
+      }
 
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner"></span> Analysing…`;

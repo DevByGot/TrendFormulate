@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../../assets/style.css" />
   <script src="../../assets/config.js"></script>
   <script src="../../assets/cosing_db.js"></script>
+  <script src="../../assets/formulas.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
     /* ── Step progress ───────────────────────────────────────────── */
@@ -1538,7 +1539,7 @@ Critical rules — violating any of these makes the output unusable:
         .replace(/"/g, "&quot;");
     }
 
-    // ─── Save to localStorage workspace ─────────────────────────────
+    // ─── Save to shared workspace ───────────────────────────────────
     function saveToWorkspace(formula, compliance) {
       const entry = {
         id:              Date.now(),
@@ -1553,12 +1554,8 @@ Critical rules — violating any of these makes the output unusable:
         shot_type:       "Product texture close-up",
         savedAt:         new Date().toISOString()
       };
-      const STORE_KEY = "tf_saved_formulas";
-      let saved = [];
-      try { saved = JSON.parse(localStorage.getItem(STORE_KEY) || "[]"); } catch(e) { saved = []; }
-      const idx = saved.findIndex(f => f.name === entry.name);
-      if (idx !== -1) { saved[idx] = entry; } else { saved.push(entry); }
-      localStorage.setItem(STORE_KEY, JSON.stringify(saved));
+      entry.description = TFFormulas.buildDescription(entry);
+      TFFormulas.save(entry);
     }
 
     // ─── Export full report as JSON ──────────────────────────────────

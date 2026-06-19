@@ -422,6 +422,197 @@
       color: var(--text-faint);
       letter-spacing: 0.04em;
     }
+
+    /* ─── Products workspace ──────────────────────────────────── */
+    .products-section {
+      margin-bottom: 2.5rem;
+    }
+    .products-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.375rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .products-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-top: 0.75rem;
+    }
+    .product-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.65rem 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .product-row:hover {
+      border-color: var(--accent-mid);
+      background: var(--accent-soft);
+      box-shadow: var(--shadow-sm);
+    }
+    .product-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .product-meta {
+      font-size: 0.72rem;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+    .products-empty {
+      padding: 1.5rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-sm);
+      margin-top: 0.75rem;
+    }
+    .products-empty a {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ─── Product detail modal ────────────────────────────────── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(30, 20, 24, 0.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      max-width: 520px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .modal-header h3 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      font-style: italic;
+      font-weight: 400;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .modal-close:hover { color: var(--text); background: var(--surface-2); }
+    .modal-section {
+      margin-bottom: 1rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .modal-section strong {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-faint);
+      margin-bottom: 0.35rem;
+    }
+    .modal-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .modal-tag {
+      font-size: 0.6875rem;
+      padding: 0.15rem 0.5rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--text-muted);
+    }
+    .modal-ingredient-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.2rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-ingredient-row:last-child { border-bottom: none; }
+    .modal-actions {
+      display: flex;
+      gap: 0.625rem;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .btn-delete {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.55rem 1rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--error);
+      background: rgba(221, 105, 116, 0.08);
+      border: 1px solid rgba(221, 105, 116, 0.25);
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-delete:hover { background: rgba(221, 105, 116, 0.15); }
+    .btn-open-lab {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.55rem 1rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: #fff;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-pill);
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn-open-lab:hover { background: var(--accent-hover); color: #fff; text-decoration: none; }
+    .compliance-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      margin-bottom: 0.5rem;
+    }
+    .compliance-badge.compliant { background: rgba(109,170,69,0.1); color: var(--success); border: 1px solid rgba(109,170,69,0.25); }
+    .compliance-badge.caution   { background: rgba(222,165,80,0.1); color: var(--warning); border: 1px solid rgba(222,165,80,0.25); }
+    .compliance-badge.violation  { background: rgba(221,105,116,0.1); color: var(--error); border: 1px solid rgba(221,105,116,0.25); }
   </style>
 </head>
 <body>
@@ -438,9 +629,9 @@
     <div style="display:flex;align-items:center;gap:0.75rem;">
       <div class="live-counter">
         <div class="live-dot"></div>
-        <span class="count-label">Formulas today</span>
-        <span id="formula-counter" class="count-num">1,247</span>
-        <span class="count-unit">generated</span>
+        <span class="count-label">Saved products</span>
+        <span id="formula-counter" class="count-num">0</span>
+        <span class="count-unit">in workspace</span>
       </div>
       <button onclick="resetDemo()" title="Clear access token and restart from waitlist" style="display:flex;align-items:center;gap:0.375rem;font-size:0.75rem;color:var(--text-muted);background:transparent;border:1px solid var(--border);border-radius:var(--radius-pill);padding:0.35rem 0.75rem;cursor:pointer;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='var(--surface-2)';this.style.color='var(--text)';" onmouseout="this.style.background='transparent';this.style.color='var(--text-muted)';">
         <i data-lucide="rotate-ccw" style="width:12px;height:12px;"></i> Reset Demo
@@ -459,6 +650,40 @@
       <div class="hero-ornament">✦</div>
     </div>
 
+    <!-- ─── Your Products ─────────────────────────────────────── -->
+    <section class="products-section">
+      <div class="section-header">
+        <div>
+          <h2>Your Products</h2>
+          <p>Formulas saved from R&amp;D Formulation — shared across all departments</p>
+        </div>
+        <div class="section-header-line"></div>
+      </div>
+      <div class="products-panel">
+        <div id="products-list" class="products-list"></div>
+      </div>
+    </section>
+
+    <!-- Product detail modal -->
+    <div class="modal-backdrop" id="product-modal" onclick="if(event.target===this)closeProductModal()">
+      <div class="modal-card" role="dialog" aria-labelledby="modal-title">
+        <div class="modal-header">
+          <h3 id="modal-title"></h3>
+          <button class="modal-close" onclick="closeProductModal()" aria-label="Close">
+            <i data-lucide="x" style="width:18px;height:18px;"></i>
+          </button>
+        </div>
+        <div id="modal-body"></div>
+        <div class="modal-actions">
+          <button class="btn-delete" id="modal-delete-btn" onclick="deleteCurrentProduct()">
+            <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete formula
+          </button>
+          <a href="components/02_formulation/index.html" class="btn-open-lab">
+            <i data-lucide="flask-conical" style="width:14px;height:14px;"></i> Open R&amp;D Lab
+          </a>
+        </div>
+      </div>
+    </div>
 
     <!-- ─── Department Grid ───────────────────────────────────── -->
     <div class="dept-grid">
@@ -536,20 +761,109 @@
 
   </div>
 
+  <script src="assets/formulas.js"></script>
   <script src="assets/chat-bubble.js"></script>
   <script>
     lucide.createIcons();
+
+    let activeProductId = null;
 
     function resetDemo() {
       localStorage.removeItem('tf_waitlist_access');
       window.location.replace('./components/04_sales/index.html');
     }
 
-    let count = 1247;
-    setInterval(() => {
-      count += Math.floor(Math.random() * 3) + 1;
-      document.getElementById('formula-counter').textContent = count.toLocaleString();
-    }, 3000);
+    function formatSavedAt(iso) {
+      if (!iso) return '';
+      try {
+        return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function renderProductsList() {
+      const listEl = document.getElementById('products-list');
+      const formulas = TFFormulas.loadAll();
+      document.getElementById('formula-counter').textContent = formulas.length.toLocaleString();
+
+      if (formulas.length === 0) {
+        listEl.innerHTML = `
+          <div class="products-empty">
+            No products yet. Generate and save a formula in
+            <a href="components/02_formulation/index.html">R&amp;D Formulation</a>
+            — it will appear here and in Marketing, Operations, and other departments.
+          </div>`;
+        return;
+      }
+
+      listEl.innerHTML = formulas.map(f => `
+        <div class="product-row" onclick="openProductModal(${f.id})" role="button" tabindex="0"
+             onkeydown="if(event.key==='Enter'||event.key===' ')openProductModal(${f.id})">
+          <span class="product-name">${TFFormulas.escHtml(f.name)}</span>
+          <span class="product-meta">${formatSavedAt(f.savedAt)}</span>
+        </div>
+      `).join('');
+    }
+
+    function openProductModal(id) {
+      const f = TFFormulas.getById(id);
+      if (!f) return;
+      activeProductId = id;
+
+      document.getElementById('modal-title').textContent = f.name;
+
+      const complianceClass = f.compliance || '';
+      const complianceLabel = f.compliance === 'compliant' ? 'EU & FDA Compliant'
+        : f.compliance === 'caution' ? 'Caution — review required'
+        : f.compliance === 'violation' ? 'Violations present'
+        : '';
+
+      const ingredients = (f.ingredients || []).map(i => `
+        <div class="modal-ingredient-row">
+          <span>${TFFormulas.escHtml(i.inci || i.name)}</span>
+          <span style="color:var(--accent);font-weight:600;">${i.pct != null ? i.pct + '%' : ''}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('modal-body').innerHTML = `
+        ${complianceLabel ? `<span class="compliance-badge ${complianceClass}">${complianceLabel}</span>` : ''}
+        <div class="modal-section">
+          <strong>Hero ingredient</strong>
+          ${TFFormulas.escHtml(f.hero_ingredient || '—')}${f.hero_inci ? ` (${TFFormulas.escHtml(f.hero_inci)})` : ''}
+        </div>
+        ${f.mechanism ? `<div class="modal-section"><strong>Mechanism</strong>${TFFormulas.escHtml(f.mechanism)}</div>` : ''}
+        ${(f.benefit_stack || []).length ? `
+          <div class="modal-section">
+            <strong>Marketing claims</strong>
+            <div class="modal-tags">${f.benefit_stack.map(b => `<span class="modal-tag">${TFFormulas.escHtml(b)}</span>`).join('')}</div>
+          </div>` : ''}
+        ${ingredients ? `<div class="modal-section"><strong>INCI breakdown</strong>${ingredients}</div>` : ''}
+        ${f.savedAt ? `<div class="modal-section" style="font-size:0.75rem;color:var(--text-faint);">Saved ${formatSavedAt(f.savedAt)}</div>` : ''}
+      `;
+
+      document.getElementById('product-modal').classList.add('open');
+      lucide.createIcons();
+    }
+
+    function closeProductModal() {
+      document.getElementById('product-modal').classList.remove('open');
+      activeProductId = null;
+    }
+
+    function deleteCurrentProduct() {
+      if (!activeProductId) return;
+      const f = TFFormulas.getById(activeProductId);
+      if (!f) return;
+      if (!confirm(`Delete "${f.name}"? This removes it from all departments.`)) return;
+      TFFormulas.deleteById(activeProductId);
+      closeProductModal();
+      renderProductsList();
+    }
+
+    renderProductsList();
+    window.addEventListener('tf-formulas-changed', renderProductsList);
+    window.addEventListener('storage', e => { if (e.key === TFFormulas.STORE_KEY) renderProductsList(); });
   </script>
 </body>
 </html>
