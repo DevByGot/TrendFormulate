@@ -128,6 +128,71 @@
       margin-top: 0.5rem;
       line-height: 1.4;
     }
+    /* ── Carousel (overflow trends) ─────────────────────────────── */
+    .carousel-section {
+      margin-top: 1rem;
+    }
+    .carousel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .carousel-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .carousel-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .carousel-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      flex-shrink: 0;
+    }
+    .carousel-btn:hover:not(:disabled) {
+      border-color: var(--accent-mid);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .carousel-btn:disabled { opacity: 0.35; cursor: default; }
+    .carousel-indicator {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      min-width: 44px;
+      text-align: center;
+    }
+    .carousel-slide {
+      display: none;
+    }
+    .carousel-slide.active {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+      animation: cslidein 0.22s ease;
+    }
+    @keyframes cslidein {
+      from { opacity: 0; transform: translateX(10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
     /* ── CTA bar ─────────────────────────────────────────────────── */
     .cta-bar {
       display: flex;
@@ -641,6 +706,26 @@
       </div>
 
       <div class="trend-grid" id="trend-grid"></div>
+
+      <!-- Carousel for trends beyond the first 4 -->
+      <div class="carousel-section" id="carousel-section" style="display:none;">
+        <div class="carousel-header">
+          <div class="carousel-label">
+            <i data-lucide="layers" style="width:13px;height:13px;"></i>
+            <span id="carousel-label-text">More trends</span>
+          </div>
+          <div class="carousel-controls">
+            <button class="carousel-btn" id="carousel-prev" onclick="carouselPrev()" disabled>
+              <i data-lucide="chevron-left" style="width:15px;height:15px;"></i>
+            </button>
+            <span class="carousel-indicator" id="carousel-indicator">1 / 1</span>
+            <button class="carousel-btn" id="carousel-next" onclick="carouselNext()">
+              <i data-lucide="chevron-right" style="width:15px;height:15px;"></i>
+            </button>
+          </div>
+        </div>
+        <div id="carousel-track"></div>
+      </div>
 
       <div class="cta-bar">
         <button class="btn btn-primary" id="generate-btn" disabled>
@@ -1207,13 +1292,66 @@ Critical rules — violating any of these makes the output unusable:
       lucide.createIcons();
     }
 
+    // ─── Carousel state ──────────────────────────────────────────────
+    let carouselTrends = [];
+    let carouselIndex  = 0;
+    const VISIBLE_COUNT = 4; // trends always shown in the main grid
+
+    // ─── Build a single trend card HTML string ───────────────────────
+    function buildTrendCard(t) {
+      return `
+        <div class="trend-option-card" id="trend-card-${t.id}" onclick="selectTrend(${t.id})">
+          <div class="trend-card-check">
+            <i data-lucide="check" style="width:11px;height:11px;color:#fff;"></i>
+          </div>
+          <div style="margin-bottom:0.5rem;">
+            <div class="trend-name">${esc(t.trend)}</div>
+          </div>
+          <div class="trend-pain">${esc(t.pain_point)}</div>
+          <div class="trend-ings">
+            ${t.ingredients.map(i => `<span class="trend-ing-pill">${esc(i)}</span>`).join("")}
+          </div>
+          ${t.source ? `<div class="trend-source">${esc(t.source)}</div>` : ""}
+        </div>`;
+    }
+
+    // ─── Render carousel slide ───────────────────────────────────────
+    function renderCarouselSlide() {
+      const track     = document.getElementById("carousel-track");
+      const indicator = document.getElementById("carousel-indicator");
+      const prevBtn   = document.getElementById("carousel-prev");
+      const nextBtn   = document.getElementById("carousel-next");
+
+      // Each carousel "page" shows one card
+      track.innerHTML = `<div class="carousel-slide active">${buildTrendCard(carouselTrends[carouselIndex])}</div>`;
+
+      indicator.textContent = `${carouselIndex + 1} / ${carouselTrends.length}`;
+      prevBtn.disabled = carouselIndex === 0;
+      nextBtn.disabled = carouselIndex === carouselTrends.length - 1;
+      lucide.createIcons();
+
+      // Restore selected state if the card in view is selected
+      if (selectedTrend && document.getElementById(`trend-card-${selectedTrend.id}`)) {
+        document.getElementById(`trend-card-${selectedTrend.id}`).classList.add("selected");
+      }
+    }
+
+    function carouselPrev() {
+      if (carouselIndex > 0) { carouselIndex--; renderCarouselSlide(); }
+    }
+
+    function carouselNext() {
+      if (carouselIndex < carouselTrends.length - 1) { carouselIndex++; renderCarouselSlide(); }
+    }
+
     // ─── Render: trend selection cards ──────────────────────────────
     function renderTrendCards() {
       const grid    = document.getElementById("trend-grid");
       const genBtn  = document.getElementById("generate-btn");
+      const carouselSection = document.getElementById("carousel-section");
 
       if (TRENDS.length === 0) {
-        // No data from Sentiment Engine — show empty state
+        carouselSection.style.display = "none";
         grid.innerHTML = `
           <div style="
             grid-column: 1 / -1;
@@ -1240,20 +1378,22 @@ Critical rules — violating any of these makes the output unusable:
         return;
       }
 
-      grid.innerHTML = TRENDS.map(t => `
-        <div class="trend-option-card" id="trend-card-${t.id}" onclick="selectTrend(${t.id})">
-          <div class="trend-card-check">
-            <i data-lucide="check" style="width:11px;height:11px;color:#fff;"></i>
-          </div>
-          <div style="margin-bottom:0.5rem;">
-            <div class="trend-name">${esc(t.trend)}</div>
-          </div>
-          <div class="trend-pain">${esc(t.pain_point)}</div>
-          <div class="trend-ings">
-            ${t.ingredients.map(i => `<span class="trend-ing-pill">${esc(i)}</span>`).join("")}
-          </div>
-          ${t.source ? `<div class="trend-source">${esc(t.source)}</div>` : ""}
-        </div>`).join("");
+      // First 4 in the grid, the rest in the carousel
+      const mainTrends = TRENDS.slice(0, VISIBLE_COUNT);
+      carouselTrends   = TRENDS.slice(VISIBLE_COUNT);
+      carouselIndex    = 0;
+
+      grid.innerHTML = mainTrends.map(t => buildTrendCard(t)).join("");
+
+      if (carouselTrends.length > 0) {
+        carouselSection.style.display = "block";
+        document.getElementById("carousel-label-text").textContent =
+          `${carouselTrends.length} more trend${carouselTrends.length !== 1 ? "s" : ""}`;
+        renderCarouselSlide();
+      } else {
+        carouselSection.style.display = "none";
+      }
+
       lucide.createIcons();
     }
 
@@ -1261,7 +1401,8 @@ Critical rules — violating any of these makes the output unusable:
     function selectTrend(id) {
       selectedTrend = TRENDS.find(t => t.id === id);
       document.querySelectorAll(".trend-option-card").forEach(c => c.classList.remove("selected"));
-      document.getElementById(`trend-card-${id}`).classList.add("selected");
+      const card = document.getElementById(`trend-card-${id}`);
+      if (card) card.classList.add("selected");
       document.getElementById("generate-btn").disabled = false;
       lucide.createIcons();
     }
@@ -1351,6 +1492,8 @@ Critical rules — violating any of these makes the output unusable:
 
       // Re-read from localStorage in case Sentiment Engine was re-run
       TRENDS = loadC1Trends();
+      carouselTrends = [];
+      carouselIndex  = 0;
 
       document.querySelectorAll(".trend-option-card").forEach(c => {
         c.classList.remove("selected", "disabled-card");
