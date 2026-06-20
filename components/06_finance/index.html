@@ -675,7 +675,7 @@
               <button class="tier-btn" data-tier="llama70b">Llama 70B<br><span style="font-size:0.6rem;opacity:0.7;">$0.59/$0.79</span></button>
               <button class="tier-btn" data-tier="llama8b">Llama 8B<br><span style="font-size:0.6rem;opacity:0.7;">$0.05/$0.08</span></button>
             </div>
-            <div class="tier-sub" id="tierSubLabel">Production pipeline — Sentiment 20B · Formulation 70B · Marketing 120B · Ops 8B</div>
+            <div class="tier-sub" id="tierSubLabel">Production pipeline — Sentiment 20B · Formulation 120B · Marketing 120B · Ops 8B</div>
           </div>
 
         </div>
@@ -754,7 +754,7 @@
 
             <!-- Input box -->
             <div class="tf-node input-node">
-              <div class="tf-node-title">Formulator Prompt (C2 · 70B input)</div>
+              <div class="tf-node-title">Formulator Prompt (C2 · 120B input)</div>
               <div class="tf-item">
                 <span>📊 Trend payload (from C1)</span>
                 <span class="tf-tok" id="tfTrendTok">15,000</span>
@@ -805,7 +805,7 @@
             <div class="tf-node output-node">
               <div class="tf-node-title">C2/C3 deliverables (per iteration)</div>
               <div class="tf-item">
-                <span>🧪 Formula recipe (C2 · 70B)</span>
+                <span>🧪 Formula recipe (C2 · 120B)</span>
                 <span class="tf-tok" id="tfFormulaTok">4,062</span>
               </div>
               <div class="tf-item">
@@ -1066,12 +1066,12 @@
     /* ─── Groq model rates (2026 API pricing) ───────────────── */
     const MODELS = {
       oss20b:   { inPerM: 0.075, outPerM: 0.30, label: 'GPT OSS 20B — Sentiment & Forma SDR (openai/gpt-oss-20b)' },
-      oss120b:  { inPerM: 0.15,  outPerM: 0.60, label: 'GPT OSS 120B — Marketing & HR (openai/gpt-oss-120b)' },
-      llama70b: { inPerM: 0.59,  outPerM: 0.79, label: 'Llama 3.3 70B — Formulation Agent (llama-3.3-70b-versatile)' },
+      oss120b:  { inPerM: 0.15,  outPerM: 0.60, label: 'GPT OSS 120B — Formulation, Marketing & HR (openai/gpt-oss-120b)' },
+      llama70b: { inPerM: 0.59,  outPerM: 0.79, label: 'Llama 3.3 70B — comparison tier (llama-3.3-70b-versatile)' },
       llama8b:  { inPerM: 0.05,  outPerM: 0.08, label: 'Llama 3.1 8B — Ops profile extract (llama-3.1-8b-instant)' }
     };
     const TIERS = {
-      pipeline: { label: 'Production pipeline — Sentiment 20B · Formulation 70B · Marketing 120B · Ops 8B' },
+      pipeline: { label: 'Production pipeline — Sentiment 20B · Formulation 120B · Marketing 120B · Ops 8B' },
       oss20b:   MODELS.oss20b,
       oss120b:  MODELS.oss120b,
       llama70b: MODELS.llama70b,
@@ -1157,10 +1157,9 @@
       const marketOut   = effOutput - formulaOut;
 
       if (tierKey === 'pipeline') {
-        const m70 = MODELS.llama70b;
         const m120 = MODELS.oss120b;
-        const inCost = (effInput / 1_000_000) * m70.inPerM;
-        const formulaCost = (formulaOut / 1_000_000) * m70.outPerM;
+        const inCost = (effInput / 1_000_000) * m120.inPerM;
+        const formulaCost = (formulaOut / 1_000_000) * m120.outPerM;
         const marketCost  = (marketOut  / 1_000_000) * m120.outPerM;
         const { sentimentCost, opsCost, hrCost } = calcPipelineFixedCosts();
         const outCost = formulaCost + marketCost;
@@ -1373,7 +1372,6 @@
 
       let breakdownHtml;
       if (isPipeline) {
-        const m70  = MODELS.llama70b;
         const m120 = MODELS.oss120b;
         const m20  = MODELS.oss20b;
         const m8   = MODELS.llama8b;
@@ -1382,8 +1380,8 @@
         const sentimentOutCost = calcOutCost(SENTIMENT_TOK.output, 1, m20);
         const opsInCost        = calcInCost(OPS_TOK.input, 1, m8);
         const opsOutCost       = calcOutCost(OPS_TOK.output, 1, m8);
-        const trendInCost      = calcInCost(trendShare, inp.iterations, m70);
-        const safetyInCost     = calcInCost(safetyShare, inp.iterations, m70);
+        const trendInCost      = calcInCost(trendShare, inp.iterations, m120);
+        const safetyInCost     = calcInCost(safetyShare, inp.iterations, m120);
         const inputSubtotalCost = sentimentInCost + trendInCost + safetyInCost + opsInCost;
         const outputSubtotalCost = sentimentOutCost + r.formulaCost + r.marketCost + opsOutCost;
         const inputEffTok  = SENTIMENT_TOK.input + trendShare * inp.iterations + safetyShare * inp.iterations + OPS_TOK.input;
@@ -1392,8 +1390,8 @@
         breakdownHtml = `
         <tr class="section-hdr"><td colspan="5">INPUT TOKENS</td></tr>
         ${breakdownInRow('💬 C1 Sentiment — comment prompt <span style="color:var(--text-faint);font-size:0.65rem;">(20B)</span>', SENTIMENT_TOK.input, 1, m20, 'Groq classifies raw TikTok comment')}
-        ${breakdownInRow('📊 C2 Formulator — trend payload <span style="color:var(--text-faint);font-size:0.65rem;">(70B)</span>', trendShare, inp.iterations, m70, 'C1 trend card fed into Agent 1 — not a separate AI call')}
-        ${breakdownInRow('📋 C2 Formulator — CoSing/FDA constraints <span style="color:var(--text-faint);font-size:0.65rem;">(70B)</span>', safetyShare, inp.iterations, m70, 'Regulatory text from cosing_db.js in system prompt')}
+        ${breakdownInRow('📊 C2 Formulator — trend payload <span style="color:var(--text-faint);font-size:0.65rem;">(120B)</span>', trendShare, inp.iterations, m120, 'C1 trend card fed into Agent 1 — not a separate AI call')}
+        ${breakdownInRow('📋 C2 Formulator — CoSing/FDA constraints <span style="color:var(--text-faint);font-size:0.65rem;">(120B)</span>', safetyShare, inp.iterations, m120, 'Regulatory text from cosing_db.js in system prompt')}
         ${breakdownInRow('🏭 C7 Ops — manufacturing profile prompt <span style="color:var(--text-faint);font-size:0.65rem;">(8B)</span>', OPS_TOK.input, 1, m8, 'Formula + market context sent to profile extractor')}
         <tr class="subtotal">
           <td>Pipeline input subtotal<span class="row-note">Effective tokens — all agents, C2/C3 × iterations applied</span></td>
@@ -1411,7 +1409,7 @@
         </tr>
         <tr class="section-hdr"><td colspan="5">OUTPUT TOKENS</td></tr>
         ${breakdownOutRow('💬 C1 Sentiment — trend card JSON <span style="color:var(--text-faint);font-size:0.65rem;">(20B)</span>', SENTIMENT_TOK.output, 1, m20, 'Structured trend result saved to tf_c1_results')}
-        ${breakdownOutRow('🧪 C2 Formulator — formula recipe <span style="color:var(--text-faint);font-size:0.65rem;">(70B)</span>', formulaShare, inp.iterations, m70, 'INCI formula JSON from Agent 1')}
+        ${breakdownOutRow('🧪 C2 Formulator — formula recipe <span style="color:var(--text-faint);font-size:0.65rem;">(120B)</span>', formulaShare, inp.iterations, m120, 'INCI formula JSON from Agent 1')}
         ${breakdownOutRow('📣 C3 Marketing — TikTok script <span style="color:var(--text-faint);font-size:0.65rem;">(120B)</span>', marketShare, inp.iterations, m120, 'Hook / demo / CTA script')}
         ${breakdownOutRow('🏭 C7 Ops — manufacturing profile JSON <span style="color:var(--text-faint);font-size:0.65rem;">(8B)</span>', OPS_TOK.output, 1, m8, 'MOQ, certifications, capabilities — Tier 2 scoring is deterministic')}
         <tr class="subtotal">

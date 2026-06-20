@@ -90,13 +90,12 @@ The main dashboard shows **4 department cards** (Sentiment, R&D, Marketing, Ops)
 
 ### LLM models — production pipeline routing
 
-The platform uses **four Groq models**, routed by task complexity. This is the live configuration (not a single model everywhere).
+The platform uses **three Groq models** in the production pipeline, routed by task complexity. Llama 3.3 70B remains available in the Finance simulator as a comparison tier only.
 
 | Model | Groq ID | Used in | Role |
 |-------|---------|---------|------|
 | GPT OSS 20B | `openai/gpt-oss-20b` | C1 Sentiment, C4 Sales (Forma), chat-bubble | Fast JSON extraction + conversational guardrails |
-| Llama 3.3 70B | `llama-3.3-70b-versatile` | C2 Formulation (Agent 1 only) | Deep INCI formula generation with regulatory context |
-| GPT OSS 120B | `openai/gpt-oss-120b` | C3 Marketing, C5 HR (both phases) | Creative scripts + executive recruitment prose |
+| GPT OSS 120B | `openai/gpt-oss-120b` | C2 Formulation (Agent 1), C3 Marketing, C5 HR (both phases) | Deep INCI formula generation + creative scripts + executive recruitment prose |
 | Llama 3.1 8B | `llama-3.1-8b-instant` | C7 Ops (Tier 1 only) | Cheap structured JSON profile extraction |
 
 **No LLM:** C2 Agent 2 (compliance audit via `cosing_db.js`), C7 Tier 2 (factory scoring), C6 Finance (simulator only).
@@ -179,7 +178,7 @@ trendformulate/
 ```
 ┌─────────────────────┐     tf_c1_results      ┌──────────────────────────┐
 │ 01 Sentiment        │ ─────────────────────► │ 02 Formulation           │
-│ GPT OSS 20B         │                        │ Agent1: Llama 3.3 70B    │
+│ GPT OSS 20B         │                        │ Agent1: GPT OSS 120B     │
 │ 15 comments → JSON  │                        │ Agent2: CosIng (no LLM)  │
 └─────────────────────┘                        └────────────┬─────────────┘
                                                               │ tf_saved_formulas
@@ -377,7 +376,7 @@ If `!hasApi`: use keyword/intent fallback + simulated typing delay (600–1300ms
 | # | Surface | Model | Temp | Max tokens | Calls per user action | Output format |
 |---|---------|-------|------|------------|----------------------|---------------|
 | C1 | Sentiment Engine | `openai/gpt-oss-20b` | 0.3 | 768 → 1536 | 1 per comment (×15 on full run) | JSON trend card |
-| C2 | Formulation Agent 1 | `llama-3.3-70b-versatile` | 0.35 | 1800 → 4096 | 1 per formula generate | JSON INCI formula |
+| C2 | Formulation Agent 1 | `openai/gpt-oss-120b` | 0.35 | 1800 → 4096 | 1 per formula generate | JSON INCI formula |
 | C2 | Formulation Agent 2 | — | — | — | 0 (deterministic) | PASS/CAUTION/FAIL audit |
 | C3 | Marketing Engine | `openai/gpt-oss-120b` | 0.7 | 1600 → 4096 | 1 per script generate | JSON TikTok script |
 | C4 | Sales / Forma waitlist | `openai/gpt-oss-20b` | 0.55 | 220 | 1 per chat turn | Plain text (guardrailed) |
@@ -429,7 +428,7 @@ Finance breakdown groups all **input token lines** and all **output token lines*
 **Two-agent pipeline:**
 
 ```
-Agent 1 (Groq llama-3.3-70b)     Agent 2 (cosing_db.js — NO LLM)
+Agent 1 (Groq openai/gpt-oss-120b)     Agent 2 (cosing_db.js — NO LLM)
 Generates INCI formula      →    cosingCheckAll() audit
          ↑                              ↑
          └── cosingBuildFormulatorConstraints() in system prompt
@@ -844,7 +843,7 @@ No match → `trend: "Unclassified"`, empty ingredients, `confidence: "low"`.
 **Tagline:** Formulation + Safety Guardrail  
 **Input:** `tf_c1_results` (deduped trends, excluding "Unclassified")  
 **Output:** `TFFormulas.save()` + JSON export  
-**Model:** Agent 1 only — `llama-3.3-70b-versatile` · temp 0.35 · max 1800 (→ 4096). Agent 2 has **no LLM**.
+**Model:** Agent 1 only — `openai/gpt-oss-120b` · temp 0.35 · max 1800 (→ 4096). Agent 2 has **no LLM**.
 
 > Full prompts (`buildFormulatorSystem()`, user message, CoSing injection): [§6 — C2 Formulation](#c2--rd-formulation-02_formulation)
 
@@ -1217,7 +1216,7 @@ Prove the business case: AI formulation COGS is ~$0.50/formula vs $15,000 legacy
 - Input tokens slider (default 25,000 — formulator prompt split)
 - Output tokens slider (default 6,250 — formula + marketing split)
 - Iterations slider (revision rounds, default 3)
-- Model tier selector: **Pipeline** (routed 20B/70B/120B/8B) | OSS 20B | OSS 120B | Llama 70B | Llama 8B
+- Model tier selector: **Pipeline** (routed 20B/120B/8B) | OSS 20B | OSS 120B | Llama 70B | Llama 8B
 
 **Phase 2 — Scale economics:**
 - Brands on platform (default 500)
@@ -1229,8 +1228,8 @@ Prove the business case: AI formulation COGS is ~$0.50/formula vs $15,000 legacy
 ```javascript
 effInput  = inputTok  * iterations
 effOutput = outputTok * iterations
-inCost    = (effInput  / 1_000_000) * tier.inPerM   // formulation 70B (pipeline mode)
-outCost   = formulaCost + marketCost                 // 70B formula + 120B marketing
+inCost    = (effInput  / 1_000_000) * tier.inPerM   // formulation 120B (pipeline mode)
+outCost   = formulaCost + marketCost                 // 120B formula + 120B marketing
 sentimentCost = fixed C1 comment classification (20B)
 opsCost       = fixed C7 manufacturing profile (8B)
 tokenBurn = inCost + outCost + sentimentCost + opsCost
@@ -1255,14 +1254,14 @@ Grouped as **INPUT TOKENS** then **OUTPUT TOKENS** (one Tokens column + one Rate
 | Input line | Model | Notes |
 |------------|-------|-------|
 | C1 comment prompt | 20B | Real sentiment AI call |
-| C2 trend payload | 70B | Context from C1 — not a separate call |
-| C2 CoSing constraints | 70B | `cosing_db.js` text in system prompt |
+| C2 trend payload | 120B | Context from C1 — not a separate call |
+| C2 CoSing constraints | 120B | `cosing_db.js` text in system prompt |
 | C7 mfg profile prompt | 8B | Formula + market context |
 
 | Output line | Model | Notes |
 |-------------|-------|-------|
 | C1 trend card JSON | 20B | Saved to `tf_c1_results` |
-| C2 formula recipe | 70B | Agent 1 output |
+| C2 formula recipe | 120B | Agent 1 output |
 | C3 marketing script | 120B | Not on formulator output slider |
 | C7 mfg profile JSON | 8B | Tier 2 scoring is $0 |
 
@@ -1270,7 +1269,7 @@ Compliance audit (Agent 2) = **$0** deterministic. HR (C5) shown in separate adm
 
 Token split on sliders (formulator only):
 - Input slider: 60% trend payload / 40% CoSing prompt constraints
-- Output slider: 65% formula (70B) / 35% marketing (120B)
+- Output slider: 65% formula (120B) / 35% marketing (120B)
 - C1, C7 token estimates are fixed constants in simulator, not on sliders
 
 ### KPI cards (top row)
@@ -1722,7 +1721,7 @@ Components with **local Groq fallback** (C1, C2, C3, C4, chat-bubble) should inc
 
 **Proxy-only components** (C5 HR, C7 Ops Tier 1) hardcode `fetch('/api/groq', …)` and do **not** load `config.js`.
 
-Per-component models: C1/C4/chat-bubble → `openai/gpt-oss-20b` · C2 → `llama-3.3-70b-versatile` · C3/C5 → `openai/gpt-oss-120b` · C7 → `llama-3.1-8b-instant`
+Per-component models: C1/C4/chat-bubble → `openai/gpt-oss-20b` · C2/C3/C5 → `openai/gpt-oss-120b` · C7 → `llama-3.1-8b-instant`
 
 ## Appendix D — Known Gaps / Not Implemented
 
