@@ -391,6 +391,14 @@
 
         <div class="card">
           <p class="card-title">Content Settings</p>
+          <!-- From-Lab banner (shown when saved formulas exist) -->
+          <div id="lab-banner" style="display:none;margin-bottom:0.875rem;padding:0.65rem 0.875rem;background:rgba(196,120,138,0.08);border:1px solid rgba(196,120,138,0.22);border-left:3px solid var(--accent);border-radius:var(--radius-sm);font-size:0.8125rem;line-height:1.5;">
+            <strong style="color:var(--accent);display:block;margin-bottom:0.1rem;">
+              <i data-lucide="flask-conical" style="width:12px;height:12px;vertical-align:-1px;margin-right:3px;"></i>
+              R&amp;D Lab formulas loaded
+            </strong>
+            <span style="color:var(--text-muted);">Formulas saved from R&amp;D Formulation appear here automatically.</span>
+          </div>
           <!-- Formula selector -->
           <div class="form-group" style="margin-bottom:1rem;">
             <label for="formula-select">Approved Formula</label>
@@ -544,7 +552,7 @@
 
     function getSelectedFormula() {
       const id = parseInt(document.getElementById('formula-select').value, 10);
-      return APPROVED_FORMULAS.find(f => f.id === id) || null;
+      return APPROVED_FORMULAS.find(f => f.id == id) || null;
     }
 
     function loadFormulas() {
@@ -558,7 +566,8 @@
         sel.innerHTML = '<option value="">No formulas saved yet</option>';
         sel.disabled = true;
         btn.disabled = true;
-        document.getElementById('lab-banner').style.display = 'none';
+        const labBanner = document.getElementById('lab-banner');
+        if (labBanner) labBanner.style.display = 'none';
         document.getElementById('preview-content').innerHTML = `
           <p style="font-size:0.8125rem;color:var(--text-muted);line-height:1.6;">
             Save a formula from <a href="../02_formulation/index.html">R&amp;D Formulation</a> — it will appear here automatically.
@@ -576,7 +585,8 @@
         sel.appendChild(opt);
       });
 
-      document.getElementById('lab-banner').style.display = 'block';
+      const labBanner = document.getElementById('lab-banner');
+      if (labBanner) labBanner.style.display = 'block';
       updateFormulaPreview();
       lucide.createIcons();
     }
