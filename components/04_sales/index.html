@@ -917,7 +917,7 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeChatModal(); });
 
     // ─── Groq configuration ────────────────────────────────────────
-    const GROQ_MODEL    = "llama-3.3-70b-versatile";
+    const GROQ_MODEL    = "openai/gpt-oss-20b";
     const GROQ_DIRECT   = "https://api.groq.com/openai/v1/chat/completions";
     const ON_SERVER     = window.location.protocol !== "file:" &&
                           window.location.hostname !== "localhost" &&

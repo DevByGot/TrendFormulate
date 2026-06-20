@@ -52,6 +52,7 @@
     /* ── Model tier selector ─────────────────────────────── */
     .tier-group {
       display: flex;
+      flex-wrap: wrap;
       gap: 0;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
@@ -60,7 +61,8 @@
       margin-top: 0.35rem;
     }
     .tier-btn {
-      flex: 1;
+      flex: 1 1 33%;
+      min-width: 0;
       border: none;
       background: transparent;
       color: var(--text-muted);
@@ -653,11 +655,13 @@
               <label style="margin-bottom:0;">Model tier (2026 API pricing)</label>
             </div>
             <div class="tier-group" id="tierGroup">
-              <button class="tier-btn" data-tier="lean">Lean<br><span style="font-size:0.6rem;opacity:0.7;">$1/$3 /1M</span></button>
-              <button class="tier-btn active" data-tier="balanced">Balanced<br><span style="font-size:0.6rem;opacity:0.7;">$4/$8 /1M</span></button>
-              <button class="tier-btn" data-tier="frontier">Frontier<br><span style="font-size:0.6rem;opacity:0.7;">$15/$45 /1M</span></button>
+              <button class="tier-btn active" data-tier="pipeline">Pipeline<br><span style="font-size:0.6rem;opacity:0.7;">routed /1M</span></button>
+              <button class="tier-btn" data-tier="oss20b">OSS 20B<br><span style="font-size:0.6rem;opacity:0.7;">$0.075/$0.30</span></button>
+              <button class="tier-btn" data-tier="oss120b">OSS 120B<br><span style="font-size:0.6rem;opacity:0.7;">$0.15/$0.60</span></button>
+              <button class="tier-btn" data-tier="llama70b">Llama 70B<br><span style="font-size:0.6rem;opacity:0.7;">$0.59/$0.79</span></button>
+              <button class="tier-btn" data-tier="llama8b">Llama 8B<br><span style="font-size:0.6rem;opacity:0.7;">$0.05/$0.08</span></button>
             </div>
-            <div class="tier-sub" id="tierSubLabel">Standard enterprise LLM — designed for production workloads (in/out token rate)</div>
+            <div class="tier-sub" id="tierSubLabel">Production pipeline — routed per component (Sentiment 20B · Formulation 70B · Marketing 120B)</div>
           </div>
 
         </div>
@@ -824,7 +828,7 @@
         <!-- Burn alert -->
         <div class="burn-alert" id="burnAlert">
           <i data-lucide="flame" style="width:16px;height:16px;flex-shrink:0;"></i>
-          <span><strong>Infinite Loop Token Burn Detected.</strong> Your current configuration erodes gross margin below 80 %. The CFO will reject this architecture. Reduce agentic iterations or switch to the Lean model tier.</span>
+          <span><strong>Infinite Loop Token Burn Detected.</strong> Your current configuration erodes gross margin below 80 %. The CFO will reject this architecture. Reduce agentic iterations or switch to the GPT OSS 20B tier.</span>
         </div>
 
         <!-- Gross margin gauge -->
@@ -1021,30 +1025,71 @@
   <script>
     lucide.createIcons();
 
-    /* ─── Model tier definitions ────────────────────────────── */
-    const TIERS = {
-      lean:     { inPerM: 1,  outPerM: 3,  label: 'Lean open-source model (economy inference)' },
-      balanced: { inPerM: 4,  outPerM: 8,  label: 'Standard enterprise LLM — designed for production workloads' },
-      frontier: { inPerM: 15, outPerM: 45, label: 'Frontier reasoning model — maximum quality, highest cost' }
+    /* ─── Groq model rates (2026 API pricing) ───────────────── */
+    const MODELS = {
+      oss20b:   { inPerM: 0.075, outPerM: 0.30, label: 'GPT OSS 20B — Sentiment & Forma SDR (openai/gpt-oss-20b)' },
+      oss120b:  { inPerM: 0.15,  outPerM: 0.60, label: 'GPT OSS 120B — Marketing & HR (openai/gpt-oss-120b)' },
+      llama70b: { inPerM: 0.59,  outPerM: 0.79, label: 'Llama 3.3 70B — Formulation Agent (llama-3.3-70b-versatile)' },
+      llama8b:  { inPerM: 0.05,  outPerM: 0.08, label: 'Llama 3.1 8B — Ops profile extract (llama-3.1-8b-instant)' }
     };
-    let activeTier = 'balanced';
+    const TIERS = {
+      pipeline: { label: 'Production pipeline — routed per component (Sentiment 20B · Formulation 70B · Marketing 120B)' },
+      oss20b:   MODELS.oss20b,
+      oss120b:  MODELS.oss120b,
+      llama70b: MODELS.llama70b,
+      llama8b:  MODELS.llama8b
+    };
+    const SENTIMENT_TOK = { input: 2000, output: 768 };
+    let activeTier = 'pipeline';
 
     const INFRA_FIXED = 2000;
     const ROUTING_COST = 0.05;
     const LEGACY_COST_PER_FORMULA = 15000;
 
-    /* ─── Simulate ───────────────────────────────────────────── */
-    function simulate(inp) {
-      const { inputTok, outputTok, iterations, brands, avgFormulas, arpu } = inp;
-      const tier = TIERS[activeTier];
+    function fmtRate(n) {
+      return '$' + (n < 0.1 ? n.toFixed(3) : n.toFixed(2));
+    }
 
+    /* ─── Token burn by tier / pipeline routing ─────────────── */
+    function calcTokenBurn(inp, tierKey) {
+      const { inputTok, outputTok, iterations } = inp;
       const effInput  = inputTok  * iterations;
       const effOutput = outputTok * iterations;
-      const inCost    = (effInput  / 1_000_000) * tier.inPerM;
-      const outCost   = (effOutput / 1_000_000) * tier.outPerM;
-      const tokenBurn = inCost + outCost;
+      const formulaRaw  = Math.round(outputTok * 0.65);
+      const formulaOut  = formulaRaw * iterations;
+      const marketOut   = effOutput - formulaOut;
+
+      if (tierKey === 'pipeline') {
+        const m70 = MODELS.llama70b;
+        const m120 = MODELS.oss120b;
+        const m20 = MODELS.oss20b;
+        const inCost = (effInput / 1_000_000) * m70.inPerM;
+        const formulaCost = (formulaOut / 1_000_000) * m70.outPerM;
+        const marketCost  = (marketOut  / 1_000_000) * m120.outPerM;
+        const sentimentCost =
+          (SENTIMENT_TOK.input  / 1_000_000) * m20.inPerM +
+          (SENTIMENT_TOK.output / 1_000_000) * m20.outPerM;
+        const outCost = formulaCost + marketCost + sentimentCost;
+        return {
+          effInput, effOutput, inCost, outCost,
+          tokenBurn: inCost + outCost,
+          formulaOut, marketOut, sentimentCost, formulaCost, marketCost
+        };
+      }
+
+      const tier = TIERS[tierKey];
+      const inCost  = (effInput  / 1_000_000) * tier.inPerM;
+      const outCost = (effOutput / 1_000_000) * tier.outPerM;
+      return { effInput, effOutput, inCost, outCost, tokenBurn: inCost + outCost };
+    }
+
+    /* ─── Simulate ───────────────────────────────────────────── */
+    function simulate(inp) {
+      const costs = calcTokenBurn(inp, activeTier);
+      const { tokenBurn } = costs;
       const cogsPerFormula = tokenBurn + ROUTING_COST;
 
+      const { brands, avgFormulas, arpu } = inp;
       const monthlyFormulas = brands * avgFormulas;
       const monthlyRevenue  = brands * arpu;
       const monthlyTokenCOGS = monthlyFormulas * cogsPerFormula;
@@ -1058,11 +1103,12 @@
       const opexMult         = legacyMonthly / totalMonthlyCOGS;
 
       return {
-        effInput, effOutput, inCost, outCost, tokenBurn, cogsPerFormula,
+        ...costs,
+        cogsPerFormula,
         monthlyFormulas, monthlyRevenue, monthlyTokenCOGS,
         totalMonthlyCOGS, grossProfit, grossMarginPct,
         legacyMonthly, costMult, opexMult,
-        inputTok, outputTok, iterations
+        inputTok: inp.inputTok, outputTok: inp.outputTok, iterations: inp.iterations
       };
     }
 
@@ -1141,9 +1187,9 @@
     const burnChart = new Chart(burnCtx, {
       type: 'line',
       data: { labels: ['1×','2×','3×','4×','5×','6×','7×','8×','9×','10×'], datasets: [
-        { label: 'Lean',     data: [], borderColor: '#5e9e47', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: false },
-        { label: 'Balanced', data: [], borderColor: '#c4788a', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: false },
-        { label: 'Frontier', data: [], borderColor: '#c9575e', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: false }
+        { label: 'Pipeline',  data: [], borderColor: '#c4788a', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: false },
+        { label: 'OSS 20B',   data: [], borderColor: '#5e9e47', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: false },
+        { label: 'Llama 70B', data: [], borderColor: '#c9575e', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: false }
       ]},
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -1168,10 +1214,7 @@
     function buildScaleData(inp) {
       const steps = [];
       for (let b = 10; b <= 3000; b += b < 100 ? 10 : b < 500 ? 25 : b < 1000 ? 50 : 100) steps.push(b);
-      const tier = TIERS[activeTier];
-      const effInput  = inp.inputTok  * inp.iterations;
-      const effOutput = inp.outputTok * inp.iterations;
-      const cpf = (effInput / 1_000_000) * tier.inPerM + (effOutput / 1_000_000) * tier.outPerM + ROUTING_COST;
+      const cpf = calcTokenBurn(inp, activeTier).tokenBurn + ROUTING_COST;
 
       return {
         labels: steps.map(String),
@@ -1183,12 +1226,11 @@
 
     /* ─── Build burn chart data ──────────────────────────────── */
     function buildBurnData(inp) {
-      const rows = { lean: [], balanced: [], frontier: [] };
+      const keys = ['pipeline', 'oss20b', 'llama70b'];
+      const rows = Object.fromEntries(keys.map(k => [k, []]));
       for (let i = 1; i <= 10; i++) {
-        for (const [key, tier] of Object.entries(TIERS)) {
-          const ef  = inp.inputTok * i;
-          const eo  = inp.outputTok * i;
-          const cpf = (ef / 1_000_000) * tier.inPerM + (eo / 1_000_000) * tier.outPerM + ROUTING_COST;
+        for (const key of keys) {
+          const cpf = calcTokenBurn({ ...inp, iterations: i }, key).tokenBurn + ROUTING_COST;
           const rev  = inp.brands * inp.arpu;
           const cogs = inp.brands * inp.avgFormulas * cpf + INFRA_FIXED;
           const margin = rev > 0 ? ((rev - cogs) / rev) * 100 : 0;
@@ -1203,6 +1245,7 @@
       const inp = readInputs();
       const r   = simulate(inp);
       const tier = TIERS[activeTier];
+      const isPipeline = activeTier === 'pipeline';
 
       /* slider display values */
       document.getElementById('vInputTok').textContent    = fmtTok(inp.inputTok);
@@ -1232,9 +1275,76 @@
 
       /* ── Breakdown table ── */
       const tbody = document.getElementById('breakdownBody');
-      const inRate  = '$' + tier.inPerM.toFixed(2);
-      const outRate = '$' + tier.outPerM.toFixed(2);
-      tbody.innerHTML = `
+
+      let breakdownHtml;
+      if (isPipeline) {
+        const m70 = MODELS.llama70b;
+        const m120 = MODELS.oss120b;
+        const m20 = MODELS.oss20b;
+        breakdownHtml = `
+        <tr class="section-hdr"><td colspan="6">INPUT TOKENS — Formulation (Llama 3.3 70B)</td></tr>
+        <tr>
+          <td>📊 Social Trends Context</td>
+          <td>${fmtTok(trendShare)}</td>
+          <td>× ${inp.iterations}</td>
+          <td>${fmtTok(trendShare * inp.iterations)}</td>
+          <td class="col-input">${fmtRate(m70.inPerM)}</td>
+          <td class="col-input">${fmtUSD((trendShare * inp.iterations / 1_000_000) * m70.inPerM)}</td>
+        </tr>
+        <tr>
+          <td>📋 Safety Compliance Docs</td>
+          <td>${fmtTok(safetyShare)}</td>
+          <td>× ${inp.iterations}</td>
+          <td>${fmtTok(safetyShare * inp.iterations)}</td>
+          <td class="col-input">${fmtRate(m70.inPerM)}</td>
+          <td class="col-input">${fmtUSD((safetyShare * inp.iterations / 1_000_000) * m70.inPerM)}</td>
+        </tr>
+        <tr class="subtotal">
+          <td>Input Subtotal</td>
+          <td>${fmtTok(inp.inputTok)}</td>
+          <td>× ${inp.iterations}</td>
+          <td>${fmtTok(r.effInput)}</td>
+          <td>${fmtRate(m70.inPerM)}</td>
+          <td>${fmtUSD(r.inCost)}</td>
+        </tr>
+        <tr class="section-hdr"><td colspan="6">SENTIMENT — GPT OSS 20B (fixed per run)</td></tr>
+        <tr>
+          <td>💬 Comment classification</td>
+          <td>${fmtTok(SENTIMENT_TOK.input + SENTIMENT_TOK.output)}</td>
+          <td>× 1</td>
+          <td>${fmtTok(SENTIMENT_TOK.input + SENTIMENT_TOK.output)}</td>
+          <td class="col-input">${fmtRate(m20.inPerM)} / ${fmtRate(m20.outPerM)}</td>
+          <td class="col-input">${fmtUSD(r.sentimentCost)}</td>
+        </tr>
+        <tr class="section-hdr"><td colspan="6">OUTPUT TOKENS — routed by component</td></tr>
+        <tr>
+          <td>🧪 Chemical Formula Recipe <span style="color:var(--text-faint);font-size:0.65rem;">(70B)</span></td>
+          <td>${fmtTok(formulaShare)}</td>
+          <td>× ${inp.iterations}</td>
+          <td>${fmtTok(r.formulaOut)}</td>
+          <td class="col-output">${fmtRate(m70.outPerM)}</td>
+          <td class="col-output">${fmtUSD(r.formulaCost)}</td>
+        </tr>
+        <tr>
+          <td>📣 Marketing Script <span style="color:var(--text-faint);font-size:0.65rem;">(120B)</span></td>
+          <td>${fmtTok(marketShare)}</td>
+          <td>× ${inp.iterations}</td>
+          <td>${fmtTok(r.marketOut)}</td>
+          <td class="col-output">${fmtRate(m120.outPerM)}</td>
+          <td class="col-output">${fmtUSD(r.marketCost)}</td>
+        </tr>
+        <tr class="subtotal">
+          <td>Output Subtotal</td>
+          <td>${fmtTok(inp.outputTok)}</td>
+          <td>× ${inp.iterations}</td>
+          <td>${fmtTok(r.effOutput)}</td>
+          <td>—</td>
+          <td>${fmtUSD(r.outCost)}</td>
+        </tr>`;
+      } else {
+        const inRate  = fmtRate(tier.inPerM);
+        const outRate = fmtRate(tier.outPerM);
+        breakdownHtml = `
         <tr class="section-hdr"><td colspan="6">INPUT TOKENS</td></tr>
         <tr>
           <td>📊 Social Trends Context</td>
@@ -1284,7 +1394,9 @@
           <td>${fmtTok(r.effOutput)}</td>
           <td>${outRate}</td>
           <td>${fmtUSD(r.outCost)}</td>
-        </tr>
+        </tr>`;
+      }
+      tbody.innerHTML = breakdownHtml + `
         <tr class="section-hdr"><td colspan="6">SUMMARY</td></tr>
         <tr>
           <td>Token Burn Total (input + output)</td>
@@ -1358,10 +1470,10 @@
 
       /* ── Burn chart ── */
       const bd = buildBurnData(inp);
-      burnChart.data.datasets[0].data = bd.lean;
-      burnChart.data.datasets[1].data = bd.balanced;
-      burnChart.data.datasets[2].data = bd.frontier;
-      const allMargins = [...bd.lean, ...bd.balanced, ...bd.frontier];
+      burnChart.data.datasets[0].data = bd.pipeline;
+      burnChart.data.datasets[1].data = bd.oss20b;
+      burnChart.data.datasets[2].data = bd.llama70b;
+      const allMargins = [...bd.pipeline, ...bd.oss20b, ...bd.llama70b];
       const minMargin  = Math.min(...allMargins, 0);
       burnChart.options.scales.y.min = minMargin < 0 ? Math.floor(minMargin / 10) * 10 - 10 : 0;
       burnChart.update('none');
@@ -1406,10 +1518,10 @@
     document.getElementById('btnReset').addEventListener('click', () => {
       Object.entries(DEFAULTS).forEach(([id, val]) => { document.getElementById(id).value = val; });
       document.querySelectorAll('.tier-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.tier === 'balanced');
+        b.classList.toggle('active', b.dataset.tier === 'pipeline');
       });
-      activeTier = 'balanced';
-      document.getElementById('tierSubLabel').textContent = TIERS.balanced.label;
+      activeTier = 'pipeline';
+      document.getElementById('tierSubLabel').textContent = TIERS.pipeline.label;
       updateUI();
     });
 

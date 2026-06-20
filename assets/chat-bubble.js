@@ -17,7 +17,7 @@
   const GROQ_ENDPOINT = ON_SERVER
     ? '/api/groq'
     : 'https://api.groq.com/openai/v1/chat/completions';
-  const GROQ_MODEL = 'llama-3.3-70b-versatile';
+  const GROQ_MODEL = 'openai/gpt-oss-20b';
 
   // ─── Styles ────────────────────────────────────────────────────
   const style = document.createElement('style');
