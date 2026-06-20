@@ -152,11 +152,44 @@
     .admin-dept-card:hover::before {
       background: linear-gradient(180deg, var(--accent), rgba(222,165,130,0.7));
     }
+    .admin-dept-card--wide {
+      grid-column: 1 / -1;
+    }
     .admin-dept-top {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       margin-bottom: 1rem;
+    }
+    .admin-dept-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.625rem;
+      margin-bottom: 1.25rem;
+    }
+    .admin-dept-actions .admin-launch-btn {
+      flex: 1;
+      min-width: 180px;
+    }
+    .admin-validate-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent-mid);
+      border-radius: var(--radius-pill);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .admin-validate-btn:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
     }
     .admin-dept-icon {
       width: 44px; height: 44px;
@@ -506,6 +539,46 @@
       animation: pulse 2s ease-in-out infinite;
     }
 
+    /* Profile tabs */
+    .pv-profiles-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .pv-profile-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.35rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      background: var(--surface-2);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      font-family: var(--font-body);
+    }
+    .pv-profile-tab:hover {
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+    .pv-profile-tab.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-mid);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .pv-tab-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+    }
+    .pv-tab-dot.stale { background: var(--text-faint); }
+
     /* No-session placeholder */
     .pv-empty {
       grid-column: 1 / -1;
@@ -513,7 +586,7 @@
       padding: 2.5rem 1rem;
       color: var(--text-faint);
       font-size: 0.875rem;
-      background: var(--surface);
+      background: var(--surface-2);
       border: 1px dashed var(--border);
       border-radius: var(--radius);
     }
@@ -563,34 +636,10 @@
   <div class="admin-content">
 
     <!-- ─── Page header ─────────────────────────────────────── -->
-    <div class="admin-page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
-      <div>
-        <h1>Backend Dashboard</h1>
-        <p>Internal tools — not visible to users</p>
-      </div>
-      <button id="validate-btn" onclick="presenterValidate()" class="btn btn-primary" style="flex-shrink:0;white-space:nowrap;gap:0.5rem;">
-        <i data-lucide="shield-check" style="width:15px;height:15px;"></i>
-        Validate Waitlist Access
-      </button>
+    <div class="admin-page-header">
+      <h1>Backend Dashboard</h1>
+      <p>Internal tools — not visible to users</p>
     </div>
-
-    <!-- ─── Presenter View ──────────────────────────────────── -->
-    <div class="admin-section-title">
-      <h2>Presenter View</h2>
-      <div class="admin-section-line"></div>
-      <span class="pv-live-badge" id="pv-live-badge">
-        <span class="pv-live-dot"></span> Live
-      </span>
-      <a href="../components/04_sales/index.html" class="admin-nav-link" style="margin-left:0.5rem;">
-        <i data-lucide="external-link" style="width:12px;height:12px;"></i> Open Waitlist Agent
-      </a>
-    </div>
-
-    <div class="presenter-view-grid" id="presenter-view-grid">
-      <!-- Injected by JS -->
-    </div>
-
-    <hr class="admin-divider" />
 
     <!-- ─── Internal Departments ────────────────────────────── -->
     <div class="admin-section-title">
@@ -601,13 +650,39 @@
 
     <div class="admin-dept-grid">
 
+      <!-- Waitlist Agent -->
+      <div class="admin-dept-card admin-dept-card--wide">
+        <div class="admin-dept-top">
+          <div class="admin-dept-icon">
+            <i data-lucide="bot" style="width:20px;height:20px;"></i>
+          </div>
+          <span class="pv-live-badge" id="pv-live-badge" style="display:none;">
+            <span class="pv-live-dot"></span> Live
+          </span>
+        </div>
+        <p class="admin-dept-name">Waitlist Agent</p>
+        <p class="admin-dept-sub">Qualification chatbot with live presenter view — tracks multiple concurrent sessions</p>
+        <div class="admin-dept-actions">
+          <a href="../components/04_sales/index.html" class="admin-launch-btn">
+            Open Waitlist Agent <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+          </a>
+          <button id="validate-btn" onclick="presenterValidate()" class="admin-validate-btn">
+            <i data-lucide="shield-check" style="width:15px;height:15px;"></i>
+            Validate Waitlist Access
+          </button>
+        </div>
+        <div class="pv-profiles-tabs" id="pv-profiles-tabs"></div>
+        <div class="presenter-view-grid" id="presenter-view-grid">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+
       <!-- 05 HR -->
       <div class="admin-dept-card">
         <div class="admin-dept-top">
           <div class="admin-dept-icon">
             <i data-lucide="brain-circuit" style="width:20px;height:20px;"></i>
           </div>
-          <span class="admin-dept-badge">Internal</span>
         </div>
         <p class="admin-dept-name">Workforce Architect</p>
         <p class="admin-dept-sub">2-Phase AI: Skill-Gap Analysis → JD Generator</p>
@@ -622,7 +697,6 @@
           <div class="admin-dept-icon">
             <i data-lucide="bar-chart-2" style="width:20px;height:20px;"></i>
           </div>
-          <span class="admin-dept-badge">Internal</span>
         </div>
         <p class="admin-dept-name">Finance / CFO</p>
         <p class="admin-dept-sub">Unit Economics & Compute Trade-off Simulator</p>
@@ -690,6 +764,8 @@
 
     /* ─── Presenter View ─────────────────────────────────────── */
     const STAGES_LIST = ["greeting", "qualifying", "pitching", "capturing", "converted"];
+    const PROFILE_STALE_MS = 30 * 60 * 1000;
+    let activeProfileId = null;
 
     function getScoreGrade(score) {
       if (score >= 80) return { label: 'Waitlist Ready', cls: 'badge-success' };
@@ -698,17 +774,70 @@
       return { label: 'Unqualified', cls: 'badge-muted' };
     }
 
-    function renderPresenterView() {
-      const grid = document.getElementById('presenter-view-grid');
-      let raw;
-      try { raw = JSON.parse(localStorage.getItem('tf_presenter_state') || 'null'); } catch(e) { raw = null; }
+    function getPresenterProfiles() {
+      try {
+        const raw = localStorage.getItem('tf_presenter_profiles');
+        return raw ? JSON.parse(raw) : {};
+      } catch(e) { return {}; }
+    }
 
-      if (!raw) {
-        grid.innerHTML = `<div class="pv-empty">No active waitlist session — open the <a href="../components/04_sales/index.html" style="color:var(--accent);">Waitlist Agent</a> to start a session.</div>`;
-        lucide.createIcons({ nodes: [grid] });
+    function migrateLegacyPresenterState() {
+      try {
+        const legacy = localStorage.getItem('tf_presenter_state');
+        if (!legacy) return;
+        const parsed = JSON.parse(legacy);
+        if (!parsed || typeof parsed !== 'object') return;
+        const profiles = getPresenterProfiles();
+        const profileId = parsed.profileId || 'legacy_session';
+        if (!profiles[profileId]) {
+          profiles[profileId] = {
+            ...parsed,
+            profileId,
+            label: parsed.capturedBrand || parsed.capturedName || 'Legacy session',
+            startedAt: parsed.updatedAt || new Date().toISOString()
+          };
+          localStorage.setItem('tf_presenter_profiles', JSON.stringify(profiles));
+        }
+        localStorage.removeItem('tf_presenter_state');
+      } catch(e) {}
+    }
+
+    function getActiveProfiles() {
+      migrateLegacyPresenterState();
+      const profiles = getPresenterProfiles();
+      const now = Date.now();
+      return Object.values(profiles)
+        .filter(p => p.updatedAt && (now - new Date(p.updatedAt).getTime()) < PROFILE_STALE_MS)
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    }
+
+    function selectProfile(profileId) {
+      activeProfileId = profileId;
+      renderPresenterView();
+    }
+
+    function renderProfileTabs(profiles) {
+      const tabs = document.getElementById('pv-profiles-tabs');
+      const liveBadge = document.getElementById('pv-live-badge');
+      if (!profiles.length) {
+        tabs.innerHTML = '';
+        liveBadge.style.display = 'none';
         return;
       }
+      liveBadge.style.display = '';
+      tabs.innerHTML = profiles.map(p => {
+        const label = p.capturedBrand || p.capturedName || p.label || `Session ${String(p.profileId).slice(-6)}`;
+        const isActive = p.profileId === activeProfileId;
+        const isLive = (Date.now() - new Date(p.updatedAt).getTime()) < 120000;
+        return `<button type="button" class="pv-profile-tab${isActive ? ' active' : ''}" onclick="selectProfile(${JSON.stringify(p.profileId)})">
+          <span class="pv-tab-dot${isLive ? '' : ' stale'}"></span>
+          ${escHtml(label)}
+        </button>`;
+      }).join('');
+    }
 
+    function renderPresenterGrid(raw) {
+      const grid = document.getElementById('presenter-view-grid');
       const {
         leadScore = 0, exchangeCount = 0, guardrailCount = 0,
         currentStage = 'greeting',
@@ -806,6 +935,25 @@
       `;
 
       lucide.createIcons({ nodes: [grid] });
+    }
+
+    function renderPresenterView() {
+      const grid = document.getElementById('presenter-view-grid');
+      const profiles = getActiveProfiles();
+      renderProfileTabs(profiles);
+
+      if (!profiles.length) {
+        grid.innerHTML = `<div class="pv-empty">No active waitlist sessions — open the <a href="../components/04_sales/index.html" style="color:var(--accent);">Waitlist Agent</a> to start a session. Each browser tab creates a separate profile.</div>`;
+        lucide.createIcons({ nodes: [grid] });
+        return;
+      }
+
+      if (!activeProfileId || !profiles.some(p => p.profileId === activeProfileId)) {
+        activeProfileId = profiles[0].profileId;
+        renderProfileTabs(profiles);
+      }
+
+      renderPresenterGrid(profiles.find(p => p.profileId === activeProfileId));
     }
 
     // Poll every 2 seconds for live updates

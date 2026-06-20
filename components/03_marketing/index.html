@@ -77,8 +77,9 @@
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      width: 100%;
-      padding: 0.65rem 1rem;
+      width: auto;
+      min-width: 220px;
+      padding: 0.75rem 1.75rem;
       background: var(--accent);
       color: #fff;
       border: none;
@@ -391,14 +392,6 @@
 
         <div class="card">
           <p class="card-title">Content Settings</p>
-          <!-- From-Lab banner (shown when saved formulas exist) -->
-          <div id="lab-banner" style="display:none;margin-bottom:0.875rem;padding:0.65rem 0.875rem;background:rgba(196,120,138,0.08);border:1px solid rgba(196,120,138,0.22);border-left:3px solid var(--accent);border-radius:var(--radius-sm);font-size:0.8125rem;line-height:1.5;">
-            <strong style="color:var(--accent);display:block;margin-bottom:0.1rem;">
-              <i data-lucide="flask-conical" style="width:12px;height:12px;vertical-align:-1px;margin-right:3px;"></i>
-              R&amp;D Lab formulas loaded
-            </strong>
-            <span style="color:var(--text-muted);">Formulas saved from R&amp;D Formulation appear here automatically.</span>
-          </div>
           <!-- Formula selector -->
           <div class="form-group" style="margin-bottom:1rem;">
             <label for="formula-select">Approved Formula</label>
@@ -450,12 +443,6 @@
           </div>
         </div>
 
-        <!-- Generate button -->
-        <button class="btn-generate" id="generate-btn" onclick="handleGenerate()">
-          <i data-lucide="zap" style="width:16px;height:16px;"></i>
-          Generate Content
-        </button>
-
         <!-- Formula preview card -->
         <div class="card" id="formula-preview">
           <p class="card-title">Formula Preview</p>
@@ -477,7 +464,11 @@
             <i data-lucide="film" style="width:22px;height:22px;"></i>
           </div>
           <p style="font-size:0.9375rem;font-weight:500;color:var(--text);">Ready to generate</p>
-          <p style="font-size:0.8125rem;">Configure your settings and click <strong style="color:var(--accent);">Generate Content</strong> to produce your TikTok script and storyboard.</p>
+          <p style="font-size:0.8125rem;">Configure your settings on the left, then generate your TikTok script and storyboard.</p>
+          <button class="btn-generate" id="generate-btn" onclick="handleGenerate()" style="margin-top:0.5rem;">
+            <i data-lucide="zap" style="width:16px;height:16px;"></i>
+            Generate Content
+          </button>
         </div>
 
         <!-- Generating animation -->
@@ -527,6 +518,9 @@
         <!-- Action bar -->
         <div class="action-bar" id="action-bar">
           <div class="action-bar-left">
+            <button class="btn btn-primary" id="regenerate-btn" onclick="handleGenerate()" style="display:none;">
+              <i data-lucide="refresh-cw" style="width:14px;height:14px;"></i> Regenerate
+            </button>
             <button class="btn btn-secondary" onclick="copyScript()">
               <i data-lucide="copy" style="width:14px;height:14px;"></i> Copy Script
             </button>
@@ -566,8 +560,6 @@
         sel.innerHTML = '<option value="">No formulas saved yet</option>';
         sel.disabled = true;
         btn.disabled = true;
-        const labBanner = document.getElementById('lab-banner');
-        if (labBanner) labBanner.style.display = 'none';
         document.getElementById('preview-content').innerHTML = `
           <p style="font-size:0.8125rem;color:var(--text-muted);line-height:1.6;">
             Save a formula from <a href="../02_formulation/index.html">R&amp;D Formulation</a> — it will appear here automatically.
@@ -585,8 +577,6 @@
         sel.appendChild(opt);
       });
 
-      const labBanner = document.getElementById('lab-banner');
-      if (labBanner) labBanner.style.display = 'block';
       updateFormulaPreview();
       lucide.createIcons();
     }
@@ -807,7 +797,9 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
 
     async function handleGenerate() {
       const btn = document.getElementById('generate-btn');
+      const regenBtn = document.getElementById('regenerate-btn');
       btn.disabled = true;
+      if (regenBtn) regenBtn.disabled = true;
       btn.classList.add('generating');
 
       // Hide output, show generating state
@@ -873,6 +865,7 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
         renderScript(formula, tone, demographic, script);
         renderStoryboard(script.storyboard);
         document.getElementById('action-bar').classList.add('visible');
+        if (regenBtn) regenBtn.style.display = '';
 
       } catch (err) {
         clearInterval(stepInterval);
@@ -882,8 +875,9 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
         showToast(`Error: ${err.message}`);
       } finally {
         btn.disabled = false;
+        if (regenBtn) regenBtn.disabled = false;
         btn.classList.remove('generating');
-        btn.innerHTML = `<i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> Regenerate`;
+        btn.innerHTML = `<i data-lucide="zap" style="width:16px;height:16px;"></i> Generate Content`;
         lucide.createIcons();
       }
     }
@@ -1040,9 +1034,14 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
       document.getElementById('generating-state').classList.remove('visible');
       document.getElementById('idle-placeholder').style.display = '';
       const btn = document.getElementById('generate-btn');
+      const regenBtn = document.getElementById('regenerate-btn');
       btn.disabled = false;
       btn.classList.remove('generating');
       btn.innerHTML = `<i data-lucide="zap" style="width:16px;height:16px;"></i> Generate Content`;
+      if (regenBtn) {
+        regenBtn.style.display = 'none';
+        regenBtn.disabled = false;
+      }
       lucide.createIcons();
     }
 

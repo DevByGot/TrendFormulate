@@ -1336,12 +1336,36 @@ RESPONSE RULES:
     }
 
     // ─── Presenter state ───────────────────────────────────────────
+    function getOrCreateProfileId() {
+      let id = sessionStorage.getItem('tf_presenter_profile_id');
+      if (!id) {
+        id = 'pv_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+        sessionStorage.setItem('tf_presenter_profile_id', id);
+      }
+      return id;
+    }
+
+    function getPresenterProfiles() {
+      try {
+        const raw = localStorage.getItem('tf_presenter_profiles');
+        return raw ? JSON.parse(raw) : {};
+      } catch(e) { return {}; }
+    }
+
     function savePresenterState() {
-      localStorage.setItem('tf_presenter_state', JSON.stringify({
+      const profileId = getOrCreateProfileId();
+      const profiles = getPresenterProfiles();
+      const label = capturedBrand || capturedName || `Session ${profileId.slice(-6)}`;
+      profiles[profileId] = {
+        profileId,
+        label,
         leadScore, exchangeCount, guardrailCount, currentStage,
         capturedName, capturedBrand, capturedEmail, capturedTimeline,
-        intentLog, updatedAt: new Date().toISOString()
-      }));
+        intentLog,
+        updatedAt: new Date().toISOString(),
+        startedAt: profiles[profileId]?.startedAt || new Date().toISOString()
+      };
+      localStorage.setItem('tf_presenter_profiles', JSON.stringify(profiles));
     }
     function updatePresenterPanel() { savePresenterState(); }
 
