@@ -253,7 +253,7 @@
     /* ── Token breakdown table ───────────────────────────── */
     .breakdown-table {
       width: 100%;
-      min-width: 640px;
+      min-width: 520px;
       border-collapse: collapse;
       font-size: 0.8rem;
       font-variant-numeric: tabular-nums;
@@ -827,10 +827,9 @@
               <thead>
                 <tr>
                   <th>Cost Item</th>
-                  <th>In Tokens</th>
-                  <th>Out Tokens</th>
+                  <th>Tokens</th>
                   <th>× Iter.</th>
-                  <th>Rate /1M (in / out)</th>
+                  <th>Rate /1M</th>
                   <th>Cost</th>
                 </tr>
               </thead>
@@ -964,10 +963,9 @@
           <thead>
             <tr>
               <th>Cost Item</th>
-              <th>In Tokens</th>
-              <th>Out Tokens</th>
+              <th>Tokens</th>
               <th>× Iter.</th>
-              <th>Rate /1M (in / out)</th>
+              <th>Rate /1M</th>
               <th>Cost</th>
             </tr>
           </thead>
@@ -1093,12 +1091,34 @@
       return '$' + (n < 0.1 ? n.toFixed(3) : n.toFixed(2));
     }
 
-    function fmtRatePair(model) {
-      return `${fmtRate(model.inPerM)} / ${fmtRate(model.outPerM)}`;
+    function calcInCost(tok, iter, model) {
+      return (tok * iter / 1_000_000) * model.inPerM;
     }
 
-    function fmtTokCell(n) {
-      return n ? fmtTok(n) : '—';
+    function calcOutCost(tok, iter, model) {
+      return (tok * iter / 1_000_000) * model.outPerM;
+    }
+
+    function breakdownInRow(label, tok, iter, model, note) {
+      const noteHtml = note ? `<span class="row-note">${note}</span>` : '';
+      return `<tr>
+          <td>${label}${noteHtml}</td>
+          <td>${fmtTok(tok)}</td>
+          <td>× ${iter}</td>
+          <td class="col-input">${fmtRate(model.inPerM)}</td>
+          <td class="col-input">${fmtUSD(calcInCost(tok, iter, model))}</td>
+        </tr>`;
+    }
+
+    function breakdownOutRow(label, tok, iter, model, note) {
+      const noteHtml = note ? `<span class="row-note">${note}</span>` : '';
+      return `<tr>
+          <td>${label}${noteHtml}</td>
+          <td>${fmtTok(tok)}</td>
+          <td>× ${iter}</td>
+          <td class="col-output">${fmtRate(model.outPerM)}</td>
+          <td class="col-output">${fmtUSD(calcOutCost(tok, iter, model))}</td>
+        </tr>`;
     }
 
     function calcMixedCost(inputTok, outputTok, model) {
@@ -1354,175 +1374,123 @@
         const m120 = MODELS.oss120b;
         const m20  = MODELS.oss20b;
         const m8   = MODELS.llama8b;
+
+        const sentimentInCost  = calcInCost(SENTIMENT_TOK.input, 1, m20);
+        const sentimentOutCost = calcOutCost(SENTIMENT_TOK.output, 1, m20);
+        const opsInCost        = calcInCost(OPS_TOK.input, 1, m8);
+        const opsOutCost       = calcOutCost(OPS_TOK.output, 1, m8);
+        const trendInCost      = calcInCost(trendShare, inp.iterations, m70);
+        const safetyInCost     = calcInCost(safetyShare, inp.iterations, m70);
+        const inputSubtotalCost = sentimentInCost + trendInCost + safetyInCost + opsInCost;
+        const outputSubtotalCost = sentimentOutCost + r.formulaCost + r.marketCost + opsOutCost;
+        const inputEffTok  = SENTIMENT_TOK.input + trendShare * inp.iterations + safetyShare * inp.iterations + OPS_TOK.input;
+        const outputEffTok = SENTIMENT_TOK.output + formulaShare * inp.iterations + marketShare * inp.iterations + OPS_TOK.output;
+
         breakdownHtml = `
-        <tr class="section-hdr"><td colspan="6">C1 SENTIMENT — Comment classification (GPT OSS 20B · fixed per run)</td></tr>
-        <tr>
-          <td>💬 TikTok comment → trend card<span class="row-note">Upstream AI call; output feeds C2 trend payload</span></td>
-          <td>${fmtTokCell(SENTIMENT_TOK.input)}</td>
-          <td>${fmtTokCell(SENTIMENT_TOK.output)}</td>
-          <td>× 1</td>
-          <td>${fmtRatePair(m20)}</td>
-          <td class="col-input">${fmtUSD(r.sentimentCost)}</td>
-        </tr>
-        <tr class="section-hdr"><td colspan="6">C2 FORMULATION — Formulator prompt input (Llama 3.3 70B)</td></tr>
-        <tr>
-          <td>📊 Trend payload in formulator prompt<span class="row-note">C1 results (trend, pain point, ingredients) — not a separate AI call</span></td>
-          <td>${fmtTok(trendShare)}</td>
+        <tr class="section-hdr"><td colspan="5">INPUT TOKENS</td></tr>
+        ${breakdownInRow('💬 C1 Sentiment — comment prompt <span style="color:var(--text-faint);font-size:0.65rem;">(20B)</span>', SENTIMENT_TOK.input, 1, m20, 'Groq classifies raw TikTok comment')}
+        ${breakdownInRow('📊 C2 Formulator — trend payload <span style="color:var(--text-faint);font-size:0.65rem;">(70B)</span>', trendShare, inp.iterations, m70, 'C1 trend card fed into Agent 1 — not a separate AI call')}
+        ${breakdownInRow('📋 C2 Formulator — CoSing/FDA constraints <span style="color:var(--text-faint);font-size:0.65rem;">(70B)</span>', safetyShare, inp.iterations, m70, 'Regulatory text from cosing_db.js in system prompt')}
+        ${breakdownInRow('🏭 C7 Ops — manufacturing profile prompt <span style="color:var(--text-faint);font-size:0.65rem;">(8B)</span>', OPS_TOK.input, 1, m8, 'Formula + market context sent to profile extractor')}
+        <tr class="subtotal">
+          <td>Input subtotal</td>
+          <td>${fmtTok(inputEffTok)}</td>
           <td>—</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(m70)}</td>
-          <td class="col-input">${fmtUSD((trendShare * inp.iterations / 1_000_000) * m70.inPerM)}</td>
-        </tr>
-        <tr>
-          <td>📋 CoSing/FDA constraints (prompt context)<span class="row-note">Regulatory text from cosing_db.js injected into Agent 1 system prompt</span></td>
-          <td>${fmtTok(safetyShare)}</td>
           <td>—</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(m70)}</td>
-          <td class="col-input">${fmtUSD((safetyShare * inp.iterations / 1_000_000) * m70.inPerM)}</td>
+          <td>${fmtUSD(inputSubtotalCost)}</td>
         </tr>
         <tr class="zero-cost">
-          <td>✓ Compliance audit (Agent 2)<span class="row-note">Deterministic cosingCheckAll() — no LLM</span></td>
-          <td>—</td>
+          <td>✓ C2 Compliance audit (Agent 2)<span class="row-note">Deterministic cosingCheckAll() — no LLM, no tokens</span></td>
           <td>—</td>
           <td>—</td>
           <td>—</td>
           <td>$0.00</td>
         </tr>
-        <tr class="subtotal">
-          <td>Formulator input subtotal</td>
-          <td>${fmtTok(inp.inputTok)}</td>
-          <td>—</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(m70)}</td>
-          <td>${fmtUSD(r.inCost)}</td>
-        </tr>
-        <tr class="section-hdr"><td colspan="6">OUTPUT — Formulation + Marketing</td></tr>
-        <tr>
-          <td>🧪 Formula recipe <span style="color:var(--text-faint);font-size:0.65rem;">(C2 · 70B)</span></td>
-          <td>—</td>
-          <td>${fmtTok(formulaShare)}</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(m70)}</td>
-          <td class="col-output">${fmtUSD(r.formulaCost)}</td>
-        </tr>
-        <tr>
-          <td>📣 Marketing script <span style="color:var(--text-faint);font-size:0.65rem;">(C3 · 120B)</span></td>
-          <td>—</td>
-          <td>${fmtTok(marketShare)}</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(m120)}</td>
-          <td class="col-output">${fmtUSD(r.marketCost)}</td>
-        </tr>
+        <tr class="section-hdr"><td colspan="5">OUTPUT TOKENS</td></tr>
+        ${breakdownOutRow('💬 C1 Sentiment — trend card JSON <span style="color:var(--text-faint);font-size:0.65rem;">(20B)</span>', SENTIMENT_TOK.output, 1, m20, 'Structured trend result saved to tf_c1_results')}
+        ${breakdownOutRow('🧪 C2 Formulator — formula recipe <span style="color:var(--text-faint);font-size:0.65rem;">(70B)</span>', formulaShare, inp.iterations, m70, 'INCI formula JSON from Agent 1')}
+        ${breakdownOutRow('📣 C3 Marketing — TikTok script <span style="color:var(--text-faint);font-size:0.65rem;">(120B)</span>', marketShare, inp.iterations, m120, 'Hook / demo / CTA script')}
+        ${breakdownOutRow('🏭 C7 Ops — manufacturing profile JSON <span style="color:var(--text-faint);font-size:0.65rem;">(8B)</span>', OPS_TOK.output, 1, m8, 'MOQ, certifications, capabilities — Tier 2 scoring is deterministic')}
         <tr class="subtotal">
           <td>Output subtotal</td>
+          <td>${fmtTok(outputEffTok)}</td>
           <td>—</td>
-          <td>${fmtTok(inp.outputTok)}</td>
-          <td>× ${inp.iterations}</td>
           <td>—</td>
-          <td>${fmtUSD(r.outCost)}</td>
-        </tr>
-        <tr class="section-hdr"><td colspan="6">C7 OPS — Manufacturing profile (Llama 3.1 8B · fixed per run)</td></tr>
-        <tr>
-          <td>🏭 Factory requirements extract<span class="row-note">Tier 1 profile extraction; Tier 2 scoring is deterministic</span></td>
-          <td>${fmtTokCell(OPS_TOK.input)}</td>
-          <td>${fmtTokCell(OPS_TOK.output)}</td>
-          <td>× 1</td>
-          <td>${fmtRatePair(m8)}</td>
-          <td class="col-input">${fmtUSD(r.opsCost)}</td>
+          <td>${fmtUSD(outputSubtotalCost)}</td>
         </tr>`;
       } else {
+        const inputSubtotalCost = calcInCost(trendShare, inp.iterations, tier) + calcInCost(safetyShare, inp.iterations, tier);
+        const outputSubtotalCost = calcOutCost(formulaShare, inp.iterations, tier) + calcOutCost(marketShare, inp.iterations, tier);
+        const inputEffTok  = trendShare * inp.iterations + safetyShare * inp.iterations;
+        const outputEffTok = formulaShare * inp.iterations + marketShare * inp.iterations;
+
         breakdownHtml = `
-        <tr class="section-hdr"><td colspan="6">INPUT TOKENS — Formulator prompt split</td></tr>
-        <tr>
-          <td>📊 Trend payload (from C1)</td>
-          <td>${fmtTok(trendShare)}</td>
-          <td>—</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(tier)}</td>
-          <td class="col-input">${fmtUSD((trendShare * inp.iterations / 1_000_000) * tier.inPerM)}</td>
-        </tr>
-        <tr>
-          <td>📋 CoSing/FDA constraints (prompt context)</td>
-          <td>${fmtTok(safetyShare)}</td>
-          <td>—</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(tier)}</td>
-          <td class="col-input">${fmtUSD((safetyShare * inp.iterations / 1_000_000) * tier.inPerM)}</td>
-        </tr>
+        <tr class="section-hdr"><td colspan="5">INPUT TOKENS</td></tr>
+        ${breakdownInRow('📊 Trend payload (from C1)', trendShare, inp.iterations, tier)}
+        ${breakdownInRow('📋 CoSing/FDA constraints (prompt context)', safetyShare, inp.iterations, tier)}
         <tr class="subtotal">
           <td>Input subtotal</td>
-          <td>${fmtTok(inp.inputTok)}</td>
+          <td>${fmtTok(inputEffTok)}</td>
           <td>—</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(tier)}</td>
-          <td>${fmtUSD(r.inCost)}</td>
-        </tr>
-        <tr class="section-hdr"><td colspan="6">OUTPUT TOKENS</td></tr>
-        <tr>
-          <td>🧪 Formula recipe</td>
           <td>—</td>
-          <td>${fmtTok(formulaShare)}</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(tier)}</td>
-          <td class="col-output">${fmtUSD((formulaShare * inp.iterations / 1_000_000) * tier.outPerM)}</td>
+          <td>${fmtUSD(inputSubtotalCost)}</td>
         </tr>
-        <tr>
-          <td>📣 Marketing script</td>
-          <td>—</td>
-          <td>${fmtTok(marketShare)}</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(tier)}</td>
-          <td class="col-output">${fmtUSD((marketShare * inp.iterations / 1_000_000) * tier.outPerM)}</td>
-        </tr>
+        <tr class="section-hdr"><td colspan="5">OUTPUT TOKENS</td></tr>
+        ${breakdownOutRow('🧪 Formula recipe', formulaShare, inp.iterations, tier)}
+        ${breakdownOutRow('📣 Marketing script', marketShare, inp.iterations, tier)}
         <tr class="subtotal">
           <td>Output subtotal</td>
+          <td>${fmtTok(outputEffTok)}</td>
           <td>—</td>
-          <td>${fmtTok(inp.outputTok)}</td>
-          <td>× ${inp.iterations}</td>
-          <td>${fmtRatePair(tier)}</td>
-          <td>${fmtUSD(r.outCost)}</td>
+          <td>—</td>
+          <td>${fmtUSD(outputSubtotalCost)}</td>
         </tr>`;
       }
       tbody.innerHTML = breakdownHtml + `
-        <tr class="section-hdr"><td colspan="6">SUMMARY</td></tr>
+        <tr class="section-hdr"><td colspan="5">SUMMARY</td></tr>
         <tr>
           <td>Token Burn Total (input + output)</td>
-          <td colspan="4" style="text-align:right;color:var(--text-muted);">Phase 1 compute subtotal</td>
+          <td colspan="3" style="text-align:right;color:var(--text-muted);">Phase 1 compute subtotal</td>
           <td style="font-weight:600;color:var(--text);">${fmtUSD(r.tokenBurn)}</td>
         </tr>
         <tr>
           <td>Routing Script Compute (API gateway + Lambda)</td>
-          <td colspan="4" style="text-align:right;color:var(--text-muted);">Fixed overhead per run</td>
+          <td colspan="3" style="text-align:right;color:var(--text-muted);">Fixed overhead per run</td>
           <td style="color:var(--text-muted);">$0.050</td>
         </tr>
         <tr class="grand-total">
           <td>⚡ TOTAL AI COGS / FORMULA</td>
-          <td colspan="4"></td>
+          <td colspan="3"></td>
           <td>${fmtUSD(r.cogsPerFormula)}</td>
         </tr>
       `;
 
       /* ── Admin HR table (bottom of page) ── */
       const m120 = MODELS.oss120b;
-      const hrPhase1Cost = calcMixedCost(HR_TOK.phase1.input, HR_TOK.phase1.output, m120);
-      const hrPhase2Cost = calcMixedCost(HR_TOK.phase2.input, HR_TOK.phase2.output, m120);
+      const hrP1InCost  = calcInCost(HR_TOK.phase1.input, 1, m120);
+      const hrP1OutCost = calcOutCost(HR_TOK.phase1.output, 1, m120);
+      const hrP2InCost  = calcInCost(HR_TOK.phase2.input, 1, m120);
+      const hrP2OutCost = calcOutCost(HR_TOK.phase2.output, 1, m120);
       document.getElementById('adminHrBody').innerHTML = `
-        <tr class="excluded">
-          <td>👥 HR skill-gap analysis <span style="color:var(--text-faint);font-size:0.65rem;">(C5 · 120B · Phase 1)</span></td>
-          <td>${fmtTokCell(HR_TOK.phase1.input)}</td>
-          <td>${fmtTokCell(HR_TOK.phase1.output)}</td>
-          <td>× 1</td>
-          <td>${fmtRatePair(m120)}</td>
-          <td>${fmtUSD(hrPhase1Cost)} <span style="font-size:0.62rem;">excl.</span></td>
+        <tr class="section-hdr"><td colspan="5">INPUT TOKENS</td></tr>
+        ${breakdownInRow('👥 C5 HR — skill-gap analysis prompt <span style="color:var(--text-faint);font-size:0.65rem;">(120B · Phase 1)</span>', HR_TOK.phase1.input, 1, m120)}
+        ${breakdownInRow('👥 C5 HR — recruitment package prompt <span style="color:var(--text-faint);font-size:0.65rem;">(120B · Phase 2)</span>', HR_TOK.phase2.input, 1, m120)}
+        <tr class="subtotal excluded">
+          <td>Input subtotal</td>
+          <td>${fmtTok(HR_TOK.phase1.input + HR_TOK.phase2.input)}</td>
+          <td>—</td>
+          <td>—</td>
+          <td>${fmtUSD(hrP1InCost + hrP2InCost)} <span style="font-size:0.62rem;">excl.</span></td>
         </tr>
-        <tr class="excluded">
-          <td>👥 HR recruitment package <span style="color:var(--text-faint);font-size:0.65rem;">(C5 · 120B · Phase 2)</span></td>
-          <td>${fmtTokCell(HR_TOK.phase2.input)}</td>
-          <td>${fmtTokCell(HR_TOK.phase2.output)}</td>
-          <td>× 1</td>
-          <td>${fmtRatePair(m120)}</td>
-          <td>${fmtUSD(hrPhase2Cost)} <span style="font-size:0.62rem;">excl.</span></td>
+        <tr class="section-hdr"><td colspan="5">OUTPUT TOKENS</td></tr>
+        ${breakdownOutRow('👥 C5 HR — skill-gap report <span style="color:var(--text-faint);font-size:0.65rem;">(120B · Phase 1)</span>', HR_TOK.phase1.output, 1, m120)}
+        ${breakdownOutRow('👥 C5 HR — recruitment package <span style="color:var(--text-faint);font-size:0.65rem;">(120B · Phase 2)</span>', HR_TOK.phase2.output, 1, m120)}
+        <tr class="subtotal excluded">
+          <td>Output subtotal</td>
+          <td>${fmtTok(HR_TOK.phase1.output + HR_TOK.phase2.output)}</td>
+          <td>—</td>
+          <td>—</td>
+          <td>${fmtUSD(hrP1OutCost + hrP2OutCost)} <span style="font-size:0.62rem;">excl.</span></td>
         </tr>`;
 
       /* ── KPI cards ── */
