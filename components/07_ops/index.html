@@ -346,22 +346,48 @@
       margin-bottom: 0.5rem;
     }
 
+    /* ── Top 3 results section ───────────────────────────────── */
+    .top3-section {
+      margin-bottom: 1.25rem;
+      animation: slideIn 0.35s ease forwards;
+    }
+    .top3-section-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.875rem;
+      flex-wrap: wrap;
+    }
+    .top3-section-title {
+      font-family: var(--font-display);
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0;
+    }
+    .top3-section-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
     /* ── Score formula display ───────────────────────────────── */
     .score-formula-bar {
       display: flex;
       align-items: center;
       gap: 0.375rem;
       flex-wrap: wrap;
-      font-family: 'Courier New', monospace;
-      font-size: 0.8rem;
-      padding: 0.625rem 0.875rem;
+      font-family: var(--font-body);
+      font-size: 0.8125rem;
+      padding: 0.75rem 1rem;
       background: var(--surface-2);
       border-radius: var(--radius-sm);
       margin-bottom: 1rem;
       color: var(--text-muted);
+      line-height: 1.5;
     }
-    .sf-var   { font-weight: 700; color: var(--text); font-style: italic; }
-    .sf-wt    { font-weight: 700; }
+    .sf-var   { font-weight: 600; color: var(--text); }
+    .sf-wt    { font-weight: 600; }
     .sf-cost  { color: #6daa45; }
     .sf-comp  { color: var(--accent); }
     .sf-lead  { color: #4f98a3; }
@@ -418,15 +444,19 @@
       text-align: right;
     }
     .rec-narrative {
-      font-size: 0.8rem;
-      line-height: 1.7;
+      font-family: var(--font-body);
+      font-size: 0.8125rem;
+      line-height: 1.75;
       color: var(--text-muted);
       background: var(--surface-2);
       border-radius: var(--radius-sm);
       padding: 0.875rem 1rem;
       white-space: pre-line;
       margin-bottom: 0.875rem;
-      font-family: 'Courier New', monospace;
+    }
+    .rec-narrative strong {
+      color: var(--text);
+      font-weight: 600;
     }
     .rec-meta { display: flex; gap: 0.875rem; flex-wrap: wrap; }
     .rec-meta-item { display: flex; flex-direction: column; gap: 0.1rem; }
@@ -970,15 +1000,79 @@ Extract the manufacturing requirements profile.`;
       const totalCost = (top.cost_per_unit * top.moq).toLocaleString(undefined,
         { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      return `RECOMMENDATION: ${top.name}  (#1 · Composite Score ${top.totalScore}/100)
+      const hardLine = hardNote ? `\n\n${hardNote}` : '';
+
+      return `<strong>Recommendation: ${top.name}</strong> (#1 · composite score ${top.totalScore}/100)
 
 ${top.name} (${top.country}) is the optimal contract manufacturer for your ${formulaName}${market !== 'Global' ? ' targeting ' + market : ''} launch, ${costNote}.
 
-Your highest-weighted criterion is ${topPriority}. ${top.name} ranks first by combining a compliance score of ${top.sComply}/100, a lead time of ${top.lead_time_days} days, and a unit cost of $${top.cost_per_unit.toFixed(2)}. ${hardNote}
+Your highest-weighted criterion is ${topPriority}. ${top.name} ranks first by combining a compliance score of ${top.sComply}/100, a lead time of ${top.lead_time_days} days, and a unit cost of $${top.cost_per_unit.toFixed(2)}.${hardLine}
 
 Certifications on file: ${top.certifications.join(' · ')}
-MOQ: ${top.moq.toLocaleString()} units  ·  Lead time: ${top.lead_time_days} days  ·  Est. production start-to-shelf: ${launchStr}
+MOQ: ${top.moq.toLocaleString()} units · Lead time: ${top.lead_time_days} days · Est. production start-to-shelf: ${launchStr}
 Total production budget at MOQ: $${totalCost}`;
+    }
+
+    /* ─── Render Top 3 ranked facilities ───────────────────── */
+    function renderTop3(ranked, profile) {
+      const top3 = ranked.slice(0, 3);
+      const medals    = ['#1', '#2', '#3'];
+      const rankClass = ['rank-1', 'rank-2', 'rank-3'];
+      const hardFilters = profile.hard_filter_certifications || [];
+
+      const cardsHTML = top3.map((f, i) => {
+        const missingHard = hardFilters.filter(cert =>
+          !f.certifications.some(c => c.toLowerCase().includes(cert.toLowerCase()))
+        );
+        const complianceTag = missingHard.length > 0
+          ? `<span class="tag tag-warn"><i data-lucide="alert-triangle" style="width:9px;height:9px;vertical-align:-1px;margin-right:2px;"></i>${missingHard.join(', ')} missing</span>`
+          : `<span class="tag tag-ok"><i data-lucide="check" style="width:9px;height:9px;vertical-align:-1px;margin-right:2px;"></i>Filter compliant</span>`;
+
+        return `
+          <div class="factory-card" ${i > 0 ? `style="opacity:0;animation-delay:${i*0.1}s"` : ''}>
+            <div class="rank-badge ${rankClass[i]}">${medals[i]}</div>
+            <div>
+              <div class="factory-name">${f.name}</div>
+              <div class="factory-tags">
+                <span class="tag">${f.country}</span>
+                <span class="tag">${f.moq.toLocaleString()} MOQ</span>
+                <span class="tag">$${f.cost_per_unit.toFixed(2)}/unit</span>
+                <span class="tag">${f.lead_time_days}d lead</span>
+                ${complianceTag}
+              </div>
+              <div class="score-bars">
+                <div class="score-bar-row">
+                  <span class="score-bar-label">Cost</span>
+                  <div class="score-bar-track"><div class="score-bar-fill fill-cost" style="width:${f.sCost}%"></div></div>
+                  <span class="score-bar-val">${f.sCost}</span>
+                </div>
+                <div class="score-bar-row">
+                  <span class="score-bar-label">Compliance</span>
+                  <div class="score-bar-track"><div class="score-bar-fill fill-comply" style="width:${Math.min(f.sComply, 100)}%"></div></div>
+                  <span class="score-bar-val">${f.sComply}</span>
+                </div>
+                <div class="score-bar-row">
+                  <span class="score-bar-label">Lead Time</span>
+                  <div class="score-bar-track"><div class="score-bar-fill fill-lead" style="width:${f.sLead}%"></div></div>
+                  <span class="score-bar-val">${f.sLead}</span>
+                </div>
+              </div>
+            </div>
+            <div class="factory-total-score">
+              <div class="total-score-num">${f.totalScore}</div>
+              <div class="total-score-label">Score</div>
+            </div>
+          </div>`;
+      }).join('');
+
+      return `
+        <div class="top3-section">
+          <div class="top3-section-header">
+            <h2 class="top3-section-title">Top 3 Ranked Facilities</h2>
+            <span class="top3-section-sub">${ranked.length} certified plants evaluated</span>
+          </div>
+          <div class="ranked-list">${cardsHTML}</div>
+        </div>`;
     }
 
     /* ─── Render Tier 1 card ─────────────────────────────────── */
@@ -1063,7 +1157,6 @@ Total production budget at MOQ: $${totalCost}`;
 
     /* ─── Render Tier 2 card ─────────────────────────────────── */
     function renderTier2(ranked, weights, profile, formulaName, market) {
-      const top3 = ranked.slice(0, 3);
       const top  = ranked[0];
 
       const total = weights.cost + weights.comply + weights.lead;
@@ -1134,55 +1227,6 @@ Total production budget at MOQ: $${totalCost}`;
           </div>
         </div>`;
 
-      const medals    = ['#1', '#2', '#3'];
-      const rankClass = ['rank-1', 'rank-2', 'rank-3'];
-      const hardFilters = profile.hard_filter_certifications || [];
-
-      const cardsHTML = top3.map((f, i) => {
-        const missingHard = hardFilters.filter(cert =>
-          !f.certifications.some(c => c.toLowerCase().includes(cert.toLowerCase()))
-        );
-        const complianceTag = missingHard.length > 0
-          ? `<span class="tag tag-warn"><i data-lucide="alert-triangle" style="width:9px;height:9px;vertical-align:-1px;margin-right:2px;"></i>${missingHard.join(', ')} missing</span>`
-          : `<span class="tag tag-ok"><i data-lucide="check" style="width:9px;height:9px;vertical-align:-1px;margin-right:2px;"></i>Filter compliant</span>`;
-
-        return `
-          <div class="factory-card" ${i > 0 ? `style="opacity:0;animation-delay:${i*0.1}s"` : ''}>
-            <div class="rank-badge ${rankClass[i]}">${medals[i]}</div>
-            <div>
-              <div class="factory-name">${f.name}</div>
-              <div class="factory-tags">
-                <span class="tag">${f.country}</span>
-                <span class="tag">${f.moq.toLocaleString()} MOQ</span>
-                <span class="tag">$${f.cost_per_unit.toFixed(2)}/unit</span>
-                <span class="tag">${f.lead_time_days}d lead</span>
-                ${complianceTag}
-              </div>
-              <div class="score-bars">
-                <div class="score-bar-row">
-                  <span class="score-bar-label">Cost</span>
-                  <div class="score-bar-track"><div class="score-bar-fill fill-cost" style="width:${f.sCost}%"></div></div>
-                  <span class="score-bar-val">${f.sCost}</span>
-                </div>
-                <div class="score-bar-row">
-                  <span class="score-bar-label">Compliance</span>
-                  <div class="score-bar-track"><div class="score-bar-fill fill-comply" style="width:${Math.min(f.sComply, 100)}%"></div></div>
-                  <span class="score-bar-val">${f.sComply}</span>
-                </div>
-                <div class="score-bar-row">
-                  <span class="score-bar-label">Lead Time</span>
-                  <div class="score-bar-track"><div class="score-bar-fill fill-lead" style="width:${f.sLead}%"></div></div>
-                  <span class="score-bar-val">${f.sLead}</span>
-                </div>
-              </div>
-            </div>
-            <div class="factory-total-score">
-              <div class="total-score-num">${f.totalScore}</div>
-              <div class="total-score-label">Score</div>
-            </div>
-          </div>`;
-      }).join('');
-
       return `
         <div class="tier-card tier-2-card">
           <div class="tier-card-header">
@@ -1196,9 +1240,6 @@ Total production budget at MOQ: $${totalCost}`;
 
           ${formulaBar}
           ${recBanner}
-
-          <p class="card-title" style="margin-bottom:0.75rem;font-size:0.8125rem;">Top 3 Ranked Facilities</p>
-          <div class="ranked-list">${cardsHTML}</div>
         </div>`;
     }
 
@@ -1313,6 +1354,7 @@ Total production budget at MOQ: $${totalCost}`;
               <i data-lucide="printer" style="width:14px;height:14px;"></i> Export Report
             </button>
           </div>
+          ${renderTop3(ranked, profile)}
           ${renderTier1(profile, formulaName)}
           ${renderTier2(ranked, weights, profile, formulaName, market)}`;
 
