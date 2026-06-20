@@ -582,6 +582,9 @@ No match → `trend: "Unclassified"`, empty ingredients, `confidence: "low"`.
 Agent 1 (Groq LLM)          Agent 2 (CosIng DB)
 "Formulation Agent"    →    "Regulatory Agent"
 Generates INCI formula      Deterministic audit
+         ↑                           ↑
+         └──── assets/cosing_db.js ──┘
+              (shared regulatory source)
 ```
 
 ### User flow
@@ -606,7 +609,9 @@ Generates INCI formula      Deterministic audit
 - Scroll prev/next buttons
 - Each card: trend name, pain point, ingredients, skin concern, formula type badge
 
-### Agent 1 — FORMULATOR_SYSTEM prompt (critical rules)
+### Agent 1 — `buildFormulatorSystem()` prompt
+
+System prompt is built at runtime by `buildFormulatorSystem()` in `components/02_formulation/index.html`. Regulatory limits are **not hard-coded** — they are appended from `cosingBuildFormulatorConstraints()` in `assets/cosing_db.js` (same data Agent 2 audits against).
 
 Returns JSON:
 ```javascript
@@ -617,11 +622,23 @@ Returns JSON:
 }
 ```
 
-Hard rules enforced in prompt:
+**Hard rules** (only these two are fixed in the prompt):
 - Percentages sum to exactly 100.0
-- Water (Aqua) highest % in water-based formulas
-- Phenoxyethanol ≤ 1%, Fragrance ≤ 1%
-- Bakuchiol ≤ 2%, Niacinamide ≤ 10%, Zinc Oxide ≤ 25%, Retinol ≤ 0.3%
+- Water (Aqua) highest % in water-based formulas (serum, face cream, toner, face mist, sleeping mask)
+
+**Regulatory constraints** (injected dynamically from `cosing_db.js`):
+- EU Annex II prohibited INCI list (`COSING_PROHIBITED` + extended set)
+- FDA prohibited substances (`FDA_PROHIBITED`)
+- All EU restricted entries with `max_pct` (`COSING_RESTRICTED` — ~71 INCI keys across Annexes III, V, VI), including leave-on/rinse-off/mixture caps and `product_scope` where applicable
+- FDA restricted entries (`FDA_RESTRICTED`)
+
+Example generated constraint line:
+```
+- PHENOXYETHANOL: max 1%; EU Annex V
+- RETINOL: max 0.3%; EU Annex III
+```
+
+Groq call uses `{ role: "system", content: buildFormulatorSystem() }` — prompt size ~5 KB of regulatory text in addition to schema/instructions.
 
 Post-processing: if sum drifts >0.5 from 100, renormalize all percentages.
 
@@ -1177,7 +1194,7 @@ Used by `chat-bubble.js` for sales context. **Not** used by Component 02 (uses `
 
 2. **`COSING_PROHIBITED_EXTENDED`** (Set) — additional botanical/drug entries
 
-3. **`COSING_RESTRICTED`** (Object) — ~50+ entries keyed by normalised INCI:
+3. **`COSING_RESTRICTED`** (Object) — ~71 entries keyed by normalised INCI:
    ```javascript
    "PHENOXYETHANOL": {
      max_pct: 1.0, annex: "V", entry: "29",
@@ -1194,10 +1211,14 @@ Used by `chat-bubble.js` for sales context. **Not** used by Component 02 (uses `
 ### Functions
 
 ```javascript
-cosingNormalise(name)     // uppercase, trim, collapse whitespace
-cosingCheck(inci, pct)    // single ingredient → { status, ref, note, restricted }
-cosingCheckAll(ingredients) // array → per-ingredient results
+cosingNormalise(name)                  // uppercase, trim, collapse whitespace
+cosingCheck(inci, pct)                 // single ingredient → { status, ref, note, restricted }
+cosingCheckAll(ingredients)            // array → per-ingredient results
+cosingFormatRestrictedLine(inci, entry) // format one EU restricted entry for Agent 1 prompt
+cosingBuildFormulatorConstraints()       // full prohibited + restricted text block for Agent 1 system prompt
 ```
+
+**Agent 1 (Formulation)** and **Agent 2 (Regulatory)** both consume this file — Agent 1 via `cosingBuildFormulatorConstraints()` injected into the Groq system prompt; Agent 2 via `cosingCheckAll()` after generation.
 
 ### Check priority
 
@@ -1299,7 +1320,7 @@ Use this ordered checklist to reconstruct the app from scratch.
 ### Phase 3 — Components (any order, but test pipeline 01→02→03→07)
 
 - [ ] **01_sentiment:** COMMENTS loader, Groq loop, KEYWORD_MAP, trend grouping, `tf_c1_results` save, export
-- [ ] **02_formulation:** Trend carousel, Agent 1 Groq, Agent 2 CosIng, TFFormulas save, export
+- [ ] **02_formulation:** Trend carousel, Agent 1 Groq (`buildFormulatorSystem` + `cosingBuildFormulatorConstraints`), Agent 2 CosIng, TFFormulas save, export
 - [ ] **03_marketing:** Formula dropdown, tone/demographic inputs, Groq script, storyboard, copy/print
 - [ ] **04_sales:** Landing page, chat modal, Forma prompt, scoring, presenter profiles, access grant
 - [ ] **05_hr:** Two-phase Groq, risk card, JD card, copy/download
