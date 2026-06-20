@@ -389,11 +389,11 @@
       bottom: -4px;
       width: 2px;
       background: var(--warning);
-      left: 80%;
+      left: 50%;
       border-radius: 1px;
     }
     .margin-threshold::after {
-      content: 'Min 80%';
+      content: 'Min 50%';
       position: absolute;
       bottom: calc(100% + 4px);
       left: 50%;
@@ -580,7 +580,7 @@
           <h1 style="font-size:1.5rem;">AI Finance Deliverable</h1>
         </div>
         <p style="color:var(--text-muted);font-size:0.875rem;max-width:600px;">
-          Unit Economics &amp; Compute Trade-off Model. A formula-driven, two-phase engine that traces the exact cost of silicon and tokens against corporate output — proving TrendFormulate achieves 80 %+ gross margin at scale.
+          Unit Economics &amp; Compute Trade-off Model. A formula-driven, two-phase engine that traces the exact cost of silicon and tokens against corporate output — proving TrendFormulate clears the 50% gross margin floor at scale.
         </p>
       </div>
       <button class="btn btn-primary no-print" id="btnPresent" style="white-space:nowrap;">
@@ -624,39 +624,43 @@
           <span class="phase-badge p1">Phase 1</span>
           <span class="phase-title">Token Tax Configurator</span>
         </div>
+        <p style="font-size:0.6875rem;color:var(--text-muted);line-height:1.45;margin:0 0 0.85rem;">
+          Sliders tune <strong>C2 formulator + C3 marketing</strong> only (per iteration).
+          The breakdown table adds fixed C1 + C7 costs and applies × iterations to C2/C3 rows.
+        </p>
 
         <div class="slider-group">
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="sInputTok">Context window — input tokens</label>
+              <label for="sInputTok">C2 formulator — input tokens (per iteration)</label>
               <span class="slider-value" id="vInputTok">25,000</span>
             </div>
             <input type="range" id="sInputTok" min="5000" max="80000" step="1000" value="25000" />
             <div style="display:flex;justify-content:space-between;font-size:0.625rem;color:var(--text-faint);margin-top:1px;">
-              <span>5k</span><span>trend payload + CoSing prompt</span><span>80k</span>
+              <span>5k</span><span>60% trend · 40% CoSing</span><span>80k</span>
             </div>
           </div>
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="sOutputTok">Generated content — output tokens</label>
+              <label for="sOutputTok">C2 + C3 — output tokens (per iteration)</label>
               <span class="slider-value" id="vOutputTok">6,250</span>
             </div>
             <input type="range" id="sOutputTok" min="1000" max="20000" step="250" value="6250" />
             <div style="display:flex;justify-content:space-between;font-size:0.625rem;color:var(--text-faint);margin-top:1px;">
-              <span>1k</span><span>formula + marketing</span><span>20k</span>
+              <span>1k</span><span>65% formula · 35% marketing</span><span>20k</span>
             </div>
           </div>
 
           <div class="slider-row">
             <div class="slider-header">
-              <label for="sIterations">Agentic loop iterations (token multiplier)</label>
+              <label for="sIterations">C2/C3 loop iterations</label>
               <span class="slider-value" id="vIterations">3×</span>
             </div>
             <input type="range" id="sIterations" min="1" max="10" step="1" value="3" />
             <div style="display:flex;justify-content:space-between;font-size:0.625rem;color:var(--text-faint);margin-top:1px;">
-              <span>1×</span><span>Proposer ↔ Guardrail</span><span>10×</span>
+              <span>1×</span><span>Proposer ↔ Guardrail · multiplies C2/C3 in table</span><span>10×</span>
             </div>
           </div>
 
@@ -761,7 +765,7 @@
               </div>
               <hr class="tf-divider" />
               <div class="tf-total">
-                <span>Raw input</span>
+                <span>C2 input (per iteration)</span>
                 <span id="tfTotalInput">25,000 tok</span>
               </div>
             </div>
@@ -799,7 +803,7 @@
 
             <!-- Output box -->
             <div class="tf-node output-node">
-              <div class="tf-node-title">Deliverables (Output)</div>
+              <div class="tf-node-title">C2/C3 deliverables (per iteration)</div>
               <div class="tf-item">
                 <span>🧪 Formula recipe (C2 · 70B)</span>
                 <span class="tf-tok" id="tfFormulaTok">4,062</span>
@@ -808,18 +812,17 @@
                 <span>📣 Marketing script (C3 · 120B)</span>
                 <span class="tf-tok" id="tfMarketingTok">2,188</span>
               </div>
-              <div class="tf-item">
-                <span>🏭 Mfg profile (C7 · 8B)</span>
-                <span class="tf-tok" id="tfOpsTok">1,000</span>
-              </div>
               <hr class="tf-divider" />
               <div class="tf-total">
-                <span>Generated output</span>
+                <span>C2 + C3 output (per iteration)</span>
                 <span id="tfTotalOutput">6,250 tok</span>
               </div>
             </div>
 
           </div>
+          <p style="font-size:0.65rem;color:var(--text-faint);margin:0.5rem 0 0.75rem;line-height:1.4;">
+            C1 sentiment and C7 ops use fixed token estimates — included in the breakdown subtotals below, not on the sliders above.
+          </p>
 
           <!-- Token Tax Breakdown Table -->
           <div class="table-scroll">
@@ -827,7 +830,7 @@
               <thead>
                 <tr>
                   <th>Cost Item</th>
-                  <th>Tokens</th>
+                  <th>Base tokens</th>
                   <th>× Iter.</th>
                   <th>Rate /1M</th>
                   <th>Cost</th>
@@ -841,7 +844,7 @@
         <!-- Burn alert -->
         <div class="burn-alert" id="burnAlert">
           <i data-lucide="flame" style="width:16px;height:16px;flex-shrink:0;"></i>
-          <span><strong>Infinite Loop Token Burn Detected.</strong> Your current configuration erodes gross margin below 80 %. The CFO will reject this architecture. Reduce agentic iterations or switch to the GPT OSS 20B tier.</span>
+          <span><strong>Infinite Loop Token Burn Detected.</strong> Your current configuration erodes gross margin below 50%. The CFO will reject this architecture. Reduce agentic iterations or switch to the GPT OSS 20B tier.</span>
         </div>
 
         <!-- Gross margin gauge -->
@@ -1039,7 +1042,7 @@
             <td>Gross Margin</td>
             <td style="color:var(--error);">Negative (R&amp;D is a cost)</td>
             <td id="ppMargin" style="color:var(--success);font-weight:700;">91.8%</td>
-            <td id="ppMarginAdv">Exceeds 80% target ✓</td>
+            <td id="ppMarginAdv">Exceeds 50% target ✓</td>
           </tr>
           <tr>
             <td>Time per Formula</td>
@@ -1086,6 +1089,8 @@
     const INFRA_FIXED = 2000;
     const ROUTING_COST = 0.05;
     const LEGACY_COST_PER_FORMULA = 15000;
+    const MARGIN_TARGET = 50;
+    const MARGIN_WARN   = 30;
 
     function fmtRate(n) {
       return '$' + (n < 0.1 ? n.toFixed(3) : n.toFixed(2));
@@ -1294,7 +1299,7 @@
           y: {
             min: 0, max: 100,
             ticks: { callback: v => v + '%' },
-            grid: { color: (ctx) => ctx.tick.value === 80 ? 'rgba(184,134,46,0.5)' : 'rgba(196,155,148,0.1)' }
+            grid: { color: (ctx) => ctx.tick.value === MARGIN_TARGET ? 'rgba(184,134,46,0.5)' : 'rgba(196,155,148,0.1)' }
           },
           x: { grid: { display: false } }
         }
@@ -1359,11 +1364,10 @@
       document.getElementById('tfTotalInput').textContent  = fmtTok(inp.inputTok) + ' tok';
       document.getElementById('tfFormulaTok').textContent  = fmtTok(formulaShare);
       document.getElementById('tfMarketingTok').textContent = fmtTok(marketShare);
-      document.getElementById('tfOpsTok').textContent      = fmtTok(OPS_TOK.input + OPS_TOK.output);
       document.getElementById('tfTotalOutput').textContent = fmtTok(inp.outputTok) + ' tok';
-      document.getElementById('tfIterLabel').textContent   = '× ' + inp.iterations + ' runs';
+      document.getElementById('tfIterLabel').textContent   = '× ' + inp.iterations + ' C2/C3 runs';
       document.getElementById('tfIterCount').textContent   = inp.iterations + ' iteration' + (inp.iterations > 1 ? 's' : '');
-      document.getElementById('tfMultLabel').textContent   = inp.iterations + '× token cost';
+      document.getElementById('tfMultLabel').textContent   = inp.iterations + '× C2/C3 token cost';
 
       /* ── Breakdown table ── */
       const tbody = document.getElementById('breakdownBody');
@@ -1393,7 +1397,7 @@
         ${breakdownInRow('📋 C2 Formulator — CoSing/FDA constraints <span style="color:var(--text-faint);font-size:0.65rem;">(70B)</span>', safetyShare, inp.iterations, m70, 'Regulatory text from cosing_db.js in system prompt')}
         ${breakdownInRow('🏭 C7 Ops — manufacturing profile prompt <span style="color:var(--text-faint);font-size:0.65rem;">(8B)</span>', OPS_TOK.input, 1, m8, 'Formula + market context sent to profile extractor')}
         <tr class="subtotal">
-          <td>Input subtotal</td>
+          <td>Pipeline input subtotal<span class="row-note">Effective tokens — all agents, C2/C3 × iterations applied</span></td>
           <td>${fmtTok(inputEffTok)}</td>
           <td>—</td>
           <td>—</td>
@@ -1412,7 +1416,7 @@
         ${breakdownOutRow('📣 C3 Marketing — TikTok script <span style="color:var(--text-faint);font-size:0.65rem;">(120B)</span>', marketShare, inp.iterations, m120, 'Hook / demo / CTA script')}
         ${breakdownOutRow('🏭 C7 Ops — manufacturing profile JSON <span style="color:var(--text-faint);font-size:0.65rem;">(8B)</span>', OPS_TOK.output, 1, m8, 'MOQ, certifications, capabilities — Tier 2 scoring is deterministic')}
         <tr class="subtotal">
-          <td>Output subtotal</td>
+          <td>Pipeline output subtotal<span class="row-note">Effective tokens — all agents, C2/C3 × iterations applied</span></td>
           <td>${fmtTok(outputEffTok)}</td>
           <td>—</td>
           <td>—</td>
@@ -1429,7 +1433,7 @@
         ${breakdownInRow('📊 Trend payload (from C1)', trendShare, inp.iterations, tier)}
         ${breakdownInRow('📋 CoSing/FDA constraints (prompt context)', safetyShare, inp.iterations, tier)}
         <tr class="subtotal">
-          <td>Input subtotal</td>
+          <td>C2 input subtotal<span class="row-note">Effective tokens — C2 formulator only, × iterations applied</span></td>
           <td>${fmtTok(inputEffTok)}</td>
           <td>—</td>
           <td>—</td>
@@ -1439,7 +1443,7 @@
         ${breakdownOutRow('🧪 Formula recipe', formulaShare, inp.iterations, tier)}
         ${breakdownOutRow('📣 Marketing script', marketShare, inp.iterations, tier)}
         <tr class="subtotal">
-          <td>Output subtotal</td>
+          <td>C2 + C3 output subtotal<span class="row-note">Effective tokens — formulator deliverables, × iterations applied</span></td>
           <td>${fmtTok(outputEffTok)}</td>
           <td>—</td>
           <td>—</td>
@@ -1499,7 +1503,7 @@
 
       const marginEl = document.getElementById('kMargin');
       marginEl.textContent = r.grossMarginPct.toFixed(1) + '%';
-      marginEl.style.color = r.grossMarginPct >= 80 ? 'var(--success)' : 'var(--error)';
+      marginEl.style.color = r.grossMarginPct >= MARGIN_TARGET ? 'var(--success)' : 'var(--error)';
 
       document.getElementById('kProfit').textContent   = fmtUSD(r.grossProfit);
       document.getElementById('kProfitSub').textContent = 'at ' + fmtNum(inp.brands) + ' brands × $' + inp.arpu + ' ARPU';
@@ -1512,13 +1516,13 @@
 
       /* ── Margin gauge ── */
       const mg = r.grossMarginPct;
-      const fillColor = mg >= 80 ? 'var(--success)' : mg >= 60 ? 'var(--warning)' : 'var(--error)';
+      const fillColor = mg >= MARGIN_TARGET ? 'var(--success)' : mg >= MARGIN_WARN ? 'var(--warning)' : 'var(--error)';
       document.getElementById('marginFill').style.width           = Math.max(0, Math.min(mg, 100)) + '%';
       document.getElementById('marginFill').style.backgroundColor  = fillColor;
       document.getElementById('marginNumber').textContent          = mg.toFixed(1) + '%';
       document.getElementById('marginNumber').style.color          = fillColor;
       const pillEl = document.getElementById('marginPill');
-      if (mg >= 80) { pillEl.textContent = '✓ Target Met'; pillEl.className = 'margin-pill pass'; }
+      if (mg >= MARGIN_TARGET) { pillEl.textContent = '✓ Target Met'; pillEl.className = 'margin-pill pass'; }
       else          { pillEl.textContent = '✗ Below Target'; pillEl.className = 'margin-pill fail'; }
       document.getElementById('marginGaugeSub').textContent = 'Revenue: ' + fmtUSD(r.monthlyRevenue) + ' — COGS: ' + fmtUSD(r.totalMonthlyCOGS);
       document.getElementById('mgRevenue').textContent = fmtUSD(r.monthlyRevenue);
@@ -1526,7 +1530,7 @@
       document.getElementById('mgProfit').textContent  = fmtUSD(r.grossProfit);
 
       /* ── Burn alert ── */
-      document.getElementById('burnAlert').classList.toggle('visible', mg < 80);
+      document.getElementById('burnAlert').classList.toggle('visible', mg < MARGIN_TARGET);
 
       /* ── P&L comparison table ── */
       document.getElementById('scaleLabel').textContent   = fmtTok(r.monthlyFormulas);
@@ -1561,16 +1565,16 @@
       document.getElementById('pFormulas').textContent    = fmtNum(r.monthlyFormulas);
       document.getElementById('pCOGS').textContent        = fmtUSD(r.cogsPerFormula);
       document.getElementById('pMargin').textContent      = r.grossMarginPct.toFixed(1) + '%';
-      document.getElementById('pMargin').style.color      = r.grossMarginPct >= 80 ? 'var(--success)' : 'var(--error)';
+      document.getElementById('pMargin').style.color      = r.grossMarginPct >= MARGIN_TARGET ? 'var(--success)' : 'var(--error)';
       document.getElementById('pSave').textContent        = fmtMult(r.costMult);
       document.getElementById('ppLegacyCOGS').textContent = fmtUSD(r.legacyMonthly);
       document.getElementById('ppAiCOGS').textContent     = fmtUSD(r.totalMonthlyCOGS);
       document.getElementById('ppMultiplier').textContent = fmtMult(r.opexMult) + ' cheaper';
       document.getElementById('ppRevenue').textContent    = fmtUSD(r.monthlyRevenue);
       document.getElementById('ppMargin').textContent     = r.grossMarginPct.toFixed(1) + '%';
-      document.getElementById('ppMargin').style.color     = r.grossMarginPct >= 80 ? 'var(--success)' : 'var(--error)';
-      document.getElementById('ppMarginAdv').textContent  = r.grossMarginPct >= 80
-        ? 'Exceeds 80% target ✓' : '⚠ Below 80% target';
+      document.getElementById('ppMargin').style.color     = r.grossMarginPct >= MARGIN_TARGET ? 'var(--success)' : 'var(--error)';
+      document.getElementById('ppMarginAdv').textContent  = r.grossMarginPct >= MARGIN_TARGET
+        ? 'Exceeds ' + MARGIN_TARGET + '% target ✓' : '⚠ Below ' + MARGIN_TARGET + '% target';
       document.getElementById('pTaglineCOGS').textContent = fmtUSD(LEGACY_COST_PER_FORMULA);
       document.getElementById('pTaglineAI').textContent   = fmtUSD(r.cogsPerFormula);
 

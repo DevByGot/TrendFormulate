@@ -88,16 +88,20 @@ The main dashboard shows **4 department cards** (Sentiment, R&D, Marketing, Ops)
 | Chart.js | `https://cdn.jsdelivr.net/npm/chart.js` | `06_finance` only |
 | Google Fonts | Via `style.css` `@import` | Cormorant Garamond + DM Sans |
 
-### LLM models
+### LLM models — production pipeline routing
 
-| Component | Model | Temperature | Max tokens |
-|-----------|-------|-------------|------------|
-| 01 Sentiment | `llama-3.3-70b-versatile` | 0.3 | 768 (bump to 1536 on truncation) |
-| 02 Formulation (Agent 1) | `llama-3.3-70b-versatile` | 0.35 | 1800 (bump to 4096) |
-| 03 Marketing | `llama-3.3-70b-versatile` | ~0.6 | ~1800 |
-| 04 Sales / chat-bubble | `llama-3.3-70b-versatile` | 0.55–0.6 | 220–280 |
-| 05 HR (both phases) | `llama-3.3-70b-versatile` | default | 1200 / 2400 |
-| 07 Ops (Tier 1 profile) | `llama-3.1-8b-instant` | default | profile JSON |
+The platform uses **four Groq models**, routed by task complexity. This is the live configuration (not a single model everywhere).
+
+| Model | Groq ID | Used in | Role |
+|-------|---------|---------|------|
+| GPT OSS 20B | `openai/gpt-oss-20b` | C1 Sentiment, C4 Sales (Forma), chat-bubble | Fast JSON extraction + conversational guardrails |
+| Llama 3.3 70B | `llama-3.3-70b-versatile` | C2 Formulation (Agent 1 only) | Deep INCI formula generation with regulatory context |
+| GPT OSS 120B | `openai/gpt-oss-120b` | C3 Marketing, C5 HR (both phases) | Creative scripts + executive recruitment prose |
+| Llama 3.1 8B | `llama-3.1-8b-instant` | C7 Ops (Tier 1 only) | Cheap structured JSON profile extraction |
+
+**No LLM:** C2 Agent 2 (compliance audit via `cosing_db.js`), C7 Tier 2 (factory scoring), C6 Finance (simulator only).
+
+See [§6 — Groq / AI Integration](#6-groq--ai-integration) for full prompt schemas, message shapes, and call parameters.
 
 **Agent 2 (Formulation compliance)** and **Ops Tier 2 (factory scoring)** use **zero LLM** — pure JavaScript.
 
@@ -173,18 +177,24 @@ trendformulate/
 ### End-to-end pipeline
 
 ```
-┌─────────────────┐     tf_c1_results      ┌──────────────────┐
-│ 01 Sentiment    │ ──────────────────────► │ 02 Formulation   │
-│ (15 comments)   │                         │ Agent1: Groq LLM │
-└─────────────────┘                         │ Agent2: CosIng   │
-                                            └────────┬─────────┘
-                                                     │ tf_saved_formulas
-                              ┌──────────────────────┼──────────────────────┐
-                              ▼                      ▼                      ▼
-                    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-                    │ 03 Marketing    │    │ 07 Ops          │    │ index.html      │
-                    │ TikTok script   │    │ Factory match   │    │ Your Products   │
-                    └─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────────┐     tf_c1_results      ┌──────────────────────────┐
+│ 01 Sentiment        │ ─────────────────────► │ 02 Formulation           │
+│ GPT OSS 20B         │                        │ Agent1: Llama 3.3 70B    │
+│ 15 comments → JSON  │                        │ Agent2: CosIng (no LLM)  │
+└─────────────────────┘                        └────────────┬─────────────┘
+                                                              │ tf_saved_formulas
+                              ┌───────────────────────────────┼───────────────────────────────┐
+                              ▼                               ▼                               ▼
+                    ┌─────────────────────┐         ┌─────────────────────┐         ┌─────────────────┐
+                    │ 03 Marketing        │         │ 07 Ops              │         │ index.html      │
+                    │ GPT OSS 120B        │         │ Tier1: Llama 8B     │         │ Your Products   │
+                    │ TikTok script JSON  │         │ Tier2: deterministic│         └─────────────────┘
+                    └─────────────────────┘         └─────────────────────┘
+
+Admin-only (not in main pipeline flow):
+  C5 HR — GPT OSS 120B × 2 phases    C6 Finance — no API (COGS simulator)
+Public entry: C4 Sales Forma — GPT OSS 20B (waitlist guardrails)
+Widget: chat-bubble.js — GPT OSS 20B (lighter sales on internal pages)
 ```
 
 ### localStorage contract
@@ -300,7 +310,7 @@ Rose gradient square (`linear-gradient(135deg, #c4788a, #d49678)`) with white `f
 
 ---
 
-## 6. Groq / AI Integration
+## 6. Groq / AI Integration — Models, Prompts & Usage
 
 ### Endpoint detection (used in most components)
 
@@ -313,12 +323,12 @@ const ON_SERVER =
 const GROQ_ENDPOINT = ON_SERVER
   ? '/api/groq'
   : 'https://api.groq.com/openai/v1/chat/completions';
-
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
 ```
 
 **Local:** Requires `GROQ_API_KEY` in `config.js`, sent as `Authorization: Bearer` header.  
 **Deployed:** Browser POSTs to `/api/groq`; Vercel function adds the key from `GROQ_API_KEY` env var.
+
+Each component sets its own `GROQ_MODEL` constant — there is no shared global model.
 
 ### Standard call pattern
 
@@ -330,9 +340,9 @@ async function callGroq(messages, maxTokens, retrying = false, bumped = false) {
   }
   const response = await fetch(GROQ_ENDPOINT, {
     method: 'POST', headers,
-    body: JSON.stringify({ model: GROQ_MODEL, temperature: 0.3, max_tokens: maxTokens, messages })
+    body: JSON.stringify({ model: GROQ_MODEL, temperature, max_tokens: maxTokens, messages })
   });
-  // 429 → wait 2s, retry once
+  // 429 → wait 2–2.5s, retry once
   // finish_reason === 'length' → bump max_tokens 1.5× and retry once
   // Strip ```json fences before JSON.parse
 }
@@ -358,7 +368,263 @@ const hasApi = ON_SERVER ||
   (typeof GROQ_API_KEY !== 'undefined' && GROQ_API_KEY && GROQ_API_KEY !== 'gsk_YOUR_KEY_HERE');
 ```
 
-If `!hasApi`: use keyword fallback + simulated typing delay (600–1300ms).
+If `!hasApi`: use keyword/intent fallback + simulated typing delay (600–1300ms).
+
+---
+
+### Model routing summary
+
+| # | Surface | Model | Temp | Max tokens | Calls per user action | Output format |
+|---|---------|-------|------|------------|----------------------|---------------|
+| C1 | Sentiment Engine | `openai/gpt-oss-20b` | 0.3 | 768 → 1536 | 1 per comment (×15 on full run) | JSON trend card |
+| C2 | Formulation Agent 1 | `llama-3.3-70b-versatile` | 0.35 | 1800 → 4096 | 1 per formula generate | JSON INCI formula |
+| C2 | Formulation Agent 2 | — | — | — | 0 (deterministic) | PASS/CAUTION/FAIL audit |
+| C3 | Marketing Engine | `openai/gpt-oss-120b` | 0.7 | 1600 → 4096 | 1 per script generate | JSON TikTok script |
+| C4 | Sales / Forma waitlist | `openai/gpt-oss-20b` | 0.55 | 220 | 1 per chat turn | Plain text (guardrailed) |
+| C5 | HR Phase 1 | `openai/gpt-oss-120b` | 0.55 | 1200 → 4096 | 1 per analysis run | Markdown risk report |
+| C5 | HR Phase 2 | `openai/gpt-oss-120b` | 0.55 | 2400 → 4096 | 1 per analysis run | Markdown JD package |
+| C7 | Ops Tier 1 profile | `llama-3.1-8b-instant` | 0.2 | 600 → 1024 | 1 per factory analysis | JSON mfg profile |
+| C7 | Ops Tier 2 scoring | — | — | — | 0 (deterministic) | Ranked factory list |
+| — | chat-bubble (Forma) | `openai/gpt-oss-20b` | 0.6 | 280 | 1 per chat turn | Plain text (sales) |
+| C6 | Finance simulator | — | — | — | 0 | Charts only; models used for COGS math |
+
+### Groq pricing (2026 — used by Finance simulator)
+
+| Model | Input / 1M tok | Output / 1M tok |
+|-------|----------------|-----------------|
+| `openai/gpt-oss-20b` | $0.075 | $0.30 |
+| `openai/gpt-oss-120b` | $0.15 | $0.60 |
+| `llama-3.3-70b-versatile` | $0.59 | $0.79 |
+| `llama-3.1-8b-instant` | $0.05 | $0.08 |
+
+Finance breakdown groups all **input token lines** and all **output token lines** separately, with one rate column per direction. HR costs are shown at page bottom, excluded from per-formula COGS.
+
+---
+
+### C1 — Sentiment Engine (`01_sentiment`)
+
+**Purpose:** Map each consumer comment → structured trend insight for downstream formulation.
+
+**Messages:**
+```javascript
+[
+  { role: "system", content: SYSTEM_PROMPT },  // cosmetic R&D analyst — see below
+  { role: "user",   content: commentText }      // raw TikTok-style comment string
+]
+```
+
+**SYSTEM_PROMPT role:** Cosmetic R&D analyst. Return **only** JSON:
+- `trend` (2–4 word label), `pain_point`, `skin_concern` (enum), `ingredients` (exactly 2 with name/function/why)
+- `rationale`, `sentiment` (enum), `formula_type` (enum), `confidence` (high/medium/low)
+- Rules: preserve emotional texture of pain_point; controlled vocab; no markdown fences
+
+**Post-processing:** `normalizeAnalysisResult()` validates enums and ingredient count. On Groq failure → `KEYWORD_MAP` substring fallback (5 trends) or `Unclassified`.
+
+**Persistence:** Each result appended to `localStorage.tf_c1_results` (also grouped by trend in UI).
+
+---
+
+### C2 — R&D Formulation (`02_formulation`)
+
+**Two-agent pipeline:**
+
+```
+Agent 1 (Groq llama-3.3-70b)     Agent 2 (cosing_db.js — NO LLM)
+Generates INCI formula      →    cosingCheckAll() audit
+         ↑                              ↑
+         └── cosingBuildFormulatorConstraints() in system prompt
+```
+
+#### Agent 1 — Formulation Agent
+
+**System prompt:** Built at runtime by `buildFormulatorSystem()`:
+1. Fixed chemist persona + JSON schema (`product_name`, `product_type`, `tagline`, `ingredients[]`, `ph_range`, `shelf_life`, `marketing_claims[]`, `formulation_notes`)
+2. Hard rules: percentages sum to 100.0; Water (Aqua) highest % in water-based types
+3. **Dynamic append:** `cosingBuildFormulatorConstraints()` — ~5 KB of EU Annex + FDA restricted/prohibited INCI caps (same data Agent 2 audits against)
+
+**User message** (built from selected C1 trend card):
+```
+Trend: {trend}
+Pain point: {pain_point}
+Skin concern: {skin_concern}
+Consumer sentiment: {sentiment}
+Suggested delivery format: {formula_type} (map to product_type: {mapped type})
+Target ingredients to incorporate: {name (function: why); ...}
+Consumer insight rationale: {rationale}
+```
+
+**Messages:**
+```javascript
+[
+  { role: "system", content: buildFormulatorSystem() },
+  { role: "user",   content: userMsg }
+]
+```
+
+**Post-processing:** Parse JSON → validate fields → renormalize percentages if sum drifts >0.5 from 100 → save via `TFFormulas.save()`.
+
+#### Agent 2 — Regulatory Agent (deterministic)
+
+No prompt. `cosingCheckAll(formula.ingredients)` returns per-ingredient PASS/CAUTION/FAIL and overall COMPLIANT/CAUTION/NON_COMPLIANT. Compliance card shows **restricted ingredients only**.
+
+---
+
+### C3 — Marketing Engine (`03_marketing`)
+
+**Purpose:** Turn a saved formula into a 30-second TikTok script + 4-frame storyboard.
+
+**Input source:** `TFFormulas.loadAll()` — user picks formula, tone radio (Clean Beauty / Science-Forward / Gen Z Playful), demographic select.
+
+**Messages:**
+```javascript
+[
+  { role: "system", content: SCRIPT_SYSTEM },
+  { role: "user",   content: userMsg }
+]
+```
+
+**SCRIPT_SYSTEM:** TikTok content strategist. Return **only** JSON:
+- `hook`, `science_bridge`, `transition`, `benefit_stack`, `cta`
+- `storyboard[]` — exactly 4 frames (0–3s hook, 3–15s bridge, 15–28s benefits, 28–30s CTA) with `time`, `type`, `label`, `description`, `shotType`, `icon`
+- Tone rules vary by selected brand voice
+
+**User message:**
+```
+Product name: {name}
+Hero ingredient: {hero_ingredient} ({ingredient_type})
+Mechanism: {mechanism}
+Key benefits: {benefit_stack joined}
+Shot type: {shot_type}
+Brand tone: {tone}
+Target demographic: {demographic}
+```
+
+**Post-processing:** Normalise `science` → `science_bridge` if needed. Map to UI shape (`hook`, `science`, `transition`, `benefits`, `cta`, `storyboard`). Not persisted — on-screen only.
+
+---
+
+### C4 — Waitlist / Sales Gate (`04_sales`)
+
+**Purpose:** Public landing + **Forma** waitlist agent. Qualifies founders, blocks free formula generation, captures lead data.
+
+**Messages:** Multi-turn chat history with system prompt first:
+```javascript
+[{ role: "system", content: SYSTEM_PROMPT }, ...conversationHistory]
+```
+
+**SYSTEM_PROMPT — three non-negotiable goals:**
+1. **QUALIFY** — real indie founder with launch timeline/budget (not student/journalist/competitor)
+2. **PROTECT** — NEVER generate formulas, INCI lists, ingredient ratios, or recipes in chat
+3. **CONVERT** — collect name, brand, email, launch timeline for priority waitlist
+
+Also includes platform context (compliance guardrails, formulation engine, finance simulator, factory matching) and scripted responses for compliance/pricing/timeline/formula-request scenarios.
+
+**Response rules:** Max 2–3 sentences; no bullets/markdown; always end with one follow-up question; exclusive/scarce beta tone.
+
+**Fallback:** 10-intent `INTENTS` map with keyword matching; `freeload` intent has `guardrail: true` for recipe requests.
+
+**Lead scoring:** Keyword signals (`brand`, `launch`, `eu/fda`, etc.) accumulate score; lead form at score ≥55 after ≥3 exchanges.
+
+---
+
+### C5 — Workforce Architect / HR (`05_hr`)
+
+**Purpose:** Admin-only two-phase chain — skill-gap risk analysis → recruitment package.
+
+**Endpoint:** Hardcoded `/api/groq` only (no local direct Groq).
+
+#### Phase 1 — Skill-Gap Analysis
+
+**PHASE1_SYSTEM:** Organizational Risk Analyst. Compare team roster vs active product vector.
+
+**User message:**
+```
+INPUT A — Current Team Roster:
+{roster textarea}
+
+INPUT B — Active R&D Product Vector:
+{trend/formula textarea}
+```
+
+**Output (markdown, not JSON):** `RISK LEVEL` (CRITICAL/HIGH/MEDIUM/LOW), `SKILL GAP SUMMARY`, `MISSING CAPABILITIES` (bullets), `GOVERNANCE EXPOSURE`
+
+#### Phase 2 — Recruitment Package
+
+**PHASE2_SYSTEM:** Elite Technical Recruiter. Synthesize JD from Phase 1 risk report.
+
+**User message:**
+```
+SKILL-GAP RISK REPORT FROM PHASE 1:
+
+{phase1Raw output}
+```
+
+**Output (markdown):** `JOB TITLE`, `ABOUT THE ROLE`, `KEY RESPONSIBILITIES`, `REQUIRED QUALIFICATIONS`, `PREFERRED QUALIFICATIONS`, `TECHNICAL VETTING QUESTIONS` (5 numbered, chemistry-specific)
+
+Phase 2 runs automatically after Phase 1 completes in the same `runAnalysis()` call.
+
+---
+
+### C7 — Operations / Factory Selector (`07_ops`)
+
+**Two-tier architecture:**
+
+```
+Tier 1 (Groq llama-3.1-8b-instant)    Tier 2 (Deterministic JS)
+Extract manufacturing profile    →    scoreFactories() on factories.json
+```
+
+#### Tier 1 — Manufacturing profile extraction
+
+**System prompt:** Manufacturing procurement director. Return **only** JSON:
+- `batch_tier`, `recommended_moq`, `emulsification_method`, `required_certifications[]`, `preferred_regions[]`, `special_capabilities[]`, `regulatory_notes`, `hard_filter_certifications[]`
+
+**User message:**
+```
+Formula: {formulaName}
+Description: {TFFormulas.buildDescription(entry)}
+Target Market: {EU | US | UK | Global | Asia}
+Target Launch Date: {date}
+
+Extract the manufacturing requirements profile.
+```
+
+**Fallback:** On Groq failure → `TFFormulas.buildGenericFallbackProfile(entry)` (regex on description for SPF/peptide/organic patterns).
+
+#### Tier 2 — Factory scoring (no LLM)
+
+`scoreFactories(factories, weights, profile)` — weighted cost/compliance/lead-time composite. Top 3 displayed with recommendation narrative (HTML, not LLM-generated).
+
+---
+
+### Floating chat widget — Forma (`assets/chat-bubble.js`)
+
+**Loaded on:** `index.html`, components 01–03, 05–07. **Not** on `04_sales` (full chat there) or `admin`.
+
+**Model:** `openai/gpt-oss-20b` · temp 0.6 · max 280 tokens
+
+**System prompt:** Built dynamically by `buildPrompt()` at widget init:
+- Ingredient names from `data/ingredients_db.json` (or hardcoded fallback list)
+- Factory summaries from `data/factories.json` (name, region, MOQ, lead time, $/unit)
+- Top 6 unique trends from `tf_c1_results` if available
+- Role: warm B2B sales agent; concise (2–4 sentences); steer toward demo; ask for email when appropriate
+
+**Different from C4 Forma:** C4 is **waitlist/qualification** (strict guardrails, no formulas). chat-bubble is **lighter sales** on internal pages (can discuss ingredients/platform capabilities more openly, still no full formula generation).
+
+**Fallback:** 7-intent keyword map + generic fallback message. Lead form after 3 exchanges; lead score from 14 keywords.
+
+---
+
+### What never calls Groq
+
+| Surface | What runs instead |
+|---------|-------------------|
+| C2 Agent 2 compliance | `cosingCheckAll()` in `cosing_db.js` |
+| C7 Tier 2 factory ranking | `scoreFactories()` on `factories.json` |
+| C6 Finance | `simulate()` + Chart.js — illustrative token estimates |
+| `index.html` dashboard | Reads localStorage only |
+| `admin/index.html` | Polls presenter profiles + displays stored data |
+| Lead capture / waitlist storage | localStorage / sessionStorage only |
 
 ---
 
@@ -471,7 +737,10 @@ Runs before page render. No token → redirect to waitlist landing.
 **Path:** `components/01_sentiment/index.html`  
 **Tagline:** Trend → Ingredient mapping  
 **Input:** 15 comments from `comments.js`  
-**Output:** `localStorage.tf_c1_results` + optional JSON export
+**Output:** `localStorage.tf_c1_results` + optional JSON export  
+**Model:** `openai/gpt-oss-20b` · temp 0.3 · max 768 tokens (→ 1536 on truncation)
+
+> Full prompt schema and message shape: [§6 — C1 Sentiment](#c1--sentiment-engine-01_sentiment)
 
 ### User flow
 
@@ -574,7 +843,10 @@ No match → `trend: "Unclassified"`, empty ingredients, `confidence: "low"`.
 **Path:** `components/02_formulation/index.html`  
 **Tagline:** Formulation + Safety Guardrail  
 **Input:** `tf_c1_results` (deduped trends, excluding "Unclassified")  
-**Output:** `TFFormulas.save()` + JSON export
+**Output:** `TFFormulas.save()` + JSON export  
+**Model:** Agent 1 only — `llama-3.3-70b-versatile` · temp 0.35 · max 1800 (→ 4096). Agent 2 has **no LLM**.
+
+> Full prompts (`buildFormulatorSystem()`, user message, CoSing injection): [§6 — C2 Formulation](#c2--rd-formulation-02_formulation)
 
 ### Two-agent pipeline
 
@@ -700,7 +972,10 @@ No `tf_c1_results` → message + link back to `01_sentiment`. Generate button di
 **Path:** `components/03_marketing/index.html`  
 **Tagline:** TikTok Content Engine  
 **Input:** `TFFormulas.loadAll()`  
-**Output:** On-screen script + storyboard (no persistence)
+**Output:** On-screen script + storyboard (no persistence)  
+**Model:** `openai/gpt-oss-120b` · temp 0.7 · max 1600 (→ 4096)
+
+> Full `SCRIPT_SYSTEM` schema and user message: [§6 — C3 Marketing](#c3--marketing-engine-03_marketing)
 
 ### User flow
 
@@ -763,7 +1038,10 @@ Plain text with `[0-3s] HOOK:` style timestamps, product name, tone, demographic
 ## 12. Component 04 — Waitlist / Sales Gate
 
 **Path:** `components/04_sales/index.html`  
-**This is the public entry point** — no access gate on this page.
+**This is the public entry point** — no access gate on this page.  
+**Model:** `openai/gpt-oss-20b` · temp 0.55 · max 220 tokens per turn
+
+> Full Forma waitlist `SYSTEM_PROMPT` (qualify / protect / convert): [§6 — C4 Sales](#c4--waitlist--sales-gate-04_sales)
 
 ### Dual purpose
 
@@ -874,7 +1152,11 @@ window.location.href = '../../index.html';
 
 **Path:** `components/05_hr/index.html`  
 **Access:** Linked from `admin/index.html` only  
-**Tagline:** JD Generator + Skill-Gap Analyzer
+**Tagline:** JD Generator + Skill-Gap Analyzer  
+**Model:** `openai/gpt-oss-120b` · temp 0.55 · Phase 1 max 1200 / Phase 2 max 2400 (both bump on truncation)  
+**Endpoint:** `/api/groq` only — no local direct Groq fallback
+
+> Full `PHASE1_SYSTEM` / `PHASE2_SYSTEM` and input shapes: [§6 — C5 HR](#c5--workforce-architect--hr-05_hr)
 
 ### User flow
 
@@ -928,10 +1210,10 @@ Prove the business case: AI formulation COGS is ~$0.50/formula vs $15,000 legacy
 ### Two-phase model
 
 **Phase 1 — Per-formula token COGS:**
-- Input tokens slider (default ~4000)
-- Output tokens slider (default ~3000)
+- Input tokens slider (default 25,000 — formulator prompt split)
+- Output tokens slider (default 6,250 — formula + marketing split)
 - Iterations slider (revision rounds, default 3)
-- Model tier selector: Lean ($1/$3 per 1M in/out) | Balanced ($4/$8) | Frontier ($15/$45)
+- Model tier selector: **Pipeline** (routed 20B/70B/120B/8B) | OSS 20B | OSS 120B | Llama 70B | Llama 8B
 
 **Phase 2 — Scale economics:**
 - Brands on platform (default 500)
@@ -964,20 +1246,28 @@ costMult      = LEGACY_COST_PER_FORMULA / cogsPerFormula
 
 ### Per-formula cost breakdown (pipeline mode)
 
-| Line | Component | AI? | In COGS? |
-|------|-----------|-----|----------|
-| Comment classification | C1 Sentiment · 20B | Yes | Yes |
-| Trend payload in formulator prompt | C2 input · 70B | No (context from C1) | Yes (input tokens) |
-| CoSing/FDA constraints | C2 Agent 1 system prompt · 70B | No (from cosing_db.js) | Yes (input tokens) |
-| Compliance audit | C2 Agent 2 | No (deterministic) | $0 |
-| Formula recipe | C2 output · 70B | Yes | Yes |
-| Marketing script | C3 · 120B | Yes | Yes |
-| Manufacturing profile | C7 Ops · 8B | Yes | Yes |
-| HR skill-gap + recruitment | C5 · 120B × 2 | Yes | No (admin on-demand) |
+Grouped as **INPUT TOKENS** then **OUTPUT TOKENS** (one Tokens column + one Rate /1M per direction):
 
-Token split annotation (formulator input slider):
-- Input: 60% trend payload / 40% CoSing prompt constraints
-- Output slider: 65% formula / 35% marketing (C7 ops tokens are fixed, not on slider)
+| Input line | Model | Notes |
+|------------|-------|-------|
+| C1 comment prompt | 20B | Real sentiment AI call |
+| C2 trend payload | 70B | Context from C1 — not a separate call |
+| C2 CoSing constraints | 70B | `cosing_db.js` text in system prompt |
+| C7 mfg profile prompt | 8B | Formula + market context |
+
+| Output line | Model | Notes |
+|-------------|-------|-------|
+| C1 trend card JSON | 20B | Saved to `tf_c1_results` |
+| C2 formula recipe | 70B | Agent 1 output |
+| C3 marketing script | 120B | Not on formulator output slider |
+| C7 mfg profile JSON | 8B | Tier 2 scoring is $0 |
+
+Compliance audit (Agent 2) = **$0** deterministic. HR (C5) shown in separate admin table, excluded from COGS.
+
+Token split on sliders (formulator only):
+- Input slider: 60% trend payload / 40% CoSing prompt constraints
+- Output slider: 65% formula (70B) / 35% marketing (120B)
+- C1, C7 token estimates are fixed constants in simulator, not on sliders
 
 ### KPI cards (top row)
 
@@ -999,13 +1289,13 @@ Fullscreen overlay toggled by button. Shows large KPIs + P&L table + tagline. Es
 
 | Slider | Default |
 |--------|---------|
-| Input tokens | 4000 |
-| Output tokens | 3000 |
+| Input tokens | 25,000 |
+| Output tokens | 6,250 |
 | Iterations | 3 |
 | Brands | 500 |
-| Formulas/brand | 2 |
+| Formulas/brand | 5 |
 | ARPU | $79 |
-| Active tier | balanced |
+| Active tier | pipeline (routed per component) |
 
 ---
 
@@ -1014,7 +1304,10 @@ Fullscreen overlay toggled by button. Shows large KPIs + P&L table + tagline. Es
 **Path:** `components/07_ops/index.html`  
 **Tagline:** Contract Manufacturer Selector  
 **Input:** `TFFormulas` + `data/factories.json`  
-**Output:** Ranked Top 3 factories + recommendation narrative + print export
+**Output:** Ranked Top 3 factories + recommendation narrative + print export  
+**Model:** Tier 1 only — `llama-3.1-8b-instant` · temp 0.2 · max 600 (→ 1024). Tier 2 scoring has **no LLM**.
+
+> Full Tier 1 system/user prompts and profile schema: [§6 — C7 Ops](#c7--operations--factory-selector-07_ops)
 
 ### Two-tier architecture
 
@@ -1135,22 +1428,26 @@ Polls `tf_presenter_profiles` every 2 seconds.
 
 **File:** `assets/chat-bubble.js`  
 **Loaded on:** `index.html`, components 01–03, 05–07  
-**NOT loaded on:** `04_sales` (has own chat), `admin`
+**NOT loaded on:** `04_sales` (has own chat), `admin`  
+**Model:** `openai/gpt-oss-20b` · temp 0.6 · max 280
 
 ### Behavior
 
 - Rose circular button bottom-left with unread dot
-- Panel slides up with same chat UX as sales page (lighter weight)
-- Lead form after 3 exchanges
-- Lead score from 14 keywords (max 100)
-- Groq with full platform context (ingredients, factories, live trends)
+- Panel slides up with lighter-weight sales UX (not waitlist guardrail mode)
+- Lead form after 3 exchanges; lead score from 14 keywords (max 100)
+- Dynamic system prompt from `buildPrompt()` — ingredients DB, factories JSON, live C1 trends
 
-### System prompt built dynamically
+### C4 Forma vs chat-bubble Forma
 
-Includes:
-- Ingredient names from `ingredients_db.json`
-- Factory summaries from `factories.json`
-- Top 6 trends from `tf_c1_results` if available
+| | C4 Sales waitlist | chat-bubble widget |
+|--|-------------------|-------------------|
+| Model | GPT OSS 20B | GPT OSS 20B |
+| Purpose | Qualify + block formulas + capture waitlist | Sales discovery + demo booking |
+| Guardrails | Strict — never generate INCI/recipes | Lighter — can discuss platform/ingredients |
+| Prompt | Static `SYSTEM_PROMPT` | Dynamic `buildPrompt()` with live data |
+
+> Full prompt construction: [§6 — chat-bubble](#floating-chat-widget--forma-assetschat-bubblejs)
 
 ---
 
@@ -1404,7 +1701,8 @@ Every AI component should include:
 ```html
 <script src="../../assets/config.js"></script>
 <script>
-  const GROQ_MODEL = 'llama-3.3-70b-versatile';
+  // Model varies by component — see §6 routing table
+  const GROQ_MODEL = 'openai/gpt-oss-20b';  // example: C1 Sentiment
   const ON_SERVER = window.location.protocol !== 'file:' &&
     window.location.hostname !== 'localhost' &&
     window.location.hostname !== '127.0.0.1';
@@ -1413,6 +1711,8 @@ Every AI component should include:
     : 'https://api.groq.com/openai/v1/chat/completions';
 </script>
 ```
+
+Per-component models: C1/C4/chat-bubble → `openai/gpt-oss-20b` · C2 → `llama-3.3-70b-versatile` · C3/C5 → `openai/gpt-oss-120b` · C7 → `llama-3.1-8b-instant`
 
 ## Appendix D — Known Gaps / Not Implemented
 
