@@ -146,7 +146,7 @@ trendformulate/
 │   ├── cosing_db.js              ← EU/FDA compliance engine (Component 02)
 │   └── chat-bubble.js            ← Floating Forma widget (all pages except 04)
 ├── data/
-│   ├── ingredients_db.json       ← 11 ingredient profiles (chat-bubble context)
+│   ├── ingredients_db.json       ← 10 ingredient profiles (chat-bubble context)
 │   ├── safety_rules.json         ← Legacy thresholds (NOT wired in live code)
 │   └── factories.json            ← 6 contract manufacturers (Component 07)
 ├── cosing/                       ← Raw EU CosIng annex text files (reference only)
@@ -214,7 +214,7 @@ Widget: chat-bubble.js — GPT OSS 20B (lighter sales on internal pages)
 
 ### Cross-tab sync
 
-`TFFormulas.persist()` dispatches `CustomEvent('tf-formulas-changed')`. Pages also listen to `storage` events on `tf_saved_formulas` for multi-tab updates.
+Internal `persist()` (called by `save()` / `deleteById()`) dispatches `CustomEvent('tf-formulas-changed')`. Pages also listen to `storage` events on `tf_saved_formulas` for multi-tab updates.
 
 ### Component independence principle
 
@@ -605,13 +605,13 @@ Extract the manufacturing requirements profile.
 
 **System prompt:** Built dynamically by `buildPrompt()` at widget init:
 - Ingredient names from `data/ingredients_db.json` (or hardcoded fallback list)
-- Factory summaries from `data/factories.json` (name, region, MOQ, lead time, $/unit)
+- Factory summaries from `data/factories.json` (name, region, MOQ, `lead_time_days`, $/unit)
 - Top 6 unique trends from `tf_c1_results` if available
 - Role: warm B2B sales agent; concise (2–4 sentences); steer toward demo; ask for email when appropriate
 
 **Different from C4 Forma:** C4 is **waitlist/qualification** (strict guardrails, no formulas). chat-bubble is **lighter sales** on internal pages (can discuss ingredients/platform capabilities more openly, still no full formula generation).
 
-**Fallback:** 7-intent keyword map + generic fallback message. Lead form after 3 exchanges; lead score from 14 keywords.
+**Fallback:** 7-intent keyword map + generic fallback message. Lead form after 3 exchanges; lead score from 15 `LEAD_KWS` (+12 each, capped at 100).
 
 ---
 
@@ -677,8 +677,8 @@ TFFormulas.escHtml(s)         // XSS-safe HTML escape
 | Regex on description | Profile adjustments |
 |---------------------|---------------------|
 | `spf\|sunscreen\|zinc oxide\|titanium dioxide\|uv filter` | batch_tier mid, MOQ 1000, hot-mix, FDA Registered, sunscreen_otc |
-| `peptide\|matrixyl\|argireline` | peptide_formulation, clean_room, EU GMP |
-| `organic\|ecocert\|bakuchiol\|botanical` | Ecocert/COSMOS, botanical_extracts |
+| `peptide\|matrixyl\|argireline\|ghk\|copper tripeptide` | peptide_formulation, clean_room, EU GMP |
+| `organic\|ecocert\|cosmos\|botanical\|plant extract\|bakuchiol` | Ecocert/COSMOS, botanical_extracts |
 | `ascorbic\|vitamin c\|ferulic` | cold_mix, oxidation note |
 
 ### `assets/comments.js` — `const COMMENTS`
@@ -695,7 +695,7 @@ Self-injecting floating chat widget. **Skipped on `/04_sales/`** (that page has 
 - Same Forma persona as sales page but lighter qualification flow
 - Loads `ingredients_db.json` + `factories.json` for system prompt context
 - Reads `tf_c1_results` for live trend context
-- Lead form after 3 exchanges; lead score from keyword hits
+- Lead form after 3 exchanges; lead score from 15 `LEAD_KWS` (+12 each, capped at 100)
 
 ---
 
@@ -901,7 +901,7 @@ Returns JSON:
 **Regulatory constraints** (injected dynamically from `cosing_db.js`):
 - EU Annex II prohibited INCI list (`COSING_PROHIBITED` + extended set)
 - FDA prohibited substances (`FDA_PROHIBITED`)
-- All EU restricted entries with `max_pct` (`COSING_RESTRICTED` — ~71 INCI keys across Annexes III, V, VI), including leave-on/rinse-off/mixture caps and `product_scope` where applicable
+- All EU restricted entries with `max_pct` (`COSING_RESTRICTED` — ~75 INCI keys across Annexes III, V, VI), including leave-on/rinse-off/mixture caps and `product_scope` where applicable
 - FDA restricted entries (`FDA_RESTRICTED`)
 
 Example generated constraint line:
@@ -955,7 +955,7 @@ TFFormulas.save({
 { generated_at, trend, formula, compliance_audit }
 ```
 
-See `trendformulate_formula_hydrabalance_serum.json` in repo root for a real example output.
+Export filename pattern: `trendformulate_formula_{product_name_snake_case}.json` (downloaded client-side, not committed to repo).
 
 ### Scripts loaded
 
@@ -1027,7 +1027,7 @@ Plain text with `[0-3s] HOOK:` style timestamps, product name, tone, demographic
 
 ### Scripts loaded
 
-`config.js`, `formulas.js`
+`config.js`, `formulas.js`, `chat-bubble.js`
 
 ### Listens for
 
@@ -1184,11 +1184,15 @@ Output: JOB TITLE, ABOUT THE ROLE, KEY RESPONSIBILITIES, REQUIRED/PREFERRED QUAL
 
 ### Default demo textarea content
 
-Hardcoded example: 3-person team missing peptide expertise while AI generates Matrixyl/peptide serums at scale.
+Hardcoded example: 2 Junior Formulators missing peptide expertise while AI generates Matrixyl/peptide serums at scale.
 
 ### Export
 
 `TrendFormulate_WorkforcePackage.txt` — plain text concatenation of Phase 1 + Phase 2.
+
+### Scripts loaded
+
+Lucide CDN, `chat-bubble.js` (Groq hardcodes `/api/groq` — no `config.js`)
 
 ### No localStorage integration
 
@@ -1217,7 +1221,7 @@ Prove the business case: AI formulation COGS is ~$0.50/formula vs $15,000 legacy
 
 **Phase 2 — Scale economics:**
 - Brands on platform (default 500)
-- Avg formulas per brand per month (default 2)
+- Avg formulas per brand per month (default 5)
 - ARPU $/month (default 79)
 
 ### Core formula (`simulate()`)
@@ -1279,7 +1283,7 @@ Token split on sliders (formulator only):
 ### Charts
 
 1. **Scale chart** (log Y): brands 10–3000 vs legacy cost / revenue / AI COGS
-2. **Burn chart**: margin % vs iterations 1–10 for all 3 tiers
+2. **Burn chart**: margin % vs iterations 1–10 for **pipeline**, **OSS 20B**, and **Llama 70B** (the five tier buttons affect Phase 1 COGS; burn chart always compares those three curves)
 
 ### Boardroom View
 
@@ -1296,6 +1300,10 @@ Fullscreen overlay toggled by button. Shows large KPIs + P&L table + tagline. Es
 | Formulas/brand | 5 |
 | ARPU | $79 |
 | Active tier | pipeline (routed per component) |
+
+### Scripts loaded
+
+Lucide CDN, Chart.js CDN, `chat-bubble.js` (no `config.js` — simulator only, no Groq calls)
 
 ---
 
@@ -1379,7 +1387,7 @@ HTML paragraph explaining why #1 wins given weights, profile, launch date math (
 
 ### Scripts loaded
 
-`config.js`, `formulas.js`
+`formulas.js`, `chat-bubble.js` (Tier 1 Groq hardcodes `/api/groq` — no `config.js`)
 
 ---
 
@@ -1435,7 +1443,7 @@ Polls `tf_presenter_profiles` every 2 seconds.
 
 - Rose circular button bottom-left with unread dot
 - Panel slides up with lighter-weight sales UX (not waitlist guardrail mode)
-- Lead form after 3 exchanges; lead score from 14 keywords (max 100)
+- Lead form after 3 exchanges; lead score from 15 `LEAD_KWS` (+12 each, capped at 100)
 - Dynamic system prompt from `buildPrompt()` — ingredients DB, factories JSON, live C1 trends
 
 ### C4 Forma vs chat-bubble Forma
@@ -1453,7 +1461,7 @@ Polls `tf_presenter_profiles` every 2 seconds.
 
 ## 18. Mock Data Files
 
-### `data/ingredients_db.json` (11 entries)
+### `data/ingredients_db.json` (10 entries)
 
 ```json
 { "name", "inci", "max_pct", "type", "optimal_pct?", "regulation?", "known_sensitivity?" }
@@ -1507,7 +1515,7 @@ Used by `chat-bubble.js` for sales context. **Not** used by Component 02 (uses `
 
 2. **`COSING_PROHIBITED_EXTENDED`** (Set) — additional botanical/drug entries
 
-3. **`COSING_RESTRICTED`** (Object) — ~71 entries keyed by normalised INCI:
+3. **`COSING_RESTRICTED`** (Object) — ~75 entries keyed by normalised INCI:
    ```javascript
    "PHENOXYETHANOL": {
      max_pct: 1.0, annex: "V", entry: "29",
@@ -1621,7 +1629,7 @@ Use this ordered checklist to reconstruct the app from scratch.
 - [ ] Build `assets/formulas.js` (TFFormulas API per §7)
 - [ ] Build `assets/comments.js` (15 comments per §7)
 - [ ] Build `data/factories.json` (6 factories per §18)
-- [ ] Build `data/ingredients_db.json` (11 entries per §18)
+- [ ] Build `data/ingredients_db.json` (10 entries per §18)
 - [ ] Create `assets/config.example.js` + `.gitignore` for `config.js`
 - [ ] Build `api/groq.js` proxy per §20
 
@@ -1696,7 +1704,7 @@ function exportJSON(data, filename) {
 
 ## Appendix C — ON_SERVER + Config Script Pattern
 
-Every AI component should include:
+Components with **local Groq fallback** (C1, C2, C3, C4, chat-bubble) should include:
 
 ```html
 <script src="../../assets/config.js"></script>
@@ -1712,6 +1720,8 @@ Every AI component should include:
 </script>
 ```
 
+**Proxy-only components** (C5 HR, C7 Ops Tier 1) hardcode `fetch('/api/groq', …)` and do **not** load `config.js`.
+
 Per-component models: C1/C4/chat-bubble → `openai/gpt-oss-20b` · C2 → `llama-3.3-70b-versatile` · C3/C5 → `openai/gpt-oss-120b` · C7 → `llama-3.1-8b-instant`
 
 ## Appendix D — Known Gaps / Not Implemented
@@ -1725,6 +1735,7 @@ These are intentional or out of scope — do not expect them in the codebase:
 - No automated tests
 - HR component does not auto-read live trend/formula data
 - Finance simulator uses illustrative defaults, not live Groq token metering
+- `chat-bubble.js` `buildPrompt()` should use `f.lead_time_days` from `factories.json` (currently references nonexistent `f.delivery_days`)
 
 ---
 
