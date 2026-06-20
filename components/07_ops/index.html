@@ -886,23 +886,35 @@ Target Launch Date: ${launchDate}
 Extract the manufacturing requirements profile.`;
 
       try {
-        const res = await fetch('/api/groq', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'llama-3.1-8b-instant',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user',   content: userPrompt   }
-            ],
-            temperature: 0.2,
-            max_tokens:  450
-          })
-        });
+        const fetchProfile = async (maxTokens, bumped = false) => {
+          const res = await fetch('/api/groq', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'llama-3.1-8b-instant',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user',   content: userPrompt   }
+              ],
+              temperature: 0.2,
+              max_tokens:  maxTokens
+            })
+          });
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data    = await res.json();
-        const content = data.choices?.[0]?.message?.content || '';
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data    = await res.json();
+          const choice  = data.choices?.[0];
+          if (!choice?.message?.content) throw new Error('Empty response from Groq');
+          if (choice.finish_reason === 'length' && !bumped) {
+            return fetchProfile(Math.min(Math.round(maxTokens * 1.5), 1024), true);
+          }
+          if (choice.finish_reason === 'length') {
+            throw new Error('Response truncated — output exceeded token limit.');
+          }
+          return choice.message.content;
+        };
+
+        const content = await fetchProfile(600);
         const clean   = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         return JSON.parse(clean);
 

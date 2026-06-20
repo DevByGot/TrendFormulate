@@ -832,7 +832,7 @@ Based on this risk profile, synthesize a complete recruitment package with this 
 Make the JD production-ready and appropriately senior for a board-level audience.`;
 
     /* ─── API call ────────────────────────────────────────────── */
-    async function callGroq(systemPrompt, userMessage) {
+    async function callGroq(systemPrompt, userMessage, maxTokens = 1200, retrying = false, bumped = false) {
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -843,15 +843,28 @@ Make the JD production-ready and appropriately senior for a board-level audience
             { role: 'user',   content: userMessage  }
           ],
           temperature: 0.55,
-          max_tokens: 1800
+          max_tokens: maxTokens
         })
       });
+      if (res.status === 429 && !retrying) {
+        await delay(2500);
+        return callGroq(systemPrompt, userMessage, maxTokens, true, bumped);
+      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error?.message || `API error ${res.status}`);
       }
       const data = await res.json();
-      return data.choices?.[0]?.message?.content || '';
+      const choice = data.choices?.[0];
+      if (!choice?.message?.content) throw new Error('Empty response from Groq');
+      const content = choice.message.content.trim();
+      if (choice.finish_reason === 'length' && !bumped) {
+        return callGroq(systemPrompt, userMessage, Math.min(Math.round(maxTokens * 1.5), 4096), retrying, true);
+      }
+      if (choice.finish_reason === 'length') {
+        throw new Error('Response truncated — output exceeded token limit. Please retry.');
+      }
+      return content;
     }
 
     /* ─── Parse Phase 1 output → render risk card ─────────────── */
@@ -1065,7 +1078,7 @@ Make the JD production-ready and appropriately senior for a board-level audience
         addLog('file-text', 'Phase 2: synthesizing targeted recruitment package…', 'info');
 
         const phase2Input = `SKILL-GAP RISK REPORT FROM PHASE 1:\n\n${phase1Raw}`;
-        const phase2Raw   = await callGroq(PHASE2_SYSTEM, phase2Input);
+        const phase2Raw   = await callGroq(PHASE2_SYSTEM, phase2Input, 2400);
 
         addLog('check-circle', 'Phase 2 complete — JD and vetting questions generated.', 'ok');
         await delay(250);

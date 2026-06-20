@@ -7,11 +7,11 @@
 ## Quick Start
 
 1. Clone / download the repo
-2. Open `trendformulate/index.html` in a browser — **no server needed**
-3. Each department card links to its component page
+2. Run a local server: `npx serve .` inside the `trendformulate/` folder, then open `http://localhost:3000`
+3. Start at `components/04_sales/index.html` (waitlist gate) or set `localStorage.tf_waitlist_access = '1'` to open the main dashboard directly
+4. Each department card links to its component page; Finance, HR, and Waitlist admin live under `admin/index.html`
 
-> **Note:** Component pages that load local JSON files (`fetch("../../data/...")`) require a local server.
-> Run one with: `npx serve .` inside the `trendformulate/` folder, then open `http://localhost:3000`.
+> **Note:** Groq API calls use `/api/groq` when deployed (Vercel). Locally, copy `assets/config.example.js` to `assets/config.js` and add your Groq key, or deploy with `GROQ_API_KEY` set.
 
 ---
 
@@ -19,14 +19,18 @@
 
 ```
 trendformulate/
-├── index.html                    ← Main OS dashboard (do not edit unless integrating)
+├── index.html                    ← Main OS dashboard (requires waitlist access token)
+├── admin/index.html              ← Presenter admin: Finance, HR, Waitlist monitor
+├── api/groq.js                   ← Vercel proxy for Groq API
 ├── assets/
-│   └── style.css                 ← Shared design system — import this in every component
+│   ├── style.css                 ← Shared design system
+│   ├── comments.js               ← 15 consumer comments (Component 01)
+│   ├── formulas.js               ← Shared formula workspace (localStorage)
+│   └── cosing_db.js              ← EU CosIng compliance lookups (Component 02)
 ├── data/
-│   ├── mock_comments.json        ← 5 social media comments (Component 01)
 │   ├── ingredients_db.json       ← Ingredient profiles (Component 02)
 │   ├── safety_rules.json         ← EU/FDA thresholds (Component 02)
-│   └── factories.json            ← 4 mock manufacturers (Component 07)
+│   └── factories.json            ← 6 mock contract manufacturers (Component 07)
 └── components/
     ├── 01_sentiment/index.html   ← Sentiment → Ingredient Mapping
     ├── 02_formulation/index.html ← Formulation Proposer + Safety Check
@@ -41,15 +45,15 @@ trendformulate/
 
 ## Team Assignment
 
-| Component | Folder | Owner | Status |
-|-----------|--------|-------|--------|
-| 01 — Sentiment Engine | `components/01_sentiment/` | | ⬜ Not started |
-| 02 — Formulation + Safety | `components/02_formulation/` | | ⬜ Not started |
-| 03 — TikTok Content | `components/03_marketing/` | | ⬜ Not started |
-| 04 — Sales Chatbot | `components/04_sales/` | | ⬜ Not started |
-| 05 — HR / JD Generator | `components/05_hr/` | | ⬜ Not started |
-| 06 — Finance Simulator | `components/06_finance/` | | ⬜ Not started |
-| 07 — Ops / Factory Selector | `components/07_ops/` | | ⬜ Not started |
+| Component | Folder | Status |
+|-----------|--------|--------|
+| 01 — Sentiment Engine | `components/01_sentiment/` | ✅ Built |
+| 02 — Formulation + Safety | `components/02_formulation/` | ✅ Built |
+| 03 — TikTok Content | `components/03_marketing/` | ✅ Built |
+| 04 — Sales Chatbot | `components/04_sales/` | ✅ Built |
+| 05 — HR / JD Generator | `components/05_hr/` | ✅ Built |
+| 06 — Finance Simulator | `components/06_finance/` | ✅ Built |
+| 07 — Ops / Factory Selector | `components/07_ops/` | ✅ Built |
 
 ---
 
@@ -85,29 +89,30 @@ Each component skeleton (`components/0X_.../index.html`) already includes:
 
 When all components are done, the only integration step is confirming the links in `index.html` point to the right pages. They already do — just make sure each `components/0X_.../index.html` file exists.
 
-- [ ] All 7 `index.html` files exist
-- [ ] Each file links back to `../../index.html` via the navbar
-- [ ] Colors and card styles look consistent across pages
-- [ ] Export / download buttons work
+- [x] All 7 `index.html` files exist
+- [x] Each file links back to `../../index.html` via the navbar
+- [x] Colors and card styles look consistent across pages
+- [x] Export / download buttons work
 
 ---
 
 ## Tech Philosophy
 
-- **No paid APIs.** All logic is JavaScript + hardcoded mock data.
-- **No build step.** Pure HTML/CSS/JS — open in any browser.
-- **Optional LLM upgrade:** Each component can optionally call the [Groq free API](https://console.groq.com) (`llama3-8b-8192`) for real AI output. Free tier, no credit card.
+- **No paid APIs required.** Core logic is JavaScript + local data; Groq free tier powers live AI where configured.
+- **No build step.** Pure HTML/CSS/JS.
+- **Groq integration:** Sentiment, Formulation, Marketing, Sales, HR, and Ops call `llama-3.3-70b-versatile` (Ops profile extraction uses `llama-3.1-8b-instant`). Compliance checking and factory scoring are deterministic — no LLM.
+- **Fallbacks:** Keyword maps and rule-based logic when the API is unavailable.
 
 ---
 
 ## Demo Narrative (Presentation Day)
 
-1. `index.html` — "This is the TrendFormulate OS."
-2. Trend banner — "Glass Skin trending +340% this week."
-3. Component 01 — Sentiment extracts what customers want.
-4. Component 02 — Formulation proposes + self-corrects for safety.
-5. Component 03 — Marketing creates a ready-to-film TikTok script.
-6. Component 06 — CFO view: entire R&D pipeline cost $4.80.
+1. `components/04_sales/index.html` — Waitlist gate; Forma qualifies indie founders.
+2. `index.html` — "This is the TrendFormulate OS."
+3. Component 01 — Sentiment analyses 15 comments → trends and ingredients (saved for R&D).
+4. Component 02 — Formulation proposes a formula; CosIng guardrail audits compliance.
+5. Component 03 — Marketing generates a ready-to-film TikTok script from the saved formula.
+6. Component 06 — CFO view: **~$0.50 AI COGS per formula** at default assumptions, **~91% gross margin** at 500 brands × $79 ARPU (live Groq demo spend is ~$0.10–0.15 per full pipeline run — the simulator is conservative).
 7. Component 07 — Picks the right factory automatically.
-8. Component 04 — Sales Agent qualifies leads 24/7.
+8. `admin/index.html` — HR skill-gap analysis + waitlist presenter monitor.
 9. Dashboard — "A 3-person indie brand competing with L'Oréal."

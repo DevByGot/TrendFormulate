@@ -589,7 +589,7 @@
                           window.location.hostname !== "127.0.0.1";
     const GROQ_ENDPOINT = ON_SERVER ? "/api/groq" : GROQ_DIRECT;
 
-    async function callGroq(messages, maxTokens = 1200, retrying = false) {
+    async function callGroq(messages, maxTokens = 1600, retrying = false, bumped = false) {
       const headers = { "Content-Type": "application/json" };
       if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
         headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
@@ -606,11 +606,20 @@
       });
       if (response.status === 429 && !retrying) {
         await new Promise(r => setTimeout(r, 2500));
-        return callGroq(messages, maxTokens, true);
+        return callGroq(messages, maxTokens, true, bumped);
       }
       if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
       const data = await response.json();
-      return data.choices[0].message.content.trim();
+      const choice = data.choices?.[0];
+      if (!choice?.message?.content) throw new Error("Empty response from Groq");
+      const content = choice.message.content.trim();
+      if (choice.finish_reason === "length" && !bumped) {
+        return callGroq(messages, Math.min(Math.round(maxTokens * 1.5), 4096), retrying, true);
+      }
+      if (choice.finish_reason === "length") {
+        throw new Error("Response truncated — output exceeded token limit. Please retry.");
+      }
+      return content;
     }
 
     function parseJSON(raw) {
@@ -691,7 +700,7 @@ RETURN ONLY THE JSON OBJECT — nothing else`;
       const raw = await callGroq([
         { role: "system", content: SCRIPT_SYSTEM },
         { role: "user",   content: userMsg }
-      ], 1200);
+      ]);
 
       const script = parseJSON(raw);
 

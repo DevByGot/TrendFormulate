@@ -566,8 +566,8 @@ Rules:
       };
     }
 
-    // ─── Groq AI call with retry on 429 ───────────────────────────────────────
-    async function callGroq(commentText, retrying = false) {
+    // ─── Groq AI call with retry on 429 and token-limit bump ────────────────
+    async function callGroq(commentText, maxTokens = 768, retrying = false, bumped = false) {
       const headers = { "Content-Type": "application/json" };
       if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
         headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
@@ -578,7 +578,7 @@ Rules:
         body: JSON.stringify({
           model: GROQ_MODEL,
           temperature: 0.3,
-          max_tokens: 512,
+          max_tokens: maxTokens,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user",   content: commentText }
@@ -587,11 +587,20 @@ Rules:
       });
       if (response.status === 429 && !retrying) {
         await new Promise(r => setTimeout(r, 2000));
-        return callGroq(commentText, true);
+        return callGroq(commentText, maxTokens, true, bumped);
       }
       if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
       const data = await response.json();
-      return data.choices[0].message.content.trim();
+      const choice = data.choices?.[0];
+      if (!choice?.message?.content) throw new Error("Empty response from Groq");
+      const content = choice.message.content.trim();
+      if (choice.finish_reason === "length" && !bumped) {
+        return callGroq(commentText, Math.min(Math.round(maxTokens * 1.5), 1536), retrying, true);
+      }
+      if (choice.finish_reason === "length") {
+        throw new Error("Response truncated — output exceeded token limit.");
+      }
+      return content;
     }
 
     // ─── Main AI analysis ─────────────────────────────────────────────────────
