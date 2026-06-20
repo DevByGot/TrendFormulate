@@ -943,10 +943,13 @@ Prove the business case: AI formulation COGS is ~$0.50/formula vs $15,000 legacy
 ```javascript
 effInput  = inputTok  * iterations
 effOutput = outputTok * iterations
-inCost    = (effInput  / 1_000_000) * tier.inPerM
-outCost   = (effOutput / 1_000_000) * tier.outPerM
-tokenBurn = inCost + outCost
+inCost    = (effInput  / 1_000_000) * tier.inPerM   // formulation 70B (pipeline mode)
+outCost   = formulaCost + marketCost                 // 70B formula + 120B marketing
+sentimentCost = fixed C1 comment classification (20B)
+opsCost       = fixed C7 manufacturing profile (8B)
+tokenBurn = inCost + outCost + sentimentCost + opsCost
 cogsPerFormula = tokenBurn + ROUTING_COST  // ROUTING_COST = $0.05
+// HR (C5, 120B × 2 phases) shown in breakdown but excluded from cogsPerFormula
 
 monthlyFormulas  = brands * avgFormulas
 monthlyRevenue   = brands * arpu
@@ -959,9 +962,22 @@ legacyMonthly = monthlyFormulas * LEGACY_COST_PER_FORMULA  // $15,000
 costMult      = LEGACY_COST_PER_FORMULA / cogsPerFormula
 ```
 
-Token split annotation (UI labels):
-- Input: 60% trends / 40% safety
-- Output: 65% formula / 35% marketing
+### Per-formula cost breakdown (pipeline mode)
+
+| Line | Component | AI? | In COGS? |
+|------|-----------|-----|----------|
+| Comment classification | C1 Sentiment · 20B | Yes | Yes |
+| Trend payload in formulator prompt | C2 input · 70B | No (context from C1) | Yes (input tokens) |
+| CoSing/FDA constraints | C2 Agent 1 system prompt · 70B | No (from cosing_db.js) | Yes (input tokens) |
+| Compliance audit | C2 Agent 2 | No (deterministic) | $0 |
+| Formula recipe | C2 output · 70B | Yes | Yes |
+| Marketing script | C3 · 120B | Yes | Yes |
+| Manufacturing profile | C7 Ops · 8B | Yes | Yes |
+| HR skill-gap + recruitment | C5 · 120B × 2 | Yes | No (admin on-demand) |
+
+Token split annotation (formulator input slider):
+- Input: 60% trend payload / 40% CoSing prompt constraints
+- Output slider: 65% formula / 35% marketing (C7 ops tokens are fixed, not on slider)
 
 ### KPI cards (top row)
 

@@ -305,6 +305,16 @@
       padding-top: 0.55rem;
     }
     .breakdown-table tr.grand-total td:last-child { color: var(--accent); }
+    .breakdown-table tr.excluded td { color: var(--text-muted); }
+    .breakdown-table tr.excluded td:last-child { font-style: italic; }
+    .breakdown-table tr.zero-cost td:last-child { color: var(--success); font-weight: 600; }
+    .breakdown-table .row-note {
+      display: block;
+      font-size: 0.62rem;
+      color: var(--text-faint);
+      font-weight: 400;
+      margin-top: 0.1rem;
+    }
     .col-input  { color: var(--accent) !important; font-weight: 600 !important; }
     .col-output { color: var(--success) !important; font-weight: 600 !important; }
 
@@ -624,7 +634,7 @@
             </div>
             <input type="range" id="sInputTok" min="5000" max="80000" step="1000" value="25000" />
             <div style="display:flex;justify-content:space-between;font-size:0.625rem;color:var(--text-faint);margin-top:1px;">
-              <span>5k</span><span>trends + safety docs</span><span>80k</span>
+              <span>5k</span><span>trend payload + CoSing prompt</span><span>80k</span>
             </div>
           </div>
 
@@ -661,7 +671,7 @@
               <button class="tier-btn" data-tier="llama70b">Llama 70B<br><span style="font-size:0.6rem;opacity:0.7;">$0.59/$0.79</span></button>
               <button class="tier-btn" data-tier="llama8b">Llama 8B<br><span style="font-size:0.6rem;opacity:0.7;">$0.05/$0.08</span></button>
             </div>
-            <div class="tier-sub" id="tierSubLabel">Production pipeline — routed per component (Sentiment 20B · Formulation 70B · Marketing 120B)</div>
+            <div class="tier-sub" id="tierSubLabel">Production pipeline — Sentiment 20B · Formulation 70B · Marketing 120B · Ops 8B</div>
           </div>
 
         </div>
@@ -733,20 +743,20 @@
         <div class="card" style="margin-bottom:1.25rem;">
           <div class="card-title">
             <i data-lucide="cpu" style="width:12px;height:12px;vertical-align:-1px;margin-right:4px;"></i>
-            Phase 1 — Token Flow Architecture (per single formulation run)
+            Phase 1 — Token Flow Architecture (per full pipeline run)
           </div>
 
           <div class="token-flow" id="tokenFlow">
 
             <!-- Input box -->
             <div class="tf-node input-node">
-              <div class="tf-node-title">Context Window (Input)</div>
+              <div class="tf-node-title">Formulator Prompt (C2 · 70B input)</div>
               <div class="tf-item">
-                <span>📊 Social Trends</span>
+                <span>📊 Trend payload (from C1)</span>
                 <span class="tf-tok" id="tfTrendTok">15,000</span>
               </div>
               <div class="tf-item">
-                <span>📋 Safety Compliance</span>
+                <span>📋 CoSing/FDA constraints</span>
                 <span class="tf-tok" id="tfSafetyTok">10,000</span>
               </div>
               <hr class="tf-divider" />
@@ -791,20 +801,30 @@
             <div class="tf-node output-node">
               <div class="tf-node-title">Deliverables (Output)</div>
               <div class="tf-item">
-                <span>🧪 Formula Recipe</span>
+                <span>🧪 Formula recipe (C2 · 70B)</span>
                 <span class="tf-tok" id="tfFormulaTok">4,062</span>
               </div>
               <div class="tf-item">
-                <span>📣 Marketing Script</span>
+                <span>📣 Marketing script (C3 · 120B)</span>
                 <span class="tf-tok" id="tfMarketingTok">2,188</span>
+              </div>
+              <div class="tf-item">
+                <span>🏭 Mfg profile (C7 · 8B)</span>
+                <span class="tf-tok" id="tfOpsTok">1,000</span>
               </div>
               <hr class="tf-divider" />
               <div class="tf-total">
-                <span>Raw output</span>
+                <span>Generated output</span>
                 <span id="tfTotalOutput">6,250 tok</span>
               </div>
             </div>
 
+          </div>
+
+          <div style="margin-top:0.75rem;font-size:0.68rem;color:var(--text-faint);display:flex;flex-wrap:wrap;gap:0.5rem 1.25rem;">
+            <span>💬 C1 Sentiment (20B): <strong id="tfSentimentTok" style="color:var(--text-muted);">2,768 tok</strong> — comment classification</span>
+            <span>✓ C2 Compliance audit: <strong style="color:var(--success);">$0</strong> — deterministic CoSing DB</span>
+            <span>👥 C5 HR (120B): <strong id="tfHrTok" style="color:var(--text-muted);">—</strong> — admin only, excluded from COGS</span>
           </div>
 
           <!-- Token Tax Breakdown Table -->
@@ -1033,13 +1053,18 @@
       llama8b:  { inPerM: 0.05,  outPerM: 0.08, label: 'Llama 3.1 8B — Ops profile extract (llama-3.1-8b-instant)' }
     };
     const TIERS = {
-      pipeline: { label: 'Production pipeline — routed per component (Sentiment 20B · Formulation 70B · Marketing 120B)' },
+      pipeline: { label: 'Production pipeline — Sentiment 20B · Formulation 70B · Marketing 120B · Ops 8B' },
       oss20b:   MODELS.oss20b,
       oss120b:  MODELS.oss120b,
       llama70b: MODELS.llama70b,
       llama8b:  MODELS.llama8b
     };
     const SENTIMENT_TOK = { input: 2000, output: 768 };
+    const OPS_TOK       = { input: 550,  output: 450 };   // C7 — llama-3.1-8b-instant, max 600 out
+    const HR_TOK = {
+      phase1: { input: 900,  output: 900  },             // C5 Phase 1 — skill-gap analysis
+      phase2: { input: 650,  output: 1800 }              // C5 Phase 2 — recruitment package
+    };
     let activeTier = 'pipeline';
 
     const INFRA_FIXED = 2000;
@@ -1048,6 +1073,24 @@
 
     function fmtRate(n) {
       return '$' + (n < 0.1 ? n.toFixed(3) : n.toFixed(2));
+    }
+
+    function calcPipelineFixedCosts() {
+      const m20  = MODELS.oss20b;
+      const m8   = MODELS.llama8b;
+      const m120 = MODELS.oss120b;
+      const sentimentCost =
+        (SENTIMENT_TOK.input  / 1_000_000) * m20.inPerM +
+        (SENTIMENT_TOK.output / 1_000_000) * m20.outPerM;
+      const opsCost =
+        (OPS_TOK.input  / 1_000_000) * m8.inPerM +
+        (OPS_TOK.output / 1_000_000) * m8.outPerM;
+      const hrCost =
+        (HR_TOK.phase1.input  / 1_000_000) * m120.inPerM +
+        (HR_TOK.phase1.output / 1_000_000) * m120.outPerM +
+        (HR_TOK.phase2.input  / 1_000_000) * m120.inPerM +
+        (HR_TOK.phase2.output / 1_000_000) * m120.outPerM;
+      return { sentimentCost, opsCost, hrCost };
     }
 
     /* ─── Token burn by tier / pipeline routing ─────────────── */
@@ -1062,18 +1105,16 @@
       if (tierKey === 'pipeline') {
         const m70 = MODELS.llama70b;
         const m120 = MODELS.oss120b;
-        const m20 = MODELS.oss20b;
         const inCost = (effInput / 1_000_000) * m70.inPerM;
         const formulaCost = (formulaOut / 1_000_000) * m70.outPerM;
         const marketCost  = (marketOut  / 1_000_000) * m120.outPerM;
-        const sentimentCost =
-          (SENTIMENT_TOK.input  / 1_000_000) * m20.inPerM +
-          (SENTIMENT_TOK.output / 1_000_000) * m20.outPerM;
-        const outCost = formulaCost + marketCost + sentimentCost;
+        const { sentimentCost, opsCost, hrCost } = calcPipelineFixedCosts();
+        const outCost = formulaCost + marketCost;
         return {
           effInput, effOutput, inCost, outCost,
-          tokenBurn: inCost + outCost,
-          formulaOut, marketOut, sentimentCost, formulaCost, marketCost
+          tokenBurn: inCost + outCost + sentimentCost + opsCost,
+          formulaOut, marketOut, sentimentCost, formulaCost, marketCost,
+          opsCost, hrCost
         };
       }
 
@@ -1268,7 +1309,11 @@
       document.getElementById('tfTotalInput').textContent  = fmtTok(inp.inputTok) + ' tok';
       document.getElementById('tfFormulaTok').textContent  = fmtTok(formulaShare);
       document.getElementById('tfMarketingTok').textContent = fmtTok(marketShare);
+      document.getElementById('tfOpsTok').textContent      = fmtTok(OPS_TOK.input + OPS_TOK.output);
       document.getElementById('tfTotalOutput').textContent = fmtTok(inp.outputTok) + ' tok';
+      document.getElementById('tfSentimentTok').textContent = fmtTok(SENTIMENT_TOK.input + SENTIMENT_TOK.output) + ' tok';
+      const hrTokTotal = HR_TOK.phase1.input + HR_TOK.phase1.output + HR_TOK.phase2.input + HR_TOK.phase2.output;
+      document.getElementById('tfHrTok').textContent = fmtTok(hrTokTotal) + ' tok';
       document.getElementById('tfIterLabel').textContent   = '× ' + inp.iterations + ' runs';
       document.getElementById('tfIterCount').textContent   = inp.iterations + ' iteration' + (inp.iterations > 1 ? 's' : '');
       document.getElementById('tfMultLabel').textContent   = inp.iterations + '× token cost';
@@ -1278,13 +1323,27 @@
 
       let breakdownHtml;
       if (isPipeline) {
-        const m70 = MODELS.llama70b;
+        const m70  = MODELS.llama70b;
         const m120 = MODELS.oss120b;
-        const m20 = MODELS.oss20b;
+        const m20  = MODELS.oss20b;
+        const m8   = MODELS.llama8b;
+        const sentimentTok = SENTIMENT_TOK.input + SENTIMENT_TOK.output;
+        const opsTok         = OPS_TOK.input + OPS_TOK.output;
+        const hrPhase1Tok    = HR_TOK.phase1.input + HR_TOK.phase1.output;
+        const hrPhase2Tok    = HR_TOK.phase2.input + HR_TOK.phase2.output;
         breakdownHtml = `
-        <tr class="section-hdr"><td colspan="6">INPUT TOKENS — Formulation (Llama 3.3 70B)</td></tr>
+        <tr class="section-hdr"><td colspan="6">C1 SENTIMENT — Comment classification (GPT OSS 20B · fixed per run)</td></tr>
         <tr>
-          <td>📊 Social Trends Context</td>
+          <td>💬 TikTok comment → trend card<span class="row-note">Upstream AI call; output feeds C2 trend payload</span></td>
+          <td>${fmtTok(sentimentTok)}</td>
+          <td>× 1</td>
+          <td>${fmtTok(sentimentTok)}</td>
+          <td class="col-input">${fmtRate(m20.inPerM)} / ${fmtRate(m20.outPerM)}</td>
+          <td class="col-input">${fmtUSD(r.sentimentCost)}</td>
+        </tr>
+        <tr class="section-hdr"><td colspan="6">C2 FORMULATION — Formulator prompt input (Llama 3.3 70B)</td></tr>
+        <tr>
+          <td>📊 Trend payload in formulator prompt<span class="row-note">C1 results (trend, pain point, ingredients) — not a separate AI call</span></td>
           <td>${fmtTok(trendShare)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(trendShare * inp.iterations)}</td>
@@ -1292,33 +1351,32 @@
           <td class="col-input">${fmtUSD((trendShare * inp.iterations / 1_000_000) * m70.inPerM)}</td>
         </tr>
         <tr>
-          <td>📋 Safety Compliance Docs</td>
+          <td>📋 CoSing/FDA constraints (prompt context)<span class="row-note">Regulatory text from cosing_db.js injected into Agent 1 system prompt</span></td>
           <td>${fmtTok(safetyShare)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(safetyShare * inp.iterations)}</td>
           <td class="col-input">${fmtRate(m70.inPerM)}</td>
           <td class="col-input">${fmtUSD((safetyShare * inp.iterations / 1_000_000) * m70.inPerM)}</td>
         </tr>
+        <tr class="zero-cost">
+          <td>✓ Compliance audit (Agent 2)<span class="row-note">Deterministic cosingCheckAll() — no LLM</span></td>
+          <td>—</td>
+          <td>—</td>
+          <td>—</td>
+          <td>—</td>
+          <td>$0.00</td>
+        </tr>
         <tr class="subtotal">
-          <td>Input Subtotal</td>
+          <td>Formulator input subtotal</td>
           <td>${fmtTok(inp.inputTok)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(r.effInput)}</td>
           <td>${fmtRate(m70.inPerM)}</td>
           <td>${fmtUSD(r.inCost)}</td>
         </tr>
-        <tr class="section-hdr"><td colspan="6">SENTIMENT — GPT OSS 20B (fixed per run)</td></tr>
+        <tr class="section-hdr"><td colspan="6">OUTPUT — Formulation + Marketing</td></tr>
         <tr>
-          <td>💬 Comment classification</td>
-          <td>${fmtTok(SENTIMENT_TOK.input + SENTIMENT_TOK.output)}</td>
-          <td>× 1</td>
-          <td>${fmtTok(SENTIMENT_TOK.input + SENTIMENT_TOK.output)}</td>
-          <td class="col-input">${fmtRate(m20.inPerM)} / ${fmtRate(m20.outPerM)}</td>
-          <td class="col-input">${fmtUSD(r.sentimentCost)}</td>
-        </tr>
-        <tr class="section-hdr"><td colspan="6">OUTPUT TOKENS — routed by component</td></tr>
-        <tr>
-          <td>🧪 Chemical Formula Recipe <span style="color:var(--text-faint);font-size:0.65rem;">(70B)</span></td>
+          <td>🧪 Formula recipe <span style="color:var(--text-faint);font-size:0.65rem;">(C2 · 70B)</span></td>
           <td>${fmtTok(formulaShare)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(r.formulaOut)}</td>
@@ -1326,7 +1384,7 @@
           <td class="col-output">${fmtUSD(r.formulaCost)}</td>
         </tr>
         <tr>
-          <td>📣 Marketing Script <span style="color:var(--text-faint);font-size:0.65rem;">(120B)</span></td>
+          <td>📣 Marketing script <span style="color:var(--text-faint);font-size:0.65rem;">(C3 · 120B)</span></td>
           <td>${fmtTok(marketShare)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(r.marketOut)}</td>
@@ -1334,20 +1392,52 @@
           <td class="col-output">${fmtUSD(r.marketCost)}</td>
         </tr>
         <tr class="subtotal">
-          <td>Output Subtotal</td>
+          <td>Output subtotal</td>
           <td>${fmtTok(inp.outputTok)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(r.effOutput)}</td>
           <td>—</td>
           <td>${fmtUSD(r.outCost)}</td>
+        </tr>
+        <tr class="section-hdr"><td colspan="6">C7 OPS — Manufacturing profile (Llama 3.1 8B · fixed per run)</td></tr>
+        <tr>
+          <td>🏭 Factory requirements extract<span class="row-note">Tier 1 profile extraction; Tier 2 scoring is deterministic</span></td>
+          <td>${fmtTok(opsTok)}</td>
+          <td>× 1</td>
+          <td>${fmtTok(opsTok)}</td>
+          <td class="col-input">${fmtRate(m8.inPerM)} / ${fmtRate(m8.outPerM)}</td>
+          <td class="col-input">${fmtUSD(r.opsCost)}</td>
+        </tr>
+        <tr class="section-hdr"><td colspan="6">ADMIN — On-demand (excluded from per-formula COGS)</td></tr>
+        <tr class="excluded">
+          <td>👥 HR skill-gap analysis <span style="color:var(--text-faint);font-size:0.65rem;">(C5 · 120B · Phase 1)</span></td>
+          <td>${fmtTok(hrPhase1Tok)}</td>
+          <td>× 1</td>
+          <td>${fmtTok(hrPhase1Tok)}</td>
+          <td class="col-input">${fmtRate(m120.inPerM)} / ${fmtRate(m120.outPerM)}</td>
+          <td>${fmtUSD(
+            (HR_TOK.phase1.input / 1_000_000) * m120.inPerM +
+            (HR_TOK.phase1.output / 1_000_000) * m120.outPerM
+          )} <span style="font-size:0.62rem;">excl.</span></td>
+        </tr>
+        <tr class="excluded">
+          <td>👥 HR recruitment package <span style="color:var(--text-faint);font-size:0.65rem;">(C5 · 120B · Phase 2)</span></td>
+          <td>${fmtTok(hrPhase2Tok)}</td>
+          <td>× 1</td>
+          <td>${fmtTok(hrPhase2Tok)}</td>
+          <td class="col-input">${fmtRate(m120.inPerM)} / ${fmtRate(m120.outPerM)}</td>
+          <td>${fmtUSD(
+            (HR_TOK.phase2.input / 1_000_000) * m120.inPerM +
+            (HR_TOK.phase2.output / 1_000_000) * m120.outPerM
+          )} <span style="font-size:0.62rem;">excl.</span></td>
         </tr>`;
       } else {
         const inRate  = fmtRate(tier.inPerM);
         const outRate = fmtRate(tier.outPerM);
         breakdownHtml = `
-        <tr class="section-hdr"><td colspan="6">INPUT TOKENS</td></tr>
+        <tr class="section-hdr"><td colspan="6">INPUT TOKENS — Formulator prompt split</td></tr>
         <tr>
-          <td>📊 Social Trends Context</td>
+          <td>📊 Trend payload (from C1)</td>
           <td>${fmtTok(trendShare)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(trendShare * inp.iterations)}</td>
@@ -1355,7 +1445,7 @@
           <td class="col-input">${fmtUSD((trendShare * inp.iterations / 1_000_000) * tier.inPerM)}</td>
         </tr>
         <tr>
-          <td>📋 Safety Compliance Docs</td>
+          <td>📋 CoSing/FDA constraints (prompt context)</td>
           <td>${fmtTok(safetyShare)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(safetyShare * inp.iterations)}</td>
@@ -1363,7 +1453,7 @@
           <td class="col-input">${fmtUSD((safetyShare * inp.iterations / 1_000_000) * tier.inPerM)}</td>
         </tr>
         <tr class="subtotal">
-          <td>Input Subtotal</td>
+          <td>Input subtotal</td>
           <td>${fmtTok(inp.inputTok)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(r.effInput)}</td>
@@ -1372,7 +1462,7 @@
         </tr>
         <tr class="section-hdr"><td colspan="6">OUTPUT TOKENS</td></tr>
         <tr>
-          <td>🧪 Chemical Formula Recipe</td>
+          <td>🧪 Formula recipe</td>
           <td>${fmtTok(formulaShare)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(formulaShare * inp.iterations)}</td>
@@ -1380,7 +1470,7 @@
           <td class="col-output">${fmtUSD((formulaShare * inp.iterations / 1_000_000) * tier.outPerM)}</td>
         </tr>
         <tr>
-          <td>📣 Marketing Script</td>
+          <td>📣 Marketing script</td>
           <td>${fmtTok(marketShare)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(marketShare * inp.iterations)}</td>
@@ -1388,7 +1478,7 @@
           <td class="col-output">${fmtUSD((marketShare * inp.iterations / 1_000_000) * tier.outPerM)}</td>
         </tr>
         <tr class="subtotal">
-          <td>Output Subtotal</td>
+          <td>Output subtotal</td>
           <td>${fmtTok(inp.outputTok)}</td>
           <td>× ${inp.iterations}</td>
           <td>${fmtTok(r.effOutput)}</td>
