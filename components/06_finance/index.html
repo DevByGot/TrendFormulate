@@ -821,12 +821,6 @@
 
           </div>
 
-          <div style="margin-top:0.75rem;font-size:0.68rem;color:var(--text-faint);display:flex;flex-wrap:wrap;gap:0.5rem 1.25rem;">
-            <span>💬 C1 Sentiment (20B): <strong id="tfSentimentTok" style="color:var(--text-muted);">2,768 tok</strong> — comment classification</span>
-            <span>✓ C2 Compliance audit: <strong style="color:var(--success);">$0</strong> — deterministic CoSing DB</span>
-            <span>👥 C5 HR (120B): <strong id="tfHrTok" style="color:var(--text-muted);">—</strong> — admin only, excluded from COGS</span>
-          </div>
-
           <!-- Token Tax Breakdown Table -->
           <div class="table-scroll">
             <table class="breakdown-table">
@@ -958,6 +952,30 @@
 
       </div>
     </div>
+
+    <!-- Admin on-demand costs (excluded from per-formula COGS) -->
+    <div class="card" id="adminHrSection" style="margin-top:1.25rem;">
+      <div class="card-title">
+        <i data-lucide="users" style="width:12px;height:12px;vertical-align:-1px;margin-right:4px;"></i>
+        Admin — On-demand (excluded from per-formula COGS)
+      </div>
+      <div class="table-scroll">
+        <table class="breakdown-table">
+          <thead>
+            <tr>
+              <th>Cost Item</th>
+              <th>Raw Tokens</th>
+              <th>× Iter.</th>
+              <th>Effective</th>
+              <th>Rate /1M</th>
+              <th>Cost</th>
+            </tr>
+          </thead>
+          <tbody id="adminHrBody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 
   <!-- ── Present Mode Overlay ──────────────────────────────── -->
@@ -1073,6 +1091,17 @@
 
     function fmtRate(n) {
       return '$' + (n < 0.1 ? n.toFixed(3) : n.toFixed(2));
+    }
+
+    function fmtBlendedRate(inputTok, outputTok, model) {
+      const total = inputTok + outputTok;
+      if (!total) return '—';
+      const blended = (inputTok * model.inPerM + outputTok * model.outPerM) / total;
+      return fmtRate(blended);
+    }
+
+    function calcMixedCost(inputTok, outputTok, model) {
+      return (inputTok / 1_000_000) * model.inPerM + (outputTok / 1_000_000) * model.outPerM;
     }
 
     function calcPipelineFixedCosts() {
@@ -1311,9 +1340,6 @@
       document.getElementById('tfMarketingTok').textContent = fmtTok(marketShare);
       document.getElementById('tfOpsTok').textContent      = fmtTok(OPS_TOK.input + OPS_TOK.output);
       document.getElementById('tfTotalOutput').textContent = fmtTok(inp.outputTok) + ' tok';
-      document.getElementById('tfSentimentTok').textContent = fmtTok(SENTIMENT_TOK.input + SENTIMENT_TOK.output) + ' tok';
-      const hrTokTotal = HR_TOK.phase1.input + HR_TOK.phase1.output + HR_TOK.phase2.input + HR_TOK.phase2.output;
-      document.getElementById('tfHrTok').textContent = fmtTok(hrTokTotal) + ' tok';
       document.getElementById('tfIterLabel').textContent   = '× ' + inp.iterations + ' runs';
       document.getElementById('tfIterCount').textContent   = inp.iterations + ' iteration' + (inp.iterations > 1 ? 's' : '');
       document.getElementById('tfMultLabel').textContent   = inp.iterations + '× token cost';
@@ -1329,8 +1355,6 @@
         const m8   = MODELS.llama8b;
         const sentimentTok = SENTIMENT_TOK.input + SENTIMENT_TOK.output;
         const opsTok         = OPS_TOK.input + OPS_TOK.output;
-        const hrPhase1Tok    = HR_TOK.phase1.input + HR_TOK.phase1.output;
-        const hrPhase2Tok    = HR_TOK.phase2.input + HR_TOK.phase2.output;
         breakdownHtml = `
         <tr class="section-hdr"><td colspan="6">C1 SENTIMENT — Comment classification (GPT OSS 20B · fixed per run)</td></tr>
         <tr>
@@ -1338,7 +1362,7 @@
           <td>${fmtTok(sentimentTok)}</td>
           <td>× 1</td>
           <td>${fmtTok(sentimentTok)}</td>
-          <td class="col-input">${fmtRate(m20.inPerM)} / ${fmtRate(m20.outPerM)}</td>
+          <td class="col-input">${fmtBlendedRate(SENTIMENT_TOK.input, SENTIMENT_TOK.output, m20)}</td>
           <td class="col-input">${fmtUSD(r.sentimentCost)}</td>
         </tr>
         <tr class="section-hdr"><td colspan="6">C2 FORMULATION — Formulator prompt input (Llama 3.3 70B)</td></tr>
@@ -1405,31 +1429,8 @@
           <td>${fmtTok(opsTok)}</td>
           <td>× 1</td>
           <td>${fmtTok(opsTok)}</td>
-          <td class="col-input">${fmtRate(m8.inPerM)} / ${fmtRate(m8.outPerM)}</td>
+          <td class="col-input">${fmtBlendedRate(OPS_TOK.input, OPS_TOK.output, m8)}</td>
           <td class="col-input">${fmtUSD(r.opsCost)}</td>
-        </tr>
-        <tr class="section-hdr"><td colspan="6">ADMIN — On-demand (excluded from per-formula COGS)</td></tr>
-        <tr class="excluded">
-          <td>👥 HR skill-gap analysis <span style="color:var(--text-faint);font-size:0.65rem;">(C5 · 120B · Phase 1)</span></td>
-          <td>${fmtTok(hrPhase1Tok)}</td>
-          <td>× 1</td>
-          <td>${fmtTok(hrPhase1Tok)}</td>
-          <td class="col-input">${fmtRate(m120.inPerM)} / ${fmtRate(m120.outPerM)}</td>
-          <td>${fmtUSD(
-            (HR_TOK.phase1.input / 1_000_000) * m120.inPerM +
-            (HR_TOK.phase1.output / 1_000_000) * m120.outPerM
-          )} <span style="font-size:0.62rem;">excl.</span></td>
-        </tr>
-        <tr class="excluded">
-          <td>👥 HR recruitment package <span style="color:var(--text-faint);font-size:0.65rem;">(C5 · 120B · Phase 2)</span></td>
-          <td>${fmtTok(hrPhase2Tok)}</td>
-          <td>× 1</td>
-          <td>${fmtTok(hrPhase2Tok)}</td>
-          <td class="col-input">${fmtRate(m120.inPerM)} / ${fmtRate(m120.outPerM)}</td>
-          <td>${fmtUSD(
-            (HR_TOK.phase2.input / 1_000_000) * m120.inPerM +
-            (HR_TOK.phase2.output / 1_000_000) * m120.outPerM
-          )} <span style="font-size:0.62rem;">excl.</span></td>
         </tr>`;
       } else {
         const inRate  = fmtRate(tier.inPerM);
@@ -1504,6 +1505,30 @@
           <td>${fmtUSD(r.cogsPerFormula)}</td>
         </tr>
       `;
+
+      /* ── Admin HR table (bottom of page) ── */
+      const m120 = MODELS.oss120b;
+      const hrPhase1Tok = HR_TOK.phase1.input + HR_TOK.phase1.output;
+      const hrPhase2Tok = HR_TOK.phase2.input + HR_TOK.phase2.output;
+      const hrPhase1Cost = calcMixedCost(HR_TOK.phase1.input, HR_TOK.phase1.output, m120);
+      const hrPhase2Cost = calcMixedCost(HR_TOK.phase2.input, HR_TOK.phase2.output, m120);
+      document.getElementById('adminHrBody').innerHTML = `
+        <tr class="excluded">
+          <td>👥 HR skill-gap analysis <span style="color:var(--text-faint);font-size:0.65rem;">(C5 · 120B · Phase 1)</span></td>
+          <td>${fmtTok(hrPhase1Tok)}</td>
+          <td>× 1</td>
+          <td>${fmtTok(hrPhase1Tok)}</td>
+          <td class="col-input">${fmtBlendedRate(HR_TOK.phase1.input, HR_TOK.phase1.output, m120)}</td>
+          <td>${fmtUSD(hrPhase1Cost)} <span style="font-size:0.62rem;">excl.</span></td>
+        </tr>
+        <tr class="excluded">
+          <td>👥 HR recruitment package <span style="color:var(--text-faint);font-size:0.65rem;">(C5 · 120B · Phase 2)</span></td>
+          <td>${fmtTok(hrPhase2Tok)}</td>
+          <td>× 1</td>
+          <td>${fmtTok(hrPhase2Tok)}</td>
+          <td class="col-input">${fmtBlendedRate(HR_TOK.phase2.input, HR_TOK.phase2.output, m120)}</td>
+          <td>${fmtUSD(hrPhase2Cost)} <span style="font-size:0.62rem;">excl.</span></td>
+        </tr>`;
 
       /* ── KPI cards ── */
       document.getElementById('kCOGS').textContent    = fmtUSD(r.cogsPerFormula);
