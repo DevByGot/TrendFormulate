@@ -152,44 +152,11 @@
     .admin-dept-card:hover::before {
       background: linear-gradient(180deg, var(--accent), rgba(222,165,130,0.7));
     }
-    .admin-dept-card--wide {
-      grid-column: 1 / -1;
-    }
     .admin-dept-top {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       margin-bottom: 1rem;
-    }
-    .admin-dept-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.625rem;
-      margin-bottom: 1.25rem;
-    }
-    .admin-dept-actions .admin-launch-btn {
-      flex: 1;
-      min-width: 180px;
-    }
-    .admin-validate-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1.25rem;
-      background: transparent;
-      color: var(--accent);
-      border: 1px solid var(--accent-mid);
-      border-radius: var(--radius-pill);
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
-      white-space: nowrap;
-    }
-    .admin-validate-btn:hover {
-      background: var(--accent-soft);
-      border-color: var(--accent);
     }
     .admin-dept-icon {
       width: 44px; height: 44px;
@@ -591,6 +558,126 @@
       border-radius: var(--radius);
     }
 
+    /* Presenter modal */
+    .pv-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+    }
+    .pv-modal.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    .pv-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(40, 30, 32, 0.45);
+      backdrop-filter: blur(4px);
+    }
+    .pv-modal-panel {
+      position: relative;
+      width: min(960px, 100%);
+      max-height: min(90vh, 820px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .pv-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      padding: 1.125rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+    .pv-modal-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-style: italic;
+      font-weight: 400;
+      color: var(--text);
+      margin: 0;
+      flex: 1;
+      min-width: 160px;
+    }
+    .pv-modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .pv-modal-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.35rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-pill);
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .pv-modal-link:hover {
+      color: var(--accent);
+      border-color: var(--accent-mid);
+      background: var(--accent-soft);
+      text-decoration: none;
+    }
+    .pv-modal-validate {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-mid);
+      border-radius: var(--radius-pill);
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: var(--font-body);
+    }
+    .pv-modal-validate:hover { background: rgba(196,120,138,0.18); }
+    .pv-modal-close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .pv-modal-close:hover {
+      background: var(--surface);
+      color: var(--text);
+    }
+    .pv-modal-body {
+      padding: 1.25rem;
+      overflow-y: auto;
+    }
+    .pv-modal-body .presenter-view-grid {
+      margin-bottom: 0;
+    }
+
     /* ─── Top header ────────────────────────────────────────── */
     .admin-page-header {
       margin-bottom: 2.5rem;
@@ -651,7 +738,7 @@
     <div class="admin-dept-grid">
 
       <!-- Waitlist Agent -->
-      <div class="admin-dept-card admin-dept-card--wide">
+      <div class="admin-dept-card">
         <div class="admin-dept-top">
           <div class="admin-dept-icon">
             <i data-lucide="bot" style="width:20px;height:20px;"></i>
@@ -661,20 +748,10 @@
           </span>
         </div>
         <p class="admin-dept-name">Waitlist Agent</p>
-        <p class="admin-dept-sub">Qualification chatbot with live presenter view — tracks multiple concurrent sessions</p>
-        <div class="admin-dept-actions">
-          <a href="../components/04_sales/index.html" class="admin-launch-btn">
-            Open Waitlist Agent <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
-          </a>
-          <button id="validate-btn" onclick="presenterValidate()" class="admin-validate-btn">
-            <i data-lucide="shield-check" style="width:15px;height:15px;"></i>
-            Validate Waitlist Access
-          </button>
-        </div>
-        <div class="pv-profiles-tabs" id="pv-profiles-tabs"></div>
-        <div class="presenter-view-grid" id="presenter-view-grid">
-          <!-- Injected by JS -->
-        </div>
+        <p class="admin-dept-sub" id="waitlist-dept-sub">Live qualification monitor — presenter view for concurrent chat sessions</p>
+        <button type="button" class="admin-launch-btn" onclick="openPresenterModal()">
+          Open Waitlist Agent <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+        </button>
       </div>
 
       <!-- 05 HR -->
@@ -759,6 +836,35 @@
 
   </div>
 
+  <!-- ─── Waitlist Agent presenter modal ─────────────────────── -->
+  <div class="pv-modal" id="pv-modal" aria-hidden="true">
+    <div class="pv-modal-backdrop" onclick="closePresenterModal()"></div>
+    <div class="pv-modal-panel" role="dialog" aria-labelledby="pv-modal-title">
+      <div class="pv-modal-header">
+        <h3 class="pv-modal-title" id="pv-modal-title">Waitlist Agent</h3>
+        <span class="pv-live-badge" id="pv-modal-live-badge" style="display:none;">
+          <span class="pv-live-dot"></span> Live
+        </span>
+        <div class="pv-modal-actions">
+          <a href="../components/04_sales/index.html" class="pv-modal-link" target="_blank">
+            <i data-lucide="external-link" style="width:12px;height:12px;"></i> Launch chatbot
+          </a>
+          <button type="button" id="validate-btn" class="pv-modal-validate" onclick="presenterValidate()">
+            <i data-lucide="shield-check" style="width:13px;height:13px;"></i>
+            Validate access
+          </button>
+          <button type="button" class="pv-modal-close" onclick="closePresenterModal()" aria-label="Close">
+            <i data-lucide="x" style="width:16px;height:16px;"></i>
+          </button>
+        </div>
+      </div>
+      <div class="pv-modal-body">
+        <div class="pv-profiles-tabs" id="pv-profiles-tabs"></div>
+        <div class="presenter-view-grid" id="presenter-view-grid"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     lucide.createIcons();
 
@@ -766,6 +872,46 @@
     const STAGES_LIST = ["greeting", "qualifying", "pitching", "capturing", "converted"];
     const PROFILE_STALE_MS = 30 * 60 * 1000;
     let activeProfileId = null;
+    let presenterModalOpen = false;
+    let presenterPollTimer = null;
+
+    function openPresenterModal() {
+      presenterModalOpen = true;
+      const modal = document.getElementById('pv-modal');
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      renderPresenterView();
+      lucide.createIcons({ nodes: [modal] });
+    }
+
+    function closePresenterModal() {
+      presenterModalOpen = false;
+      const modal = document.getElementById('pv-modal');
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && presenterModalOpen) closePresenterModal();
+    });
+
+    function updateWaitlistCardStatus() {
+      const profiles = getActiveProfiles();
+      const liveBadge = document.getElementById('pv-live-badge');
+      const sub = document.getElementById('waitlist-dept-sub');
+      if (!profiles.length) {
+        liveBadge.style.display = 'none';
+        sub.textContent = 'Live qualification monitor — presenter view for concurrent chat sessions';
+        return;
+      }
+      liveBadge.style.display = '';
+      const n = profiles.length;
+      sub.textContent = n === 1
+        ? '1 active session — open to view score, lead data & conversation log'
+        : `${n} active sessions — open to view score, lead data & conversation log`;
+    }
 
     function getScoreGrade(score) {
       if (score >= 80) return { label: 'Waitlist Ready', cls: 'badge-success' };
@@ -818,13 +964,13 @@
 
     function renderProfileTabs(profiles) {
       const tabs = document.getElementById('pv-profiles-tabs');
-      const liveBadge = document.getElementById('pv-live-badge');
+      const modalLiveBadge = document.getElementById('pv-modal-live-badge');
       if (!profiles.length) {
         tabs.innerHTML = '';
-        liveBadge.style.display = 'none';
+        modalLiveBadge.style.display = 'none';
         return;
       }
-      liveBadge.style.display = '';
+      modalLiveBadge.style.display = '';
       tabs.innerHTML = profiles.map(p => {
         const label = p.capturedBrand || p.capturedName || p.label || `Session ${String(p.profileId).slice(-6)}`;
         const isActive = p.profileId === activeProfileId;
@@ -956,9 +1102,13 @@
       renderPresenterGrid(profiles.find(p => p.profileId === activeProfileId));
     }
 
-    // Poll every 2 seconds for live updates
-    renderPresenterView();
-    setInterval(renderPresenterView, 2000);
+    function tickPresenterState() {
+      updateWaitlistCardStatus();
+      if (presenterModalOpen) renderPresenterView();
+    }
+
+    tickPresenterState();
+    presenterPollTimer = setInterval(tickPresenterState, 2000);
 
     /* ─── Presenter: validate waitlist access ────────────────── */
     function presenterValidate() {
