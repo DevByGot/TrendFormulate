@@ -991,24 +991,54 @@ RESPONSE RULES:
         response: "Beta access is prioritized for founders who have an active launch in progress. To get you on the priority waitlist, I'll need a few details — what is the name of your brand and your target launch timeline?"
       },
       {
+        id: "competitor", label: "Competitor Research", guardrail: false,
+        keywords: ["mintel", "euromonitor", "spate", "trendalytics", "versus", "compare to", "better than", "alternative to", "how do you differ"],
+        response: "TrendFormulate is built exclusively for indie founders who need to move fast without a lab — we're not a market research platform. To see if our OS fits your pipeline, what's your next product launch?"
+      },
+      {
+        id: "investor", label: "Investor / Press", guardrail: false,
+        keywords: ["invest", "fund", "raise", "pitch", "press", "journalist", "article", "interview", "partnership", "collaborate", "agency"],
+        response: "For investment and press enquiries, please reach out directly at team@trendformulate.com. Are you here as a beauty founder looking to launch a product?"
+      },
+      {
+        id: "how_it_works", label: "Product Curiosity", guardrail: false,
+        keywords: ["how does it work", "what is this", "explain", "tell me more", "what exactly", "what can you do", "what do you do"],
+        response: "TrendFormulate detects emerging ingredient trends in real time and generates production-ready, compliant formulas — all without labs or chemists. Access is restricted to verified indie founders. What product category is your brand working on?"
+      },
+      {
         id: "greeting", label: "Greeting", guardrail: false,
-        keywords: ["hi", "hello", "hey", "good morning", "good evening", "what can you", "what do you"],
+        keywords: ["hi", "hello", "hey", "good morning", "good evening", "what can you"],
         response: "TrendFormulate Beta is currently closed to the public. I'm here to determine if your brand qualifies for priority early access — what's the name of your brand, and what product are you developing next?"
       }
     ];
 
-    const FALLBACK_RESPONSE = "I want to make sure I'm giving you the most relevant information. Could you tell me the name of your brand and what product category you're currently developing?";
+    function normalizeInput(text) {
+      return text.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^\w\s@.]/g, " ")
+        .replace(/\s+/g, " ").trim();
+    }
+
+    function buildSmartFallback() {
+      if (capturedBrand) {
+        return `I want to make sure I can get ${capturedBrand} the right access tier. Could you share your target launch timeline so I can complete your qualification?`;
+      }
+      if (capturedName) {
+        return `Thanks ${capturedName} — to move your application forward, could you tell me your brand name and the product you're developing?`;
+      }
+      return "I want to make sure I'm giving you the most relevant information. Could you tell me your brand name and what product category you're currently developing?";
+    }
 
     function getFallbackResponse(input) {
-      const lower = input.toLowerCase();
+      const lower = normalizeInput(input);
       for (const intent of INTENTS) {
         if (intent.keywords.some(k => lower.includes(k))) return { text: intent.response, label: intent.label, guardrail: intent.guardrail };
       }
-      return { text: FALLBACK_RESPONSE, label: "Open question", guardrail: false };
+      return { text: buildSmartFallback(), label: "Open question", guardrail: false };
     }
 
     function detectIntent(input) {
-      const lower = input.toLowerCase();
+      const lower = normalizeInput(input);
       for (const intent of INTENTS) {
         if (intent.keywords.some(k => lower.includes(k))) return { label: intent.label, guardrail: intent.guardrail };
       }
@@ -1087,7 +1117,7 @@ RESPONSE RULES:
 
     // ─── Lead scoring (diminishing returns per signal category) ────
     function applyLeadScoreSignals(text) {
-      const lower = text.toLowerCase();
+      const lower = normalizeInput(text);
       for (const sig of LEAD_SCORE_SIGNALS) {
         if (!sig.keywords.some(k => lower.includes(k))) continue;
         const hits = (signalHitCounts[sig.label] || 0) + 1;
@@ -1103,12 +1133,14 @@ RESPONSE RULES:
       if (emailMatch) capturedEmail = emailMatch[0];
 
       const timelinePatterns = [
-        /\b(q[1-4]\s*20?\d{2})\b/i,
-        /\b(before (?:the )?holidays?)\b/i,
-        /\b(launch(?:ing)?(?:\s+(?:in|by))?\s+(?:q[1-4]|this year|next year|spring|summer|fall|winter|20\d{2}))\b/i,
-        /\b(target(?:ing)?\s+(?:a\s+)?(?:q[1-4]|20\d{2}|this year|next year))\b/i,
+        /\b(q[1-4]\s*(?:of\s*)?20?\d{2})\b/i,
+        /\b(before (?:the )?(?:holidays?|christmas|end of year))\b/i,
+        /\b((?:by|in|for)\s+(?:q[1-4]|spring|summer|fall|autumn|winter|20\d{2}))\b/i,
+        /\b(launching?\s+(?:in|by|around)?\s*(?:q[1-4]|20\d{2}|this year|next year|spring|summer|fall|winter))\b/i,
+        /\b(targeting?\s+(?:a?\s*)?(?:q[1-4]|20\d{2}|this year|next year))\b/i,
         /\b(20\d{2})\b/,
-        /\b(this year|next year|by (?:spring|summer|fall|winter))\b/i,
+        /\b(this year|next year|end of year|early next year)\b/i,
+        /\b(in (?:a few |the next )?\d+\s+(?:weeks?|months?))\b/i,
       ];
       for (const pat of timelinePatterns) {
         const m = text.match(pat);
@@ -1116,9 +1148,10 @@ RESPONSE RULES:
       }
 
       const brandPatterns = [
-        /\b(?:brand(?:\s+is|\s+called|:)?|company(?:\s+is|:)?|we(?:'re| are))\s+([A-Z][A-Za-z0-9&'\-\s]{1,35}?)(?:\.|,|$|\s+(?:and|we|i|launch|developing|working))/i,
-        /\b(?:called|named)\s+([A-Z][A-Za-z0-9&'\-\s]{1,35}?)(?:\.|,|$|\s+(?:and|we|i|launch|developing))/i,
-        /\bfrom\s+([A-Z][A-Za-z0-9&'\-\s]{1,35}?)(?:\.|,|$|\s+(?:and|we|i|launch|developing))/i,
+        /\b(?:brand(?:\s+is|\s+called|:)?|company(?:\s+is|:)?|it(?:'s| is) called)\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$|\s+(?:and|we|i|launch|developing|working))/i,
+        /\b(?:called|named|it's)\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$)/i,
+        /\bi(?:'m| am) (?:the founder of|building|running|behind)\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$)/i,
+        /\bfrom\s+["']?([A-Za-z][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$)/i,
       ];
       for (const pat of brandPatterns) {
         const m = text.match(pat);
@@ -1126,8 +1159,9 @@ RESPONSE RULES:
       }
 
       const namePatterns = [
-        /\b(?:i'?m|my name is|this is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/,
-        /\b(?:founder|ceo)\s+(?:here,?\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+        /\b(?:i'?m|my name(?:'s| is)|this is|i am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/,
+        /\b(?:founder|ceo|co-founder)\s+(?:here,?\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+        /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s+here|,\s+founder)/,
       ];
       for (const pat of namePatterns) {
         const m = text.match(pat);
