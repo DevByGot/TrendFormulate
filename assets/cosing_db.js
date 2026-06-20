@@ -678,3 +678,51 @@ function cosingCheckAll(ingredients) {
     };
   });
 }
+
+/**
+ * Format a single EU restricted entry for the Formulation Agent prompt.
+ */
+function cosingFormatRestrictedLine(inci, entry) {
+  const parts = [`max ${entry.max_pct}%`];
+  if (entry.max_leave_on != null) parts.push(`leave-on max ${entry.max_leave_on}%`);
+  if (entry.max_rinse_off != null) parts.push(`rinse-off max ${entry.max_rinse_off}%`);
+  if (entry.max_mixture != null) parts.push(`mixture max ${entry.max_mixture}%`);
+  parts.push(`EU Annex ${entry.annex}`);
+  if (entry.product_scope) parts.push(`scope: ${entry.product_scope}`);
+  return `- ${inci}: ${parts.join("; ")}`;
+}
+
+/**
+ * Build regulatory constraint text for Agent 1 from CosIng + FDA data in this file.
+ * @returns {string}
+ */
+function cosingBuildFormulatorConstraints() {
+  const euProhibited = [...COSING_PROHIBITED, ...COSING_PROHIBITED_EXTENDED].sort();
+  const fdaProhibited = [...FDA_PROHIBITED].sort();
+
+  const euRestricted = Object.entries(COSING_RESTRICTED)
+    .map(([inci, entry]) => cosingFormatRestrictedLine(inci, entry))
+    .sort();
+
+  const fdaRestricted = Object.entries(FDA_RESTRICTED)
+    .map(([inci, entry]) => {
+      let line = `- ${inci}: max ${entry.max_pct}%; ${entry.ref}`;
+      if (entry.product_scope) line += `; scope: ${entry.product_scope}`;
+      return line;
+    })
+    .sort();
+
+  return [
+    "Regulatory constraints (EU CosIng Annexes II, III, V, VI + FDA 21 CFR — all percentages must comply):",
+    "",
+    "PROHIBITED — never include these INCI substances:",
+    `EU Annex II: ${euProhibited.join(", ")}`,
+    `FDA prohibited: ${fdaProhibited.join(", ")}`,
+    "",
+    "RESTRICTED — do not exceed these maximum concentrations in the ready-to-use product:",
+    ...euRestricted,
+    ...fdaRestricted,
+    "",
+    "Ingredients not listed above have no concentration cap in this database; still use real INCI names and respect any product-scope notes on restricted entries."
+  ].join("\n");
+}

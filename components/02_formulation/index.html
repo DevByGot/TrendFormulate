@@ -932,8 +932,10 @@
 
     let TRENDS = loadC1Trends();
 
-    // ─── Agent 1 system prompt ──────────────────────────────────────
-    const FORMULATOR_SYSTEM = `You are a master cosmetic chemist for an indie beauty brand. Given a beauty trend, consumer pain point, and target ingredients, generate a complete, scientifically-sound cosmetic formula.
+    // ─── Agent 1 system prompt (regulatory limits from cosing_db.js) ──
+    function buildFormulatorSystem() {
+      const regulatory = cosingBuildFormulatorConstraints();
+      return `You are a master cosmetic chemist for an indie beauty brand. Given a beauty trend, consumer pain point, and target ingredients, generate a complete, scientifically-sound cosmetic formula.
 
 Return ONLY a valid JSON object — no markdown fences, no explanation, no extra text whatsoever.
 
@@ -957,15 +959,14 @@ Use this exact schema:
   "formulation_notes": "<1-2 sentence processing instruction>"
 }
 
+Include 6 to 8 ingredients. Use only real, approved INCI names.
+
 Critical rules — violating any of these makes the output unusable:
 1. The SUM of all ingredient percentages MUST equal exactly 100.0
-2. Include exactly 6 to 8 ingredients
-3. For water-based formulas: Water (Aqua) must be the base with the highest single percentage
-4. Preservative (Phenoxyethanol or equivalent) must be ≤ 1.0%
-5. Fragrance/Parfum must be ≤ 1.0% if included
-6. Actives must follow industry norms: Bakuchiol ≤ 2%, Niacinamide ≤ 10%, Zinc Oxide ≤ 25%, Retinol ≤ 0.3%
-7. Use only real, approved INCI names
-8. RETURN ONLY THE JSON OBJECT — nothing else`;
+2. For water-based formulas (serum, face cream, toner, face mist, sleeping mask): Water (Aqua) must be the base with the highest single percentage
+
+${regulatory}`;
+    }
 
     // Agent 2 is fully database-driven via cosing_db.js — no LLM prompt needed.
 
@@ -1038,7 +1039,7 @@ Critical rules — violating any of these makes the output unusable:
         (trend.rationale ? `Consumer insight rationale: ${trend.rationale}` : "");
 
       const raw = await callGroq([
-        { role: "system", content: FORMULATOR_SYSTEM },
+        { role: "system", content: buildFormulatorSystem() },
         { role: "user",   content: userMsg }
       ]);
 
