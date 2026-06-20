@@ -19,12 +19,15 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 2rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      min-height: 68px;
+      height: auto;
       background: rgba(255,255,255,0.88);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
-      height: 68px;
       position: sticky;
       top: 0;
       z-index: 200;
@@ -34,6 +37,8 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
+      flex-wrap: wrap;
+      min-width: 0;
     }
     .admin-logo {
       width: 38px; height: 38px;
@@ -99,7 +104,6 @@
       font-style: italic;
       font-weight: 300;
       color: var(--text);
-      white-space: nowrap;
     }
     .admin-section-line {
       flex: 1;
@@ -351,7 +355,7 @@
     /* ─── Presenter view ────────────────────────────────────── */
     .presenter-view-grid {
       display: grid;
-      grid-template-columns: 200px 1fr 1fr;
+      grid-template-columns: minmax(0, 200px) minmax(0, 1fr) minmax(0, 1fr);
       gap: 1rem;
       margin-bottom: 1rem;
     }
@@ -472,9 +476,15 @@
     .intent-item {
       font-size: 0.75rem;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
       gap: 0.4rem;
       color: var(--text-muted);
+      word-break: break-word;
+    }
+    .intent-item > span:last-child {
+      flex: 1;
+      min-width: 0;
     }
     .intent-item .tag {
       font-size: 0.6875rem;
@@ -679,6 +689,8 @@
     .pv-modal-body {
       padding: 1.25rem;
       overflow-y: auto;
+      overflow-x: hidden;
+      min-width: 0;
     }
     .pv-modal-body .presenter-view-grid {
       margin-bottom: 0;

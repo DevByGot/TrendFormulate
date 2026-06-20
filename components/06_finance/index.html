@@ -11,9 +11,17 @@
     /* ── Layout ─────────────────────────────────────────── */
     .sim-grid {
       display: grid;
-      grid-template-columns: 340px 1fr;
+      grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
       gap: 1.5rem;
       align-items: start;
+    }
+    .sim-grid > * { min-width: 0; }
+
+    .table-scroll {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     /* ── Sliders ─────────────────────────────────────────── */
@@ -243,6 +251,7 @@
     /* ── Token breakdown table ───────────────────────────── */
     .breakdown-table {
       width: 100%;
+      min-width: 520px;
       border-collapse: collapse;
       font-size: 0.8rem;
       font-variant-numeric: tabular-nums;
@@ -300,8 +309,10 @@
     /* ── Comparison table ────────────────────────────────── */
     .comparison-table {
       width: 100%;
+      min-width: 640px;
       border-collapse: collapse;
       font-size: 0.8375rem;
+      table-layout: fixed;
     }
     .comparison-table th {
       text-align: left;
@@ -320,6 +331,8 @@
       padding: 0.6rem 0.875rem;
       border-bottom: 1px solid rgba(196,155,148,0.08);
       vertical-align: top;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
     }
     .comparison-table tr:last-child td { border-bottom: none; }
     .comparison-table td:first-child { font-weight: 500; color: var(--text-mid); }
@@ -331,6 +344,7 @@
     .margin-row {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 1.25rem;
       padding: 1rem 1.25rem;
       background: var(--surface-2);
@@ -338,7 +352,7 @@
       margin-bottom: 1.25rem;
       border: 1px solid var(--border);
     }
-    .margin-gauge-wrap { flex: 1; }
+    .margin-gauge-wrap { flex: 1; min-width: min(100%, 280px); }
     .margin-gauge-meta {
       display: flex;
       justify-content: space-between;
@@ -511,9 +525,20 @@
       .charts-grid { grid-template-columns: 1fr; }
       .present-kpis { grid-template-columns: repeat(2, 1fr); }
     }
+    @media (max-width: 900px) {
+      .token-flow { grid-template-columns: 1fr; }
+      .tf-connector { flex-direction: row; padding: 0.35rem 0; }
+      .tf-connector-arrow {
+        border-top: 6px solid var(--border-strong);
+        border-bottom: none;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+      }
+      .margin-row { flex-direction: column; align-items: stretch; }
+      .margin-number { font-size: 1.85rem; }
+    }
     @media (max-width: 600px) {
       .kpi-row { grid-template-columns: 1fr 1fr; }
-      .token-flow { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -779,19 +804,21 @@
           </div>
 
           <!-- Token Tax Breakdown Table -->
-          <table class="breakdown-table">
-            <thead>
-              <tr>
-                <th>Cost Item</th>
-                <th>Raw Tokens</th>
-                <th>× Iter.</th>
-                <th>Effective</th>
-                <th>Rate /1M</th>
-                <th>Cost</th>
-              </tr>
-            </thead>
-            <tbody id="breakdownBody"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table class="breakdown-table">
+              <thead>
+                <tr>
+                  <th>Cost Item</th>
+                  <th>Raw Tokens</th>
+                  <th>× Iter.</th>
+                  <th>Effective</th>
+                  <th>Rate /1M</th>
+                  <th>Cost</th>
+                </tr>
+              </thead>
+              <tbody id="breakdownBody"></tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Burn alert -->
@@ -837,6 +864,7 @@
             <i data-lucide="table-2" style="width:12px;height:12px;vertical-align:-1px;margin-right:4px;"></i>
             Phase 2 — Legacy R&amp;D vs. TrendFormulate AI-Native P&amp;L
           </div>
+          <div class="table-scroll">
           <table class="comparison-table">
             <thead>
               <tr>
@@ -879,6 +907,7 @@
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
 
         <!-- Charts -->
