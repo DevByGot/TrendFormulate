@@ -839,7 +839,7 @@ Write 4–5 sentences that cover ALL of the following points — do not omit any
 3 bullet points (use "- " prefix). Include at least one AI-adjacent or computational chemistry skill (e.g. experience reviewing LLM-generated chemical outputs, molecular modelling, cheminformatics).
 
 **TECHNICAL VETTING QUESTIONS:**
-5 numbered questions (use "1." through "5." prefix). CRITICAL REQUIREMENTS for each question:
+5 numbered questions (use "1." through "5." prefix — do NOT use **Scenario:** sub-headers). CRITICAL REQUIREMENTS for each question:
 - Every question must present the candidate with a concrete, simulated AI formulation error scenario involving the exact chemistry identified in the risk report (e.g. a peptide concentration the model hallucinated, a pH incompatibility the engine failed to flag, a chelation conflict between two actives).
 - The question must ask the candidate to diagnose, debug, or correct the error — not merely demonstrate general knowledge.
 - Questions must be highly specific and non-generic. A general peptide chemistry question ("What is palmitoyl pentapeptide-4?") is unacceptable.
@@ -894,12 +894,29 @@ Make the full package production-ready and appropriately senior for a board-leve
       return m ? m[1].toUpperCase() : 'HIGH';
     }
 
+    const PHASE1_SECTION_LABELS = [
+      'RISK LEVEL', 'SKILL GAP SUMMARY', 'MISSING CAPABILITIES', 'GOVERNANCE EXPOSURE'
+    ];
+    const PHASE2_SECTION_LABELS = [
+      'JOB TITLE', 'ABOUT THE ROLE', 'KEY RESPONSIBILITIES',
+      'REQUIRED QUALIFICATIONS', 'PREFERRED QUALIFICATIONS', 'TECHNICAL VETTING QUESTIONS'
+    ];
+
+    function buildSectionBoundary(currentLabel, allLabels) {
+      const others = allLabels.filter(l => l.toUpperCase() !== currentLabel.toUpperCase());
+      if (!others.length) return '$';
+      const patterns = others.map(l => {
+        const esc = l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return `(?:\\*\\*${esc}:\\*\\*|\\*\\*${esc}\\*\\*[ \\t]*:?|#{1,4}[ \\t]*${esc}[ \\t]*:?|(?:^|\\n)${esc}[ \\t]*:)`;
+      });
+      return `(?=${patterns.join('|')}|$)`;
+    }
+
     // Handles every heading format the model might produce:
     //   **LABEL:**   **LABEL**:   **LABEL**   ## LABEL   ### LABEL   LABEL:
-    function extractSection(text, label) {
+    function extractSection(text, label, allLabels) {
       const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      // Section boundary = next bold header, markdown heading, or ALL-CAPS label at line start
-      const boundary = `(?=\\n[ \\t]*(?:\\*{1,2}[A-Z]|#{1,4}[ \\t]*[A-Z]|[A-Z][A-Z &]{2,}[:\\*])|$)`;
+      const boundary = buildSectionBoundary(label, allLabels);
       const patterns = [
         new RegExp(`\\*\\*${esc}:\\*\\*[ \\t]*\\n?([\\s\\S]*?)${boundary}`, 'i'),
         new RegExp(`\\*\\*${esc}\\*\\*[ \\t]*:?[ \\t]*\\n?([\\s\\S]*?)${boundary}`, 'i'),
@@ -909,7 +926,6 @@ Make the full package production-ready and appropriately senior for a board-leve
       for (const re of patterns) {
         const m = text.match(re);
         if (m && m[1] && m[1].trim()) {
-          // Strip markdown horizontal rules (---, ***, ===) the model may insert between sections
           return m[1].trim().replace(/\n\s*[-*=]{2,}\s*$/gm, '').trim();
         }
       }
@@ -918,9 +934,9 @@ Make the full package production-ready and appropriately senior for a board-leve
 
     function renderRiskCard(rawText) {
       const level   = parseRiskLevel(rawText);
-      const summary = extractSection(rawText, 'SKILL GAP SUMMARY');
-      const missing = extractSection(rawText, 'MISSING CAPABILITIES');
-      const exposure= extractSection(rawText, 'GOVERNANCE EXPOSURE');
+      const summary = extractSection(rawText, 'SKILL GAP SUMMARY', PHASE1_SECTION_LABELS);
+      const missing = extractSection(rawText, 'MISSING CAPABILITIES', PHASE1_SECTION_LABELS);
+      const exposure= extractSection(rawText, 'GOVERNANCE EXPOSURE', PHASE1_SECTION_LABELS);
 
       const levelClass = level.toLowerCase();
       const levelIcon  = level === 'CRITICAL' ? 'alert-octagon' : level === 'HIGH' ? 'alert-triangle' : 'info';
@@ -968,7 +984,7 @@ Make the full package production-ready and appropriately senior for a board-leve
     function renderJDCard(rawText) {
       const today   = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
 
-      function section(label) { return extractSection(rawText, label); }
+      function section(label) { return extractSection(rawText, label, PHASE2_SECTION_LABELS); }
 
       const title    = (section('JOB TITLE') || '').replace(/^["']|["']$/g, '').trim()
                         || 'Senior Formulation Scientist';
@@ -978,19 +994,39 @@ Make the full package production-ready and appropriately senior for a board-leve
       const pref     = section('PREFERRED QUALIFICATIONS');
       const questRaw = section('TECHNICAL VETTING QUESTIONS');
 
+      function cleanInline(text) {
+        return text.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+      }
+
+      function parseVettingQuestions(text) {
+        if (!text) return [];
+        const numbered = text.split(/\n(?=\d+\.\s)/)
+          .map(s => cleanInline(s.replace(/^\d+\.\s*/, '')))
+          .filter(Boolean);
+        if (numbered.length >= 2) return numbered;
+
+        const scenarios = text.split(/\n\s*(?=\*\*Scenario:\*\*)/i)
+          .map(s => cleanInline(s.replace(/^\*\*Scenario:\*\*\s*/i, '')))
+          .filter(Boolean);
+        if (scenarios.length >= 2) return scenarios;
+
+        const blocks = text.split(/\n{2,}/)
+          .map(s => cleanInline(s))
+          .filter(s => s && !/^[-*=]{2,}$/.test(s));
+        return blocks.length ? blocks : [cleanInline(text)];
+      }
+
       function toBullets(text) {
         return text.split('\n')
           .map(l => l.replace(/^[-•▸]\s*/, '').trim())
           .filter(Boolean)
-          .map(l => `<li>${l}</li>`)
+          .map(l => `<li>${l.replace(/\*\*/g, '')}</li>`)
           .join('');
       }
 
       function toNumbered(text) {
-        return text.split('\n')
-          .map(l => l.replace(/^\d+\.\s*/, '').trim())
-          .filter(Boolean)
-          .map(l => `<li><span>${l}</span></li>`)
+        return parseVettingQuestions(text)
+          .map(q => `<li><span>${q}</span></li>`)
           .join('');
       }
 
@@ -1134,7 +1170,7 @@ Make the full package production-ready and appropriately senior for a board-leve
         addLog('file-text', 'Phase 2: synthesizing targeted recruitment package…', 'info');
 
         const phase2Input = `SKILL-GAP RISK REPORT FROM PHASE 1:\n\n${phase1Raw}`;
-        const phase2Raw   = await callGroq(PHASE2_SYSTEM, phase2Input, 3500);
+        const phase2Raw   = await callGroq(PHASE2_SYSTEM, phase2Input, 4096);
 
         addLog('check-circle', 'Phase 2 complete — JD and vetting questions generated.', 'ok');
         await delay(250);
