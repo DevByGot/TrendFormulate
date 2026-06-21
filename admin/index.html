@@ -946,6 +946,7 @@
     function removeWaitlistEntry(id) {
       const entries = getWaitlistEntries().filter(e => e.id !== id);
       localStorage.setItem('tf_waitlist_entries', JSON.stringify(entries));
+      lastWaitlistSig = getWaitlistSignature();
       renderDatabase();
     }
 
@@ -1004,7 +1005,7 @@
         const label = p.capturedBrand || p.capturedName || p.label || `Session ${String(p.profileId).slice(-6)}`;
         const isActive = p.profileId === activeProfileId;
         const isLive = (Date.now() - new Date(p.updatedAt).getTime()) < 120000;
-        return `<button type="button" class="pv-profile-tab${isActive ? ' active' : ''}" onclick="selectProfile(${JSON.stringify(p.profileId)})">
+        return `<button type="button" class="pv-profile-tab${isActive ? ' active' : ''}" onclick='selectProfile(${JSON.stringify(p.profileId)})'>
           <span class="pv-tab-dot${isLive ? '' : ' stale'}"></span>
           ${escHtml(label)}
         </button>`;
@@ -1329,7 +1330,7 @@
             <div class="db-item">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
                 <div class="db-item-name">${escHtml(title)}</div>
-                <button type="button" onclick="removeWaitlistEntry(${JSON.stringify(w.id)})" title="Remove entry" style="
+                <button type="button" onclick='removeWaitlistEntry(${JSON.stringify(w.id)})' title="Remove entry" style="
                   flex-shrink:0;font-size:0.65rem;color:var(--text-faint);background:transparent;
                   border:none;cursor:pointer;padding:0.15rem 0.35rem;font-family:var(--font-body);"
                   onmouseover="this.style.color='var(--error)';"

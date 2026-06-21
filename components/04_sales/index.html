@@ -942,7 +942,16 @@
 YOUR THREE NON-NEGOTIABLE GOALS:
 1. QUALIFY: Determine within 2–3 exchanges whether the visitor is a real indie beauty founder with a launch timeline and a budget — not a student, journalist, or competitor doing market research.
 2. PROTECT: You must NEVER generate, outline, suggest, or hint at cosmetic formulas, ingredient ratios, INCI lists, or recipes of any kind in this chat. That capability is exclusively reserved for verified users inside the secure enterprise dashboard. Decline these requests firmly but professionally every single time.
-3. CONVERT: As the visitor shares details in conversation (especially their email), they are automatically added to the priority waitlist — there is no separate application form. Continue collecting name, brand, product category, launch timeline, and other helpful context naturally in chat.
+3. CONVERT: Collect the founder's full name, brand, product category, launch timeline, and email through natural conversation. Do NOT add them to the waitlist until you have asked whether they have any other questions. Only after they confirm they have no further questions (or you have answered their last one) are they added automatically — there is no separate form.
+
+QUALIFICATION FIELD PRIORITY — ask for exactly one missing field per turn, in this order (skip any already in FOUNDER PROFILE):
+1. Full name (always ask early — e.g. "What's your full name?" before email)
+2. Brand name
+3. Product category
+4. Launch timeline
+5. Email address
+
+WAITLIST CLOSING STEP — when email is captured and qualification is sufficient, your next step is to ask: "Before I add you to our priority waitlist, is there anything else you'd like to know about TrendFormulate?" Do not confirm waitlist placement until after they respond to that question.
 
 PLATFORM CONTEXT (for credibility, not for free formulations):
 - Real-time Safety Guardrails: cross-references all formulations against EU Annex II–VI and FDA 21 CFR 700–740 guidelines automatically.
@@ -971,7 +980,7 @@ RESPONSE RULES:
 - Never say "How can I help you today?" or use generic customer service openers.
 - If the visitor gives a partial answer, acknowledge what they shared before asking for the next missing detail — never ignore information they already provided.
 - Never re-ask for details already captured in the FOUNDER PROFILE block below.
-- Ask for only one missing qualification field per turn (name, brand, product category, launch timeline, or email).`;
+- Ask for only one missing qualification field per turn, following the field priority order above. Always collect the founder's full name before asking for their email.`;
 
     // ─── Keyword fallback ──────────────────────────────────────────
     const INTENTS = [
@@ -1023,7 +1032,7 @@ RESPONSE RULES:
       {
         id: "greeting", label: "Greeting", guardrail: false,
         keywords: ["hi", "hello", "hey", "good morning", "good evening", "what can you"],
-        response: "TrendFormulate Beta is currently closed to the public. I'm here to determine if your brand qualifies for priority early access — what's the name of your brand, and what product are you developing next?"
+        response: "TrendFormulate Beta is currently closed to the public. I'm here to determine if your brand qualifies for priority early access — what's your full name, and what's the name of your brand?"
       }
     ];
 
@@ -1063,7 +1072,15 @@ RESPONSE RULES:
       const profile = fields.length
         ? `\n\nFOUNDER PROFILE (already captured — do not ask again):\n${fields.join("\n")}`
         : "\n\nFOUNDER PROFILE: none captured yet.";
-      return SYSTEM_PROMPT + profile;
+      let gateHint = '';
+      if (waitlistGateStatus === 'asked') {
+        gateHint = "\n\nWAITLIST STATUS: Closing question already asked — answer any follow-up, then confirm waitlist placement if they are done.";
+      } else if (isReadyForWaitlistClose()) {
+        gateHint = "\n\nWAITLIST STATUS: Qualification sufficient — ask if they have any other questions before waitlist signup (do not confirm placement yet).";
+      } else if (!capturedName) {
+        gateHint = "\n\nNEXT FIELD NEEDED: Full name — ask for the founder's full name this turn.";
+      }
+      return SYSTEM_PROMPT + profile + gateHint;
     }
 
     function getFallbackResponse(input) {
@@ -1092,6 +1109,11 @@ RESPONSE RULES:
     ];
 
     const WAITLIST_STORAGE_KEY = 'tf_waitlist_entries';
+    const WAITLIST_CLOSING_QUESTION = "Before I add you to our priority waitlist, is there anything else you'd like to know about TrendFormulate?";
+    const EMAIL_PROVIDER_DOMAINS = new Set([
+      'gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com', 'yahoo.com',
+      'icloud.com', 'protonmail.com', 'proton.me', 'live.com', 'msn.com', 'me.com'
+    ]);
 
     const NAME_STOPWORDS = new Set([
       'name', 'the', 'a', 'an', 'my', 'your', 'our', 'their', 'building', 'working',
@@ -1118,6 +1140,7 @@ RESPONSE RULES:
     let capturedProduct = null, capturedWebsite = null, capturedNotes = null;
     let waitlistSubmitted = false;
     let waitlistConfirmShown = false;
+    let waitlistGateStatus = 'none'; // none → asked → enrolled
     let currentStage = "greeting";
     let intentLog = [];
 
@@ -1232,7 +1255,13 @@ RESPONSE RULES:
     }
     function extractLeadFromMessage(text) {
       const emailMatch = text.match(/[\w.+-]+@[\w.-]+\.\w{2,}/);
-      if (emailMatch) capturedEmail = emailMatch[0];
+      if (emailMatch) {
+        capturedEmail = emailMatch[0];
+        const emailDomain = capturedEmail.split('@')[1]?.toLowerCase();
+        if (emailDomain && capturedWebsite && capturedWebsite.toLowerCase().includes(emailDomain)) {
+          capturedWebsite = null;
+        }
+      }
 
       const timelinePatterns = [
         /\b(q[1-4]\s*(?:of\s*)?20?\d{2})\b/i,
@@ -1278,12 +1307,47 @@ RESPONSE RULES:
         }
       }
 
-      const websiteMatch = text.match(/\b(?:https?:\/\/)?(?:www\.)?([a-z0-9][-a-z0-9]*\.[a-z]{2,}(?:\/[^\s]*)?)/i);
-      if (websiteMatch && !websiteMatch[0].includes('@')) {
-        capturedWebsite = websiteMatch[0].replace(/^https?:\/\//i, '');
-      }
+      const extractedWebsite = extractWebsiteFromMessage(text);
+      if (extractedWebsite) capturedWebsite = extractedWebsite;
 
       recalculateLeadScore();
+    }
+
+    function extractWebsiteFromMessage(text) {
+      const withoutEmails = text.replace(/[\w.+-]+@[\w.-]+\.\w{2,}/g, ' ');
+      const websiteMatch = withoutEmails.match(/\b(?:https?:\/\/)?(?:www\.)?[a-z0-9][-a-z0-9]*\.[a-z]{2,}(?:\/[^\s]*)?/i);
+      if (!websiteMatch) return null;
+      const url = websiteMatch[0].replace(/^https?:\/\//i, '');
+      const domain = url.split('/')[0].toLowerCase();
+      if (EMAIL_PROVIDER_DOMAINS.has(domain)) return null;
+      return url;
+    }
+
+    function isReadyForWaitlistClose() {
+      return isValidEmail(capturedEmail)
+        && !!capturedName
+        && exchangeCount >= 2
+        && waitlistGateStatus === 'none'
+        && !waitlistSubmitted;
+    }
+
+    function userDeclinesMoreQuestions(text) {
+      const lower = normalizeInput(text);
+      if (lower.includes('?')) return false;
+      const questionWords = ['how', 'what', 'when', 'where', 'why', 'can you', 'do you', 'is there', 'tell me', 'explain'];
+      if (questionWords.some(w => lower.includes(w))) return false;
+
+      const exactSignals = [
+        'no', 'nope', 'nothing else', 'no questions', 'no more questions',
+        'that is all', 'thats all', "that's all", 'all good', 'im good', "i'm good",
+        'go ahead', 'add me', 'sign me up', 'please add', 'yes add', 'not really',
+        'nothing', 'no thanks', 'i am good', 'we are good', "we're good"
+      ];
+      if (exactSignals.some(s => lower === s)) return true;
+      if (lower.length <= 28) {
+        return exactSignals.some(s => lower.startsWith(s + ' ') || lower.endsWith(' ' + s));
+      }
+      return false;
     }
 
     function buildWaitlistEntryPayload() {
@@ -1306,6 +1370,46 @@ RESPONSE RULES:
       };
     }
 
+    function enrollWaitlist() {
+      if (waitlistSubmitted || !isValidEmail(capturedEmail)) return;
+
+      waitlistSubmitted = true;
+      waitlistGateStatus = 'enrolled';
+      recalculateLeadScore();
+      saveWaitlistEntry(buildWaitlistEntryPayload());
+      updatePresenterPanel();
+      advanceStage("converted");
+      showWaitlistConfirmationBanner();
+
+      const confirmMsg = `You're on our priority waitlist${capturedBrand ? ` for ${capturedBrand}` : ''}${capturedName ? `, ${capturedName}` : ''}. We'll email ${capturedEmail} within 48 hours with next steps once your profile is reviewed.`;
+      setTimeout(() => {
+        appendAgentMessage(escHtml(confirmMsg));
+        conversationHistory.push({ role: "assistant", content: confirmMsg });
+      }, 500);
+    }
+
+    function handleWaitlistGateAfterReply(replyText, userText) {
+      if (waitlistGateStatus === 'asked') {
+        if (userDeclinesMoreQuestions(userText)) {
+          enrollWaitlist();
+          return replyText;
+        }
+        if (!replyText.includes('anything else') && !replyText.includes('other questions')) {
+          return replyText.trim() + ' Is there anything else you\'d like to know before I add you to the priority waitlist?';
+        }
+        return replyText;
+      }
+
+      if (isReadyForWaitlistClose()) {
+        waitlistGateStatus = 'asked';
+        const base = replyText.trim();
+        if (base.includes('anything else') || base.includes('other questions')) return base;
+        return base + (base.endsWith('?') ? ' ' : ' ') + WAITLIST_CLOSING_QUESTION;
+      }
+
+      return replyText;
+    }
+
     function showWaitlistConfirmationBanner() {
       if (waitlistConfirmShown) return;
       waitlistConfirmShown = true;
@@ -1325,27 +1429,14 @@ RESPONSE RULES:
       lucide.createIcons({ nodes: [leadContainer] });
     }
 
-    function maybeAutoEnrollWaitlist() {
-      if (!isValidEmail(capturedEmail)) return;
-      if (exchangeCount < 1) return;
-
-      const isFirstEnrollment = !waitlistSubmitted;
-      waitlistSubmitted = true;
-      recalculateLeadScore();
-      saveWaitlistEntry(buildWaitlistEntryPayload());
-      updatePresenterPanel();
-
-      if (isFirstEnrollment) {
-        advanceStage("converted");
-        showWaitlistConfirmationBanner();
-        const confirmMsg = `You're on our priority waitlist${capturedBrand ? ` for ${capturedBrand}` : ''}${capturedName ? `, ${capturedName}` : ''}. We'll email ${capturedEmail} within 48 hours with next steps once your profile is reviewed.`;
-        setTimeout(() => {
-          appendAgentMessage(escHtml(confirmMsg));
-          conversationHistory.push({ role: "assistant", content: confirmMsg });
-        }, 500);
-      } else if (currentStage !== 'converted') {
-        advanceStage("capturing");
+    function syncWaitlistEntryDraft() {
+      if (capturedEmail && capturedWebsite) {
+        const emailDomain = capturedEmail.split('@')[1]?.toLowerCase();
+        if (emailDomain && capturedWebsite.toLowerCase().includes(emailDomain)) {
+          capturedWebsite = null;
+        }
       }
+      updatePresenterPanel();
     }
     function scrollToBottom() {
       setTimeout(() => { messagesArea.scrollTop = messagesArea.scrollHeight; }, 50);
@@ -1519,16 +1610,23 @@ RESPONSE RULES:
           const fallback = getFallbackResponse(text);
           replyText = fallback.text;
           isGuardrail = fallback.guardrail;
-          conversationHistory.pop();
+          conversationHistory.push({ role: "user", content: text });
+          conversationHistory.push({ role: "assistant", content: replyText });
         }
       } else {
         await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
         const fallback = getFallbackResponse(text);
         replyText = fallback.text;
         isGuardrail = fallback.guardrail;
+        conversationHistory.push({ role: "user", content: text });
+        conversationHistory.push({ role: "assistant", content: replyText });
       }
 
       hideTyping();
+      replyText = handleWaitlistGateAfterReply(replyText, text);
+      if (conversationHistory.length && conversationHistory[conversationHistory.length - 1].role === 'assistant') {
+        conversationHistory[conversationHistory.length - 1].content = replyText;
+      }
       appendAgentMessage(escHtml(replyText).replace(/\n{2,}/g, '<br><br>').replace(/\n/g, ' '), isGuardrail);
 
       isTyping = false;
@@ -1536,12 +1634,14 @@ RESPONSE RULES:
       sendBtn.disabled = false;
       chatInput.focus();
 
-      maybeAutoEnrollWaitlist();
+      syncWaitlistEntryDraft();
 
       if (exchangeCount === 1) {
         showQuickReplies(["How much does it cost?", "How fast can I get in?", "Can you give me a formula now?"]);
       } else if (exchangeCount === 2) {
         showQuickReplies(["Tell me about EU compliance", "We're launching a serum in Q3 2026"]);
+      } else if (waitlistGateStatus === 'asked') {
+        showQuickReplies(["No, that's all", "I have one more question"]);
       } else if (exchangeCount >= 3) {
         showQuickReplies(["What's the pricing model?", "When will I hear back?"]);
       }
@@ -1573,7 +1673,7 @@ RESPONSE RULES:
         label,
         leadScore, exchangeCount, guardrailCount, currentStage,
         capturedName, capturedBrand, capturedEmail, capturedTimeline, capturedProduct,
-        capturedWebsite, capturedNotes, waitlistSubmitted,
+        capturedWebsite, capturedNotes, waitlistSubmitted, waitlistGateStatus,
         intentLog,
         updatedAt: new Date().toISOString(),
         startedAt: profiles[profileId]?.startedAt || new Date().toISOString()
@@ -1596,7 +1696,7 @@ RESPONSE RULES:
 
     // ─── Boot ──────────────────────────────────────────────────────
     function bootChat() {
-      const WELCOME = "TrendFormulate Beta — access is currently closed to the public. I'm Forma, your qualification agent. In a few quick questions, I'll determine whether your brand meets the criteria for priority early access. To get started — what's the name of your brand, and what product are you developing next?";
+      const WELCOME = "TrendFormulate Beta — access is currently closed to the public. I'm Forma, your qualification agent. In a few quick questions, I'll determine whether your brand meets the criteria for priority early access. To get started — what's your full name, and what's the name of your brand?";
       appendAgentMessage(WELCOME);
       conversationHistory.push({ role: "assistant", content: WELCOME });
       showQuickReplies(QUICK_REPLIES_INITIAL);
