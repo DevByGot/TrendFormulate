@@ -404,7 +404,7 @@
 
   <script>
     // ─── Groq configuration ────────────────────────────────────────────────────
-    const GROQ_MODEL    = "openai/gpt-oss-20b";
+    const GROQ_MODEL    = "llama-3.3-70b-versatile";
     const GROQ_DIRECT   = "https://api.groq.com/openai/v1/chat/completions";
     const ON_SERVER     = window.location.protocol !== "file:" &&
                           window.location.hostname !== "localhost" &&
@@ -566,8 +566,9 @@ Rules:
       };
     }
 
-    // ─── Groq AI call with retry on 429 and token-limit bump ────────────────
-    async function callGroq(commentText, maxTokens = 768, retrying = false, bumped = false) {
+    // ─── Groq AI call with exponential back-off on 429 and token-limit bump ──
+    async function callGroq(commentText, maxTokens = 768, attempt = 0, bumped = false) {
+      const MAX_RETRIES = 3;
       const headers = { "Content-Type": "application/json" };
       if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
         headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
@@ -585,9 +586,10 @@ Rules:
           ]
         })
       });
-      if (response.status === 429 && !retrying) {
-        await new Promise(r => setTimeout(r, 2000));
-        return callGroq(commentText, maxTokens, true, bumped);
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        const delay = 2000 * Math.pow(2, attempt); // 2s, 4s, 8s
+        await new Promise(r => setTimeout(r, delay));
+        return callGroq(commentText, maxTokens, attempt + 1, bumped);
       }
       if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
       const data = await response.json();
@@ -595,7 +597,7 @@ Rules:
       if (!choice?.message?.content) throw new Error("Empty response from Groq");
       const content = choice.message.content.trim();
       if (choice.finish_reason === "length" && !bumped) {
-        return callGroq(commentText, Math.min(Math.round(maxTokens * 1.5), 1536), retrying, true);
+        return callGroq(commentText, Math.min(Math.round(maxTokens * 1.5), 1536), attempt, true);
       }
       if (choice.finish_reason === "length") {
         throw new Error("Response truncated — output exceeded token limit.");
@@ -839,7 +841,7 @@ Rules:
         refreshGroupCard(key, group);
 
         if (i < COMMENTS.length - 1) {
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, 1000));
         }
       }
 

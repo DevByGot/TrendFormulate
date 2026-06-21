@@ -1065,13 +1065,13 @@
 
     /* ─── Groq model rates (2026 API pricing) ───────────────── */
     const MODELS = {
-      oss20b:   { inPerM: 0.075, outPerM: 0.30, label: 'GPT OSS 20B — Sentiment & Forma SDR (openai/gpt-oss-20b)' },
+      oss20b:   { inPerM: 0.075, outPerM: 0.30, label: 'GPT OSS 20B — legacy reference (openai/gpt-oss-20b)' },
       oss120b:  { inPerM: 0.15,  outPerM: 0.60, label: 'GPT OSS 120B — Formulation, Marketing & HR (openai/gpt-oss-120b)' },
       llama70b: { inPerM: 0.59,  outPerM: 0.79, label: 'Llama 3.3 70B — comparison tier (llama-3.3-70b-versatile)' },
       llama8b:  { inPerM: 0.05,  outPerM: 0.08, label: 'Llama 3.1 8B — Ops profile extract (llama-3.1-8b-instant)' }
     };
     const TIERS = {
-      pipeline: { label: 'Production pipeline — Sentiment 20B · Formulation 120B · Marketing 120B · Ops 8B' },
+      pipeline: { label: 'Production pipeline — Sentiment 70B · Formulation 120B · Marketing 120B · Ops 8B' },
       oss20b:   MODELS.oss20b,
       oss120b:  MODELS.oss120b,
       llama70b: MODELS.llama70b,
@@ -1130,7 +1130,7 @@
     }
 
     function calcPipelineFixedCosts() {
-      const m20  = MODELS.oss20b;
+      const m20  = MODELS.llama70b;  // Sentiment now uses llama-3.3-70b-versatile
       const m8   = MODELS.llama8b;
       const m120 = MODELS.oss120b;
       const sentimentCost =
