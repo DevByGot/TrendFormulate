@@ -90,15 +90,47 @@ The main dashboard shows **4 department cards** (Sentiment, R&D, Marketing, Ops)
 
 ### LLM models — production pipeline routing
 
-The platform uses **three Groq models** in the production pipeline, routed by task complexity. Llama 3.3 70B remains available in the Finance simulator as a comparison tier only.
+The platform uses **four Groq models** in the production pipeline, routed by task complexity. GPT OSS 20B remains available in the Finance simulator as a **legacy comparison tier** only (no longer used in live code).
 
 | Model | Groq ID | Used in | Role |
 |-------|---------|---------|------|
-| GPT OSS 20B | `openai/gpt-oss-20b` | C1 Sentiment, C4 Sales (Forma), chat-bubble | Fast JSON extraction + conversational guardrails |
+| Llama 3.3 70B | `llama-3.3-70b-versatile` | C1 Sentiment, C4 Sales (Forma), chat-bubble | Structured JSON extraction + conversational guardrails |
 | GPT OSS 120B | `openai/gpt-oss-120b` | C2 Formulation (Agent 1), C3 Marketing, C5 HR (both phases) | Deep INCI formula generation + creative scripts + executive recruitment prose |
 | Llama 3.1 8B | `llama-3.1-8b-instant` | C7 Ops (Tier 1 only) | Cheap structured JSON profile extraction |
 
 **No LLM:** C2 Agent 2 (compliance audit via `cosing_db.js`), C7 Tier 2 (factory scoring), C6 Finance (simulator only).
+
+#### Model change — C1 / C4 / chat-bubble (June 2026)
+
+**Previous routing:** C1 Sentiment, C4 Sales (Forma), and `chat-bubble.js` all used `openai/gpt-oss-20b`.
+
+**Why it was changed:** On Groq’s free tier, `openai/gpt-oss-20b` has a relatively small shared token quota. Because the same model was used in three surfaces — Sentiment (15 API calls per full run), the Sales waitlist chat, and the floating chat widget — quota was exhausted quickly (visible on the Groq dashboard as overconsumption on that model).
+
+When a Groq call fails for any reason (429 rate limit, empty response, truncated JSON, parse error), C1 **silently falls back** to `analyzeCommentKeyword()`. That function only matches **five** hardcoded substrings (`glass-skin`, `slugging`, `reef-safe spf`, `retinol`, `k-beauty`). Comments that do not contain those phrases land in a catch-all bucket:
+
+- `trend: "Unclassified"`
+- `pain_point: "unknown"`
+- `ingredients: []` → UI shows “No ingredients mapped”
+- `confidence: "low"`, `skin_concern: "other"`, `sentiment: "confused"`
+
+That is why a large block of comments (e.g. #6–#15) could appear fully “unanalyzed” even though the run completed — the UI still marked them processed, but the **keyword fallback** had no rule for them.
+
+**New routing:** `llama-3.3-70b-versatile` for C1, C4, and chat-bubble.
+
+| Factor | `openai/gpt-oss-20b` (legacy) | `llama-3.3-70b-versatile` (current) |
+|--------|-------------------------------|-------------------------------------|
+| Free-tier headroom | Exhausted quickly when shared across 3 surfaces | Larger RPM/TPM allowance on Groq free tier |
+| Structured JSON | Good when quota available | Strong JSON adherence for trend-card schema |
+| Cost (Finance sim) | $0.075 / $0.30 per 1M in/out | $0.59 / $0.79 per 1M in/out — higher per token, still negligible at demo scale |
+| Inference | Fast | Comparable or faster on Groq |
+
+**Additional C1 hardening (same release):**
+
+- **429 retry:** exponential back-off — 3 attempts with 2s → 4s → 8s delays (was a single 2s retry).
+- **Inter-comment delay:** 1000ms between comments (was 500ms) to stay under rate limits during a 15-comment run.
+- **Token truncation:** unchanged — `max_tokens` 768, bump to 1536 once if `finish_reason === "length"`.
+
+**Finance simulator:** pipeline COGS for C1 now prices **Llama 70B** rates. The **OSS 20B** tier button remains for side-by-side margin comparison on the burn chart.
 
 See [§6 — Groq / AI Integration](#6-groq--ai-integration) for full prompt schemas, message shapes, and call parameters.
 
@@ -178,7 +210,7 @@ trendformulate/
 ```
 ┌─────────────────────┐     tf_c1_results      ┌──────────────────────────┐
 │ 01 Sentiment        │ ─────────────────────► │ 02 Formulation           │
-│ GPT OSS 20B         │                        │ Agent1: GPT OSS 120B     │
+│ Llama 3.3 70B       │                        │ Agent1: GPT OSS 120B     │
 │ 15 comments → JSON  │                        │ Agent2: CosIng (no LLM)  │
 └─────────────────────┘                        └────────────┬─────────────┘
                                                               │ tf_saved_formulas
@@ -192,8 +224,8 @@ trendformulate/
 
 Admin-only (not in main pipeline flow):
   C5 HR — GPT OSS 120B × 2 phases    C6 Finance — no API (COGS simulator)
-Public entry: C4 Sales Forma — GPT OSS 20B (waitlist guardrails)
-Widget: chat-bubble.js — GPT OSS 20B (lighter sales on internal pages)
+Public entry: C4 Sales Forma — Llama 3.3 70B (waitlist guardrails)
+Widget: chat-bubble.js — Llama 3.3 70B (lighter sales on internal pages)
 ```
 
 ### localStorage contract
@@ -341,7 +373,7 @@ async function callGroq(messages, maxTokens, retrying = false, bumped = false) {
     method: 'POST', headers,
     body: JSON.stringify({ model: GROQ_MODEL, temperature, max_tokens: maxTokens, messages })
   });
-  // 429 → wait 2–2.5s, retry once
+  // 429 → exponential back-off: up to 3 retries at 2s, 4s, 8s (C1)
   // finish_reason === 'length' → bump max_tokens 1.5× and retry once
   // Strip ```json fences before JSON.parse
 }
@@ -375,26 +407,26 @@ If `!hasApi`: use keyword/intent fallback + simulated typing delay (600–1300ms
 
 | # | Surface | Model | Temp | Max tokens | Calls per user action | Output format |
 |---|---------|-------|------|------------|----------------------|---------------|
-| C1 | Sentiment Engine | `openai/gpt-oss-20b` | 0.3 | 768 → 1536 | 1 per comment (×15 on full run) | JSON trend card |
+| C1 | Sentiment Engine | `llama-3.3-70b-versatile` | 0.3 | 768 → 1536 | 1 per comment (×15 on full run) | JSON trend card |
 | C2 | Formulation Agent 1 | `openai/gpt-oss-120b` | 0.35 | 1800 → 4096 | 1 per formula generate | JSON INCI formula |
 | C2 | Formulation Agent 2 | — | — | — | 0 (deterministic) | PASS/CAUTION/FAIL audit |
 | C3 | Marketing Engine | `openai/gpt-oss-120b` | 0.7 | 1600 → 4096 | 1 per script generate | JSON TikTok script |
-| C4 | Sales / Forma waitlist | `openai/gpt-oss-20b` | 0.55 | 220 | 1 per chat turn | Plain text (guardrailed) |
+| C4 | Sales / Forma waitlist | `llama-3.3-70b-versatile` | 0.55 | 220 | 1 per chat turn | Plain text (guardrailed) |
 | C5 | HR Phase 1 | `openai/gpt-oss-120b` | 0.55 | 1200 → 4096 | 1 per analysis run | Markdown risk report |
 | C5 | HR Phase 2 | `openai/gpt-oss-120b` | 0.55 | 2400 → 4096 | 1 per analysis run | Markdown JD package |
 | C7 | Ops Tier 1 profile | `llama-3.1-8b-instant` | 0.2 | 600 → 1024 | 1 per factory analysis | JSON mfg profile |
 | C7 | Ops Tier 2 scoring | — | — | — | 0 (deterministic) | Ranked factory list |
-| — | chat-bubble (Forma) | `openai/gpt-oss-20b` | 0.6 | 280 | 1 per chat turn | Plain text (sales) |
+| — | chat-bubble (Forma) | `llama-3.3-70b-versatile` | 0.6 | 280 | 1 per chat turn | Plain text (sales) |
 | C6 | Finance simulator | — | — | — | 0 | Charts only; models used for COGS math |
 
 ### Groq pricing (2026 — used by Finance simulator)
 
-| Model | Input / 1M tok | Output / 1M tok |
-|-------|----------------|-----------------|
-| `openai/gpt-oss-20b` | $0.075 | $0.30 |
-| `openai/gpt-oss-120b` | $0.15 | $0.60 |
-| `llama-3.3-70b-versatile` | $0.59 | $0.79 |
-| `llama-3.1-8b-instant` | $0.05 | $0.08 |
+| Model | Input / 1M tok | Output / 1M tok | Notes |
+|-------|----------------|-----------------|-------|
+| `openai/gpt-oss-20b` | $0.075 | $0.30 | Legacy comparison tier only (pre–June 2026 routing) |
+| `openai/gpt-oss-120b` | $0.15 | $0.60 | C2, C3, C5 |
+| `llama-3.3-70b-versatile` | $0.59 | $0.79 | C1, C4, chat-bubble (production) |
+| `llama-3.1-8b-instant` | $0.05 | $0.08 | C7 Tier 1 |
 
 Finance breakdown groups all **input token lines** and all **output token lines** separately, with one rate column per direction. HR costs are shown at page bottom, excluded from per-formula COGS.
 
@@ -417,7 +449,9 @@ Finance breakdown groups all **input token lines** and all **output token lines*
 - `rationale`, `sentiment` (enum), `formula_type` (enum), `confidence` (high/medium/low)
 - Rules: preserve emotional texture of pain_point; controlled vocab; no markdown fences
 
-**Post-processing:** `normalizeAnalysisResult()` validates enums and ingredient count. On Groq failure → `KEYWORD_MAP` substring fallback (5 trends) or `Unclassified`.
+**Post-processing:** `normalizeAnalysisResult()` validates enums and ingredient count. On Groq failure → `KEYWORD_MAP` substring fallback (5 trends) or `Unclassified` (see [Model change — C1 / C4 / chat-bubble](#model-change--c1--c4--chat-bubble-june-2026) for why this matters when quota is exhausted).
+
+**Rate limiting (C1):** 1000ms pause between comments; `callGroq()` retries 429s up to 3× with exponential back-off (2s / 4s / 8s).
 
 **Persistence:** Each result appended to `localStorage.tf_c1_results` (also grouped by trend in UI).
 
@@ -600,7 +634,7 @@ Extract the manufacturing requirements profile.
 
 **Loaded on:** `index.html`, components 01–03, 05–07. **Not** on `04_sales` (full chat there) or `admin`.
 
-**Model:** `openai/gpt-oss-20b` · temp 0.6 · max 280 tokens
+**Model:** `llama-3.3-70b-versatile` · temp 0.6 · max 280 tokens
 
 **System prompt:** Built dynamically by `buildPrompt()` at widget init:
 - Ingredient names from `data/ingredients_db.json` (or hardcoded fallback list)
@@ -737,7 +771,7 @@ Runs before page render. No token → redirect to waitlist landing.
 **Tagline:** Trend → Ingredient mapping  
 **Input:** 15 comments from `comments.js`  
 **Output:** `localStorage.tf_c1_results` + optional JSON export  
-**Model:** `openai/gpt-oss-20b` · temp 0.3 · max 768 tokens (→ 1536 on truncation)
+**Model:** `llama-3.3-70b-versatile` · temp 0.3 · max 768 tokens (→ 1536 on truncation)
 
 > Full prompt schema and message shape: [§6 — C1 Sentiment](#c1--sentiment-engine-01_sentiment)
 
@@ -745,7 +779,7 @@ Runs before page render. No token → redirect to waitlist landing.
 
 1. Page loads → raw comments panel (collapsed) + empty results
 2. Click **Run Sentiment Analysis**
-3. Sequential loop over all 15 comments (500ms delay between each for "scanning" feel)
+3. Sequential loop over all 15 comments (1000ms delay between each for rate-limit headroom + "scanning" feel)
 4. Each comment: Groq analysis → normalize → merge into trend groups Map
 5. Live UI updates: trend cards appear/update as analysis progresses
 6. Summary banner: "X trends across Y comments"
@@ -813,6 +847,8 @@ Role: cosmetic R&D analyst. Return **only** JSON matching exact schema. Rules:
 | `k-beauty` | Simplified K-Beauty |
 
 No match → `trend: "Unclassified"`, empty ingredients, `confidence: "low"`.
+
+> **Operational note:** This fallback is intentional resilience, but when `openai/gpt-oss-20b` quota was exhausted, most comments missed all five keys and collapsed into one large “Unclassified” group. Production now uses `llama-3.3-70b-versatile` to keep AI classification as the primary path; keyword fallback should only appear during true outages.
 
 ### Key functions
 
@@ -1038,7 +1074,7 @@ Plain text with `[0-3s] HOOK:` style timestamps, product name, tone, demographic
 
 **Path:** `components/04_sales/index.html`  
 **This is the public entry point** — no access gate on this page.  
-**Model:** `openai/gpt-oss-20b` · temp 0.55 · max 220 tokens per turn
+**Model:** `llama-3.3-70b-versatile` · temp 0.55 · max 220 tokens per turn
 
 > Full Forma waitlist `SYSTEM_PROMPT` (qualify / protect / convert): [§6 — C4 Sales](#c4--waitlist--sales-gate-04_sales)
 
@@ -1216,7 +1252,7 @@ Prove the business case: AI formulation COGS is ~$0.50/formula vs $15,000 legacy
 - Input tokens slider (default 25,000 — formulator prompt split)
 - Output tokens slider (default 6,250 — formula + marketing split)
 - Iterations slider (revision rounds, default 3)
-- Model tier selector: **Pipeline** (routed 20B/120B/8B) | OSS 20B | OSS 120B | Llama 70B | Llama 8B
+- Model tier selector: **Pipeline** (routed 70B/120B/8B) | OSS 20B (legacy) | OSS 120B | Llama 70B | Llama 8B
 
 **Phase 2 — Scale economics:**
 - Brands on platform (default 500)
@@ -1230,7 +1266,7 @@ effInput  = inputTok  * iterations
 effOutput = outputTok * iterations
 inCost    = (effInput  / 1_000_000) * tier.inPerM   // formulation 120B (pipeline mode)
 outCost   = formulaCost + marketCost                 // 120B formula + 120B marketing
-sentimentCost = fixed C1 comment classification (20B)
+sentimentCost = fixed C1 comment classification (Llama 70B in pipeline mode)
 opsCost       = fixed C7 manufacturing profile (8B)
 tokenBurn = inCost + outCost + sentimentCost + opsCost
 cogsPerFormula = tokenBurn + ROUTING_COST  // ROUTING_COST = $0.05
@@ -1253,14 +1289,14 @@ Grouped as **INPUT TOKENS** then **OUTPUT TOKENS** (one Tokens column + one Rate
 
 | Input line | Model | Notes |
 |------------|-------|-------|
-| C1 comment prompt | 20B | Real sentiment AI call |
+| C1 comment prompt | Llama 70B | Real sentiment AI call (pipeline); OSS 20B on comparison tier |
 | C2 trend payload | 120B | Context from C1 — not a separate call |
 | C2 CoSing constraints | 120B | `cosing_db.js` text in system prompt |
 | C7 mfg profile prompt | 8B | Formula + market context |
 
 | Output line | Model | Notes |
 |-------------|-------|-------|
-| C1 trend card JSON | 20B | Saved to `tf_c1_results` |
+| C1 trend card JSON | Llama 70B | Saved to `tf_c1_results` |
 | C2 formula recipe | 120B | Agent 1 output |
 | C3 marketing script | 120B | Not on formulator output slider |
 | C7 mfg profile JSON | 8B | Tier 2 scoring is $0 |
@@ -1282,7 +1318,7 @@ Token split on sliders (formulator only):
 ### Charts
 
 1. **Scale chart** (log Y): brands 10–3000 vs legacy cost / revenue / AI COGS
-2. **Burn chart**: margin % vs iterations 1–10 for **pipeline**, **OSS 20B**, and **Llama 70B** (the five tier buttons affect Phase 1 COGS; burn chart always compares those three curves)
+2. **Burn chart**: margin % vs iterations 1–10 for **pipeline** (Sentiment on Llama 70B), **OSS 20B** (legacy comparison), and **Llama 70B** explicit tier
 
 ### Boardroom View
 
@@ -1436,7 +1472,7 @@ Polls `tf_presenter_profiles` every 2 seconds.
 **File:** `assets/chat-bubble.js`  
 **Loaded on:** `index.html`, components 01–03, 05–07  
 **NOT loaded on:** `04_sales` (has own chat), `admin`  
-**Model:** `openai/gpt-oss-20b` · temp 0.6 · max 280
+**Model:** `llama-3.3-70b-versatile` · temp 0.6 · max 280
 
 ### Behavior
 
@@ -1449,7 +1485,7 @@ Polls `tf_presenter_profiles` every 2 seconds.
 
 | | C4 Sales waitlist | chat-bubble widget |
 |--|-------------------|-------------------|
-| Model | GPT OSS 20B | GPT OSS 20B |
+| Model | Llama 3.3 70B | Llama 3.3 70B |
 | Purpose | Qualify + block formulas + capture waitlist | Sales discovery + demo booking |
 | Guardrails | Strict — never generate INCI/recipes | Lighter — can discuss platform/ingredients |
 | Prompt | Static `SYSTEM_PROMPT` | Dynamic `buildPrompt()` with live data |
@@ -1709,7 +1745,7 @@ Components with **local Groq fallback** (C1, C2, C3, C4, chat-bubble) should inc
 <script src="../../assets/config.js"></script>
 <script>
   // Model varies by component — see §6 routing table
-  const GROQ_MODEL = 'openai/gpt-oss-20b';  // example: C1 Sentiment
+  const GROQ_MODEL = 'llama-3.3-70b-versatile';  // example: C1 Sentiment
   const ON_SERVER = window.location.protocol !== 'file:' &&
     window.location.hostname !== 'localhost' &&
     window.location.hostname !== '127.0.0.1';
@@ -1721,7 +1757,7 @@ Components with **local Groq fallback** (C1, C2, C3, C4, chat-bubble) should inc
 
 **Proxy-only components** (C5 HR, C7 Ops Tier 1) hardcode `fetch('/api/groq', …)` and do **not** load `config.js`.
 
-Per-component models: C1/C4/chat-bubble → `openai/gpt-oss-20b` · C2/C3/C5 → `openai/gpt-oss-120b` · C7 → `llama-3.1-8b-instant`
+Per-component models: C1/C4/chat-bubble → `llama-3.3-70b-versatile` · C2/C3/C5 → `openai/gpt-oss-120b` · C7 → `llama-3.1-8b-instant`. Legacy `openai/gpt-oss-20b` retained in Finance simulator for cost comparison only — see [Model change — C1 / C4 / chat-bubble](#model-change--c1--c4--chat-bubble-june-2026).
 
 ## Appendix D — Known Gaps / Not Implemented
 

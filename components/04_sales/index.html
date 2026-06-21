@@ -1564,8 +1564,6 @@ RESPONSE RULES:
             model: GROQ_MODEL,
             temperature: 0.55,
             max_completion_tokens: maxTokens,
-            reasoning_effort: "low",
-            reasoning_format: "hidden",
             messages
           })
         });
@@ -1619,11 +1617,11 @@ RESPONSE RULES:
 
       let replyText, isGuardrail = false;
 
+      conversationHistory.push({ role: "user", content: text });
+
       if (apiConfigured) {
         try {
-          conversationHistory.push({ role: "user", content: text });
           replyText = await callGroq([{ role: "system", content: buildSystemMessage() }, ...conversationHistory]);
-          conversationHistory.push({ role: "assistant", content: replyText });
           isGuardrail = replyText.toLowerCase().includes("cannot generate") ||
                         replyText.toLowerCase().includes("not generate") ||
                         replyText.toLowerCase().includes("reserved for");
@@ -1631,17 +1629,15 @@ RESPONSE RULES:
           const fallback = getFallbackResponse(text);
           replyText = fallback.text;
           isGuardrail = fallback.guardrail;
-          conversationHistory.push({ role: "user", content: text });
-          conversationHistory.push({ role: "assistant", content: replyText });
         }
       } else {
         await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
         const fallback = getFallbackResponse(text);
         replyText = fallback.text;
         isGuardrail = fallback.guardrail;
-        conversationHistory.push({ role: "user", content: text });
-        conversationHistory.push({ role: "assistant", content: replyText });
       }
+
+      conversationHistory.push({ role: "assistant", content: replyText });
 
       hideTyping();
       replyText = handleWaitlistGateAfterReply(replyText, text);
