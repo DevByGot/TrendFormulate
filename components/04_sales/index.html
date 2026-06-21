@@ -1237,8 +1237,36 @@ RESPONSE RULES:
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim());
     }
 
+    function isValidCapturedBrand(value) {
+      if (!value) return false;
+      const candidate = value.trim().replace(/\s+/g, ' ');
+      if (candidate.length < 2 || candidate.length > 40) return false;
+      if (NAME_STOPWORDS.has(candidate.toLowerCase())) return false;
+      return /^[A-Za-z0-9][A-Za-z0-9&'\-\s]*$/.test(candidate);
+    }
+
+    function extractBrandFromMessage(text) {
+      const patterns = [
+        /\b(?:my\s+)?brand(?:'s)?(?:\s+name)?\s+is\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-]*?)["']?(?:\s+and|\s*[,.]|$|\s+(?:i\s+|we\s+|and\s+i|i'm|i am))/i,
+        /\b(?:my\s+)?brand\s+is\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-]*?)["']?(?:\s+and|\s*[,.]|$|\s+(?:i\s+|we\s+))/i,
+        /\bcompany(?:'s)?(?:\s+name)?\s+is\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-]*?)["']?(?:\s+and|\s*[,.]|$)/i,
+        /\b(?:brand(?:\s+is|\s+called|:)?|company(?:\s+is|:)?|it(?:'s| is) called)\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$|\s+(?:and|we|i|launch|developing|working))/i,
+        /\b(?:called|named)\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$)/i,
+        /\bi(?:'m| am) (?:the founder of|building|running|behind)\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$)/i,
+        /\bfrom\s+["']?([A-Za-z][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$)/i,
+      ];
+      for (const pat of patterns) {
+        const m = text.match(pat);
+        if (!m || !m[1]) continue;
+        const candidate = m[1].trim();
+        if (isValidCapturedBrand(candidate)) return candidate;
+      }
+      return null;
+    }
+
     function extractNameFromMessage(text) {
       const patterns = [
+        /\bmy name(?:'s| is)\s+([a-zA-Z][a-zA-Z'\-]*)(?:\s*[,.]|\s+and\s+)/i,
         /\bmy name(?:'s| is)\s+([a-zA-Z][a-zA-Z'\-\s]{0,40}?)(?:\s*[,.]|$|\s+(?:and|from|@|my brand|i'm|i am))/i,
         /\bthis is\s+([a-zA-Z][a-zA-Z'\-]+(?:\s+[a-zA-Z][a-zA-Z'\-]+)?)(?:\s*(?:from|at|@|,|\.|$))/i,
         /\bi(?:'m| am)\s+the\s+founder\s*,?\s*([a-zA-Z][a-zA-Z'\-]+(?:\s+[a-zA-Z][a-zA-Z'\-]+)?)/i,
@@ -1278,22 +1306,15 @@ RESPONSE RULES:
         if (m) { capturedTimeline = m[1] || m[0]; break; }
       }
 
-      const brandPatterns = [
-        /\b(?:brand(?:\s+is|\s+called|:)?|company(?:\s+is|:)?|it(?:'s| is) called)\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$|\s+(?:and|we|i|launch|developing|working))/i,
-        /\b(?:called|named|it's)\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$)/i,
-        /\bi(?:'m| am) (?:the founder of|building|running|behind)\s+["']?([A-Za-z0-9][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$)/i,
-        /\bfrom\s+["']?([A-Za-z][A-Za-z0-9&'\-\s]{1,35}?)["']?(?:\.|,|$)/i,
-      ];
-      for (const pat of brandPatterns) {
-        const m = text.match(pat);
-        if (m && m[1].trim().length >= 2) { capturedBrand = m[1].trim(); break; }
-      }
+      const extractedBrand = extractBrandFromMessage(text);
+      if (extractedBrand) capturedBrand = extractedBrand;
 
       const extractedName = extractNameFromMessage(text);
       if (extractedName) capturedName = extractedName;
 
       const productPatterns = [
-        /\b(?:developing|building|launching|working on|creating)\s+(?:a\s+)?([a-z][a-z\s\-]{2,30}?)(?:\s+product)?(?:\.|,|$)/i,
+        /\b(?:want to\s+)?launch(?:ing)?\s+(?:a\s+)?(?:new\s+)?([a-z][a-z\s\-]{2,30}?)(?:\s+product)?(?:\.|,|$|\s+and)/i,
+        /\b(?:developing|building|working on|creating)\s+(?:a\s+)?(?:new\s+)?([a-z][a-z\s\-]{2,30}?)(?:\s+product)?(?:\.|,|$)/i,
         /\b(?:product category|category)(?:\s+is|:)?\s+([a-z][a-z\s\-]{2,30}?)(?:\.|,|$)/i,
         /\b(skincare|skin care|serum|moisturis\w*|sunscreen|spf|toner|cleanser|eye cream|lip balm|shampoo|conditioner|cosmetic\w*)\b/i,
       ];
