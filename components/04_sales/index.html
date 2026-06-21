@@ -1076,11 +1076,13 @@ RESPONSE RULES:
       if (waitlistGateStatus === 'asked') {
         gateHint = "\n\nWAITLIST STATUS: Closing question already asked — answer any follow-up, then confirm waitlist placement if they are done.";
       } else if (isReadyForWaitlistClose()) {
-        gateHint = "\n\nWAITLIST STATUS: Qualification sufficient — ask if they have any other questions before waitlist signup (do not confirm placement yet).";
-      } else if (!capturedEmail) {
-        gateHint = "\n\nNEXT FIELD NEEDED: Email address — you MUST ask for the founder's email address this turn. Do NOT ask the closing waitlist question until email is captured.";
+        gateHint = "\n\nWAITLIST STATUS: All fields captured. Ask if they have any other questions before adding them to the waitlist. Do NOT confirm placement yet.";
       } else if (!capturedName) {
-        gateHint = "\n\nNEXT FIELD NEEDED: Full name — ask for the founder's full name this turn.";
+        gateHint = "\n\nNEXT FIELD NEEDED: Full name — ask for the founder's full name this turn. Ask ONLY this, nothing else.";
+      } else if (!capturedTimeline) {
+        gateHint = "\n\nNEXT FIELD NEEDED: Launch timeline — ask for their target launch timeline this turn. Ask ONLY this, nothing else. Do NOT ask for email yet.";
+      } else if (!capturedEmail) {
+        gateHint = "\n\nNEXT FIELD NEEDED: Email address — ask for the founder's email address this turn. Ask ONLY this, nothing else. Do NOT ask the closing waitlist question yet.";
       }
       return SYSTEM_PROMPT + profile + gateHint;
     }
@@ -1349,6 +1351,7 @@ RESPONSE RULES:
     function isReadyForWaitlistClose() {
       return isValidEmail(capturedEmail)
         && !!capturedName
+        && !!capturedTimeline
         && exchangeCount >= 2
         && waitlistGateStatus === 'none'
         && !waitlistSubmitted;
@@ -1412,14 +1415,19 @@ RESPONSE RULES:
     }
 
     function handleWaitlistGateAfterReply(replyText, userText) {
-      // If the LLM asked the closing question but email isn't captured yet, intercept
-      // and redirect to email collection instead.
+      // If the LLM asked the closing/enrollment question before all required fields are
+      // captured, intercept and redirect to the next missing field instead.
       const looksLikeClosingQuestion =
         replyText.includes('anything else') || replyText.includes('other questions') ||
         replyText.includes('priority waitlist') || replyText.includes('add you to');
-      if (!isValidEmail(capturedEmail) && looksLikeClosingQuestion && waitlistGateStatus === 'none') {
+      if (!isReadyForWaitlistClose() && looksLikeClosingQuestion && waitlistGateStatus === 'none') {
         const greet = capturedName ? `Thanks, ${capturedName}.` : "Thanks for that.";
-        return `${greet} To complete your waitlist application, could you share the best email address to reach you?`;
+        if (!capturedTimeline) {
+          return `${greet} To move your application forward, what is your target launch timeline for this product?`;
+        }
+        if (!isValidEmail(capturedEmail)) {
+          return `${greet} To complete your waitlist application, could you share the best email address to reach you?`;
+        }
       }
 
       if (waitlistGateStatus === 'asked') {
