@@ -887,7 +887,7 @@
       <!-- Quick replies -->
       <div class="quick-replies" id="quick-replies"></div>
 
-      <!-- Waitlist form (hidden until triggered) -->
+      <!-- Waitlist status banner (shown automatically after enrollment) -->
       <div id="lead-form-container" style="display:none;"></div>
 
       <!-- Input bar -->
@@ -942,7 +942,7 @@
 YOUR THREE NON-NEGOTIABLE GOALS:
 1. QUALIFY: Determine within 2–3 exchanges whether the visitor is a real indie beauty founder with a launch timeline and a budget — not a student, journalist, or competitor doing market research.
 2. PROTECT: You must NEVER generate, outline, suggest, or hint at cosmetic formulas, ingredient ratios, INCI lists, or recipes of any kind in this chat. That capability is exclusively reserved for verified users inside the secure enterprise dashboard. Decline these requests firmly but professionally every single time.
-3. CONVERT: Collect the founder's email to add them to the priority waitlist. Name, brand, product category, launch timeline, and other details are helpful but optional — never block waitlist signup if only an email is provided.
+3. CONVERT: As the visitor shares details in conversation (especially their email), they are automatically added to the priority waitlist — there is no separate application form. Continue collecting name, brand, product category, launch timeline, and other helpful context naturally in chat.
 
 PLATFORM CONTEXT (for credibility, not for free formulations):
 - Real-time Safety Guardrails: cross-references all formulations against EU Annex II–VI and FDA 21 CFR 700–740 guidelines automatically.
@@ -1091,9 +1091,14 @@ RESPONSE RULES:
       { keywords: ["student", "homework", "assignment", "journalist", "article", "research project"], score: -12, label: "low_intent" }
     ];
 
-    const FORM_MIN_SCORE     = 38;
-    const FORM_MIN_EXCHANGES = 2;
     const WAITLIST_STORAGE_KEY = 'tf_waitlist_entries';
+
+    const NAME_STOPWORDS = new Set([
+      'name', 'the', 'a', 'an', 'my', 'your', 'our', 'their', 'building', 'working',
+      'founder', 'here', 'there', 'just', 'also', 'not', 'from', 'with', 'and', 'for',
+      'that', 'this', 'brand', 'called', 'yes', 'yeah', 'sure', 'hi', 'hello', 'hey',
+      'interested', 'looking', 'trying', 'wondering', 'asking', 'about', 'what', 'how'
+    ]);
 
     const QUICK_REPLIES_INITIAL = [
       "Does this guarantee my formula will be legal to sell in the EU?",
@@ -1106,13 +1111,13 @@ RESPONSE RULES:
     let leadScore           = 0;
     let exchangeCount       = 0;
     let guardrailCount      = 0;
-    let leadFormShown       = false;
     let isTyping            = false;
     let conversationHistory = [];
     const signalHitCounts   = {};
     let capturedName = null, capturedBrand = null, capturedEmail = null, capturedTimeline = null;
     let capturedProduct = null, capturedWebsite = null, capturedNotes = null;
     let waitlistSubmitted = false;
+    let waitlistConfirmShown = false;
     let currentStage = "greeting";
     let intentLog = [];
 
@@ -1195,7 +1200,36 @@ RESPONSE RULES:
       leadScore = Math.max(0, Math.min(100, Math.round(score)));
     }
 
-    // ─── Lead extraction from chat messages ────────────────────────
+    function isValidCapturedName(value) {
+      if (!value) return false;
+      const candidate = value.trim().replace(/\s+/g, ' ');
+      if (candidate.length < 2 || candidate.length > 48) return false;
+      const words = candidate.split(/\s+/);
+      if (words.length > 4) return false;
+      if (words.some(w => NAME_STOPWORDS.has(w.toLowerCase()))) return false;
+      return /^[a-zA-Z][a-zA-Z'\-]+(\s+[a-zA-Z][a-zA-Z'\-]+){0,3}$/.test(candidate);
+    }
+
+    function isValidEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim());
+    }
+
+    function extractNameFromMessage(text) {
+      const patterns = [
+        /\bmy name(?:'s| is)\s+([a-zA-Z][a-zA-Z'\-\s]{0,40}?)(?:\s*[,.]|$|\s+(?:and|from|@|my brand|i'm|i am))/i,
+        /\bthis is\s+([a-zA-Z][a-zA-Z'\-]+(?:\s+[a-zA-Z][a-zA-Z'\-]+)?)(?:\s*(?:from|at|@|,|\.|$))/i,
+        /\bi(?:'m| am)\s+the\s+founder\s*,?\s*([a-zA-Z][a-zA-Z'\-]+(?:\s+[a-zA-Z][a-zA-Z'\-]+)?)/i,
+        /\bi(?:'m| am)\s+(?!the\b|a\b|an\b|working\b|building\b|founder\b|here\b|just\b|also\b|from\b)([a-zA-Z][a-zA-Z'\-]+(?:\s+[a-zA-Z][a-zA-Z'\-]+)?)(?:\s*[,.]|$|\s+(?:and|from|@|founder))/i,
+        /^([a-zA-Z][a-zA-Z'\-]+(?:\s+[a-zA-Z][a-zA-Z'\-]+)?)\s*(?:here|,\s*founder)/i,
+      ];
+      for (const pat of patterns) {
+        const m = text.match(pat);
+        if (!m || !m[1]) continue;
+        const candidate = m[1].trim().replace(/\s+/g, ' ');
+        if (isValidCapturedName(candidate)) return candidate;
+      }
+      return null;
+    }
     function extractLeadFromMessage(text) {
       const emailMatch = text.match(/[\w.+-]+@[\w.-]+\.\w{2,}/);
       if (emailMatch) capturedEmail = emailMatch[0];
@@ -1226,15 +1260,8 @@ RESPONSE RULES:
         if (m && m[1].trim().length >= 2) { capturedBrand = m[1].trim(); break; }
       }
 
-      const namePatterns = [
-        /\b(?:i'?m|my name(?:'s| is)|this is|i am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/,
-        /\b(?:founder|ceo|co-founder)\s+(?:here,?\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
-        /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)(?:\s+here|,\s+founder)/,
-      ];
-      for (const pat of namePatterns) {
-        const m = text.match(pat);
-        if (m && m[1].trim().length >= 2) { capturedName = m[1].trim(); break; }
-      }
+      const extractedName = extractNameFromMessage(text);
+      if (extractedName) capturedName = extractedName;
 
       const productPatterns = [
         /\b(?:developing|building|launching|working on|creating)\s+(?:a\s+)?([a-z][a-z\s\-]{2,30}?)(?:\s+product)?(?:\.|,|$)/i,
@@ -1243,7 +1270,12 @@ RESPONSE RULES:
       ];
       for (const pat of productPatterns) {
         const m = text.match(pat);
-        if (m && m[1].trim().length >= 3) { capturedProduct = m[1].trim(); break; }
+        if (!m || !m[1]) continue;
+        const candidate = m[1].trim();
+        if (candidate.length >= 3 && !NAME_STOPWORDS.has(candidate.toLowerCase())) {
+          capturedProduct = candidate;
+          break;
+        }
       }
 
       const websiteMatch = text.match(/\b(?:https?:\/\/)?(?:www\.)?([a-z0-9][-a-z0-9]*\.[a-z]{2,}(?:\/[^\s]*)?)/i);
@@ -1254,11 +1286,66 @@ RESPONSE RULES:
       recalculateLeadScore();
     }
 
-    function maybeShowLeadForm() {
-      if (leadFormShown) return;
-      const readyByScore = exchangeCount >= FORM_MIN_EXCHANGES && leadScore >= FORM_MIN_SCORE;
-      const readyByEmail = !!capturedEmail && exchangeCount >= 1 && leadScore >= 30;
-      if (readyByScore || readyByEmail) showLeadForm();
+    function buildWaitlistEntryPayload() {
+      return {
+        name: capturedName,
+        brand: capturedBrand,
+        email: capturedEmail,
+        product: capturedProduct,
+        timeline: capturedTimeline,
+        website: capturedWebsite,
+        notes: capturedNotes,
+        leadScore,
+        exchangeCount,
+        guardrailCount,
+        currentStage,
+        profileId: getOrCreateProfileId(),
+        intentLog,
+        submittedAt: new Date().toISOString(),
+        status: 'pending'
+      };
+    }
+
+    function showWaitlistConfirmationBanner() {
+      if (waitlistConfirmShown) return;
+      waitlistConfirmShown = true;
+      leadContainer.style.display = 'block';
+      const displayBrand = capturedBrand || capturedName || 'your brand';
+      leadContainer.innerHTML = `
+        <div style="margin:0 1.25rem 1rem;display:flex;flex-direction:column;gap:0.625rem;">
+          <div class="lead-captured">
+            <i data-lucide="check-circle" style="width:18px;height:18px;flex-shrink:0;"></i>
+            <div>
+              <strong style="display:block;color:var(--success);">Added to priority waitlist — ${escHtml(displayBrand)}</strong>
+              <span style="color:var(--text-muted);font-size:0.75rem;">We'll email ${escHtml(capturedEmail)} within 48 hours</span>
+            </div>
+          </div>
+        </div>
+      `;
+      lucide.createIcons({ nodes: [leadContainer] });
+    }
+
+    function maybeAutoEnrollWaitlist() {
+      if (!isValidEmail(capturedEmail)) return;
+      if (exchangeCount < 1) return;
+
+      const isFirstEnrollment = !waitlistSubmitted;
+      waitlistSubmitted = true;
+      recalculateLeadScore();
+      saveWaitlistEntry(buildWaitlistEntryPayload());
+      updatePresenterPanel();
+
+      if (isFirstEnrollment) {
+        advanceStage("converted");
+        showWaitlistConfirmationBanner();
+        const confirmMsg = `You're on our priority waitlist${capturedBrand ? ` for ${capturedBrand}` : ''}${capturedName ? `, ${capturedName}` : ''}. We'll email ${capturedEmail} within 48 hours with next steps once your profile is reviewed.`;
+        setTimeout(() => {
+          appendAgentMessage(escHtml(confirmMsg));
+          conversationHistory.push({ role: "assistant", content: confirmMsg });
+        }, 500);
+      } else if (currentStage !== 'converted') {
+        advanceStage("capturing");
+      }
     }
     function scrollToBottom() {
       setTimeout(() => { messagesArea.scrollTop = messagesArea.scrollHeight; }, 50);
@@ -1280,39 +1367,6 @@ RESPONSE RULES:
       });
     }
     function clearQuickReplies() { quickReplies.innerHTML = ''; }
-
-    // ─── Waitlist form ─────────────────────────────────────────────
-    function showLeadForm() {
-      if (leadFormShown) return;
-      leadFormShown = true;
-      advanceStage("capturing");
-      leadContainer.style.display = 'block';
-      leadContainer.innerHTML = `
-        <div class="lead-form-bar">
-          <div class="lead-form-title">Priority Waitlist Application</div>
-          <div class="lead-form-subtitle">Only your email is required. Share as much or as little as you like — optional details help us prioritize your review.</div>
-          <div class="lead-form-full">
-            <input type="email" id="lead-email" placeholder="Work email (required)" value="${attrEsc(capturedEmail)}" />
-          </div>
-          <div class="lead-form-optional-label">Optional details</div>
-          <div class="lead-form-grid">
-            <input type="text" id="lead-name" placeholder="Full name" value="${attrEsc(capturedName)}" />
-            <input type="text" id="lead-brand" placeholder="Brand name" value="${attrEsc(capturedBrand)}" />
-          </div>
-          <div class="lead-form-grid">
-            <input type="text" id="lead-product" placeholder="Product category (e.g. vitamin C serum)" value="${attrEsc(capturedProduct)}" />
-            <input type="text" id="lead-timeline" placeholder="Launch timeline (e.g. Q3 2026)" value="${attrEsc(capturedTimeline)}" />
-          </div>
-          <div class="lead-form-full">
-            <input type="text" id="lead-website" placeholder="Website or Instagram handle" value="${attrEsc(capturedWebsite)}" />
-          </div>
-          <div class="lead-form-full" style="margin-bottom:0.625rem;">
-            <textarea id="lead-notes" rows="2" placeholder="Anything else we should know (MOQ, target market, certifications…)">${attrEsc(capturedNotes)}</textarea>
-          </div>
-          <button class="lead-submit-btn" onclick="submitLead()">Apply for Early Access →</button>
-        </div>
-      `;
-    }
 
     function getWaitlistEntries() {
       try {
@@ -1344,86 +1398,18 @@ RESPONSE RULES:
         submittedAt: entry.submittedAt || new Date().toISOString(),
         status: entry.status || 'pending'
       };
-      if (idx >= 0) entries[idx] = { ...entries[idx], ...record };
-      else entries.unshift(record);
+      if (idx >= 0) {
+        entries[idx] = {
+          ...entries[idx],
+          ...record,
+          id: entries[idx].id,
+          submittedAt: entries[idx].submittedAt || record.submittedAt
+        };
+      } else {
+        entries.unshift(record);
+      }
       localStorage.setItem(WAITLIST_STORAGE_KEY, JSON.stringify(entries));
       return record;
-    }
-
-    function submitLead() {
-      const emailEl    = document.getElementById('lead-email');
-      const nameEl     = document.getElementById('lead-name');
-      const brandEl    = document.getElementById('lead-brand');
-      const productEl  = document.getElementById('lead-product');
-      const timelineEl = document.getElementById('lead-timeline');
-      const websiteEl  = document.getElementById('lead-website');
-      const notesEl    = document.getElementById('lead-notes');
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      [nameEl, brandEl, productEl, timelineEl, websiteEl, notesEl].forEach(el => {
-        if (el) el.style.borderColor = '';
-      });
-
-      if (!emailRegex.test(emailEl.value.trim())) {
-        emailEl.style.borderColor = 'var(--error)';
-        return;
-      }
-      emailEl.style.borderColor = '';
-
-      capturedEmail    = emailEl.value.trim();
-      capturedName     = nameEl?.value.trim() || null;
-      capturedBrand    = brandEl?.value.trim() || null;
-      capturedProduct  = productEl?.value.trim() || null;
-      capturedTimeline = timelineEl?.value.trim() || null;
-      capturedWebsite  = websiteEl?.value.trim() || null;
-      capturedNotes    = notesEl?.value.trim() || null;
-
-      waitlistSubmitted = true;
-      recalculateLeadScore();
-      advanceStage("converted");
-
-      const displayBrand = capturedBrand || capturedName || 'your brand';
-      saveWaitlistEntry({
-        name: capturedName,
-        brand: capturedBrand,
-        email: capturedEmail,
-        product: capturedProduct,
-        timeline: capturedTimeline,
-        website: capturedWebsite,
-        notes: capturedNotes,
-        leadScore,
-        exchangeCount,
-        guardrailCount,
-        currentStage,
-        profileId: getOrCreateProfileId(),
-        intentLog,
-        submittedAt: new Date().toISOString(),
-        status: 'pending'
-      });
-      updatePresenterPanel();
-
-      leadContainer.innerHTML = `
-        <div style="margin:0 1.25rem 1rem;display:flex;flex-direction:column;gap:0.625rem;">
-          <div class="lead-captured">
-            <i data-lucide="check-circle" style="width:18px;height:18px;flex-shrink:0;"></i>
-            <div>
-              <strong style="display:block;color:var(--success);">Application received — ${escHtml(displayBrand)}</strong>
-              <span style="color:var(--text-muted);font-size:0.75rem;">Confirmation sent to ${escHtml(capturedEmail)}</span>
-            </div>
-          </div>
-          <div style="padding:0.65rem 1rem;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.8rem;color:var(--text-muted);line-height:1.5;">
-            <i data-lucide="clock" style="width:14px;height:14px;vertical-align:-2px;margin-right:0.35rem;"></i>
-            Your application is under review. Platform access is granted after approval — we'll email ${escHtml(capturedEmail)} within 48 hours.
-          </div>
-        </div>
-      `;
-      lucide.createIcons({ nodes: [leadContainer] });
-
-      const confirmMsg = `Your priority waitlist application${capturedBrand ? ` for ${escHtml(capturedBrand)}` : ''} has been received${capturedName ? `, ${escHtml(capturedName)}` : ''}. Our team will review your profile and email ${escHtml(capturedEmail)} within 48 hours with next steps. Platform access is granted after approval. Is there anything else you'd like to know while you wait?`;
-      setTimeout(() => {
-        appendAgentMessage(confirmMsg);
-        conversationHistory.push({ role: "assistant", content: confirmMsg.replace(/<[^>]+>/g, '') });
-      }, 400);
     }
 
     // ─── Pipeline stage management ─────────────────────────────────
@@ -1550,14 +1536,14 @@ RESPONSE RULES:
       sendBtn.disabled = false;
       chatInput.focus();
 
-      maybeShowLeadForm();
+      maybeAutoEnrollWaitlist();
 
       if (exchangeCount === 1) {
         showQuickReplies(["How much does it cost?", "How fast can I get in?", "Can you give me a formula now?"]);
       } else if (exchangeCount === 2) {
         showQuickReplies(["Tell me about EU compliance", "We're launching a serum in Q3 2026"]);
-      } else if (exchangeCount >= 3 && !leadFormShown) {
-        showQuickReplies(["Apply for early access", "What's the pricing model?"]);
+      } else if (exchangeCount >= 3) {
+        showQuickReplies(["What's the pricing model?", "When will I hear back?"]);
       }
     }
 
