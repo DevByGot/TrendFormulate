@@ -889,15 +889,28 @@ Make the full package production-ready and appropriately senior for a board-leve
 
     /* ─── Parse Phase 1 output → render risk card ─────────────── */
     function parseRiskLevel(text) {
-      const m = text.match(/\*\*RISK LEVEL:\*\*\s*(CRITICAL|HIGH|MEDIUM|LOW)/i)
-               || text.match(/RISK LEVEL:\s*(CRITICAL|HIGH|MEDIUM|LOW)/i);
+      const m = text.match(/RISK\s+LEVEL[:\s*]*\s*(CRITICAL|HIGH|MEDIUM|LOW)/i)
+             || text.match(/(CRITICAL|HIGH|MEDIUM|LOW)\s+RISK/i);
       return m ? m[1].toUpperCase() : 'HIGH';
     }
 
+    // Handles every heading format the model might produce:
+    //   **LABEL:**   **LABEL**:   **LABEL**   ## LABEL   ### LABEL   LABEL:
     function extractSection(text, label) {
-      const re = new RegExp(`\\*\\*${label}:\\*\\*([\\s\\S]*?)(?=\\*\\*[A-Z]|$)`, 'i');
-      const m  = text.match(re);
-      return m ? m[1].trim() : '';
+      const esc = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Section boundary = next bold header, markdown heading, or ALL-CAPS label at line start
+      const boundary = `(?=\\n[ \\t]*(?:\\*{1,2}[A-Z]|#{1,4}[ \\t]*[A-Z]|[A-Z][A-Z &]{2,}[:\\*])|$)`;
+      const patterns = [
+        new RegExp(`\\*\\*${esc}:\\*\\*[ \\t]*\\n?([\\s\\S]*?)${boundary}`, 'i'),
+        new RegExp(`\\*\\*${esc}\\*\\*[ \\t]*:?[ \\t]*\\n?([\\s\\S]*?)${boundary}`, 'i'),
+        new RegExp(`#{1,4}[ \\t]*${esc}[ \\t]*:?[ \\t]*\\n([\\s\\S]*?)${boundary}`, 'i'),
+        new RegExp(`(?:^|\\n)${esc}[ \\t]*:[ \\t]*\\n?([\\s\\S]*?)${boundary}`, 'i'),
+      ];
+      for (const re of patterns) {
+        const m = text.match(re);
+        if (m && m[1] && m[1].trim()) return m[1].trim();
+      }
+      return '';
     }
 
     function renderRiskCard(rawText) {
@@ -978,7 +991,27 @@ Make the full package production-ready and appropriately senior for a board-leve
           .join('');
       }
 
+      // If every section parsed empty, show the raw output so content is never invisible
+      const anyContent = about || resp || req || pref || questRaw;
+
       const el = document.getElementById('phase2-output');
+      if (!anyContent) {
+        el.innerHTML = `
+          <div class="jd-card animate-in">
+            <div class="jd-card-top">
+              <div class="jd-company">TrendFormulate — AI-Native Cosmetics Platform · Open Role</div>
+              <div class="jd-title">${title}</div>
+            </div>
+            <div class="jd-body">
+              <div class="jd-section">
+                <p style="white-space:pre-wrap;font-size:0.8125rem;line-height:1.65;">${rawText.replace(/</g,'&lt;')}</p>
+              </div>
+            </div>
+          </div>`;
+        lucide.createIcons();
+        return;
+      }
+
       el.innerHTML = `
         <div class="jd-card animate-in">
           <div class="jd-card-top">
@@ -1098,7 +1131,7 @@ Make the full package production-ready and appropriately senior for a board-leve
         addLog('file-text', 'Phase 2: synthesizing targeted recruitment package…', 'info');
 
         const phase2Input = `SKILL-GAP RISK REPORT FROM PHASE 1:\n\n${phase1Raw}`;
-        const phase2Raw   = await callGroq(PHASE2_SYSTEM, phase2Input, 2400);
+        const phase2Raw   = await callGroq(PHASE2_SYSTEM, phase2Input, 3500);
 
         addLog('check-circle', 'Phase 2 complete — JD and vetting questions generated.', 'ok');
         await delay(250);
