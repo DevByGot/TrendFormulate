@@ -903,7 +903,7 @@
               <tr>
                 <td>Time to Market</td>
                 <td>3 to 6 months per formula</td>
-                <td>30 seconds per formula blueprint</td>
+                <td id="aiTimeCell">30 seconds per formula blueprint</td>
                 <td id="speedAdvCell">259,200× faster</td>
               </tr>
               <tr>
@@ -1008,8 +1008,8 @@
       </div>
       <div class="present-card pc-speed">
         <div class="p-label">Speed Advantage</div>
-        <div class="p-value">259,200×</div>
-        <div class="p-sub">vs 3-month lab timeline</div>
+        <div class="p-value" id="pSpeed">259,200×</div>
+        <div class="p-sub" id="pSpeedSub">vs 3-month legacy lab (3 AI review passes)</div>
       </div>
     </div>
 
@@ -1046,8 +1046,8 @@
           <tr>
             <td>Time per Formula</td>
             <td>3–6 months</td>
-            <td>30 seconds</td>
-            <td>259,200× faster</td>
+            <td id="ppAiTime">30 seconds</td>
+            <td id="ppSpeedMult">259,200× faster</td>
           </tr>
         </tbody>
       </table>
@@ -1521,7 +1521,6 @@
       const pillEl = document.getElementById('marginPill');
       if (mg >= MARGIN_TARGET) { pillEl.textContent = '✓ Target Met'; pillEl.className = 'margin-pill pass'; }
       else          { pillEl.textContent = '✗ Below Target'; pillEl.className = 'margin-pill fail'; }
-      document.getElementById('marginGaugeSub').textContent = 'Revenue: ' + fmtUSD(r.monthlyRevenue) + ' — COGS: ' + fmtUSD(r.totalMonthlyCOGS);
       document.getElementById('mgRevenue').textContent = fmtUSD(r.monthlyRevenue);
       document.getElementById('mgCOGS').textContent    = fmtUSD(r.totalMonthlyCOGS);
       document.getElementById('mgProfit').textContent  = fmtUSD(r.grossProfit);
@@ -1538,6 +1537,20 @@
         fmtUSD(r.tokenBurn) + ' token burn + $0.05 routing = <strong>' + fmtUSD(r.cogsPerFormula) + '</strong>';
       document.getElementById('costMultCell').textContent = fmtMult(r.costMult) + ' cheaper';
       document.getElementById('opexMultCell').textContent = fmtMult(r.opexMult) + ' cheaper at scale';
+
+      /* ── Time-to-market: 3 months legacy vs iterations × 30 s AI ── */
+      const AI_SECS_PER_ITER = 30;
+      const LEGACY_SECS      = 3 * 30 * 24 * 3600; // 3 months
+      const speedMult = Math.round(LEGACY_SECS / (inp.iterations * AI_SECS_PER_ITER));
+      const aiTimeLabel = inp.iterations === 1
+        ? '30 seconds per formula blueprint'
+        : (inp.iterations * AI_SECS_PER_ITER) + ' seconds per formula (' + inp.iterations + ' review passes)';
+      document.getElementById('speedAdvCell').textContent    = fmtMult(speedMult) + '× faster';
+      document.getElementById('aiTimeCell').textContent      = aiTimeLabel;
+      document.getElementById('pSpeed').textContent          = fmtMult(speedMult);
+      document.getElementById('pSpeedSub').textContent       = 'vs 3-month legacy lab (' + inp.iterations + ' AI review pass' + (inp.iterations > 1 ? 'es' : '') + ')';
+      document.getElementById('ppAiTime').textContent        = aiTimeLabel;
+      document.getElementById('ppSpeedMult').textContent     = fmtMult(speedMult) + '× faster';
 
       /* ── Scale chart ── */
       const sd = buildScaleData(inp);

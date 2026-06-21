@@ -595,7 +595,7 @@
         </span>
       </div>
       <p style="color:var(--text-muted);font-size:0.875rem;max-width:720px;line-height:1.65;">
-        A two-phase AI reasoning chain. Phase 1 semantically maps your team's capabilities against your platform's active chemistry vectors to surface a liability risk profile. Phase 2 synthesizes a production-ready recruitment package to close that gap — before a formulation audit failure reaches manufacturing.
+        Because social-media trends change overnight, your platform's chemistry capabilities change overnight. This tool proves to the board that TrendFormulate operates as a self-correcting organisation: the moment the AI switches from organic oils to molecular peptides, a two-phase reasoning chain automatically identifies the scientific exposure gap and generates the targeted talent package to close it — before a single unvalidated formula reaches GMP manufacturing.
       </p>
     </div>
 
@@ -785,51 +785,62 @@
 
     /* ─── Phase 1: Skill-Gap Analysis ────────────────────────── */
     const PHASE1_SYSTEM = `You are an elite Organizational Risk Analyst for TrendFormulate, an AI-native cosmetics company.
+TrendFormulate operates with a hyper-lean core team. Because the platform generates real chemical formulas that real humans put on their skin, the company faces massive legal and product liability. Your job is to surface that liability gap before it reaches manufacturing.
+
 Your task: conduct a precise Semantic Skill-Gap Analysis between a team roster and an active product roadmap.
 
 You will receive:
 - Input A: Current internal R&D team roster (skills, experience, specializations)
 - Input B: Active product vector (what formulas the AI platform is now generating)
 
-You must output a structured RISK PROFILE with these exact sections:
+You must output a structured RISK PROFILE with these EXACT sections and headings:
 
-**RISK LEVEL:** (one of: CRITICAL / HIGH / MEDIUM / LOW — choose based on severity of the gap)
+**RISK LEVEL:** (one of: CRITICAL / HIGH / MEDIUM / LOW — choose based on severity of the Human-in-the-Loop liability exposure)
 
 **SKILL GAP SUMMARY:**
-A 2–3 sentence precise technical analysis of the specific delta between what the team can safely audit vs. what the platform is generating.
+Begin with "CRITICAL RISK FLAGGED:" (or HIGH/MEDIUM/LOW RISK FLAGGED: matching the level above). Then write 2–3 sentences of precise technical analysis: name the specific chemistry the AI is producing, state what the current team can and cannot safely audit, and quantify the delta.
 
 **MISSING CAPABILITIES:**
-A bullet list (use "- " prefix) of specific technical competencies not covered by the current team. Be specific — name the chemistry, the technique, or the regulatory domain.
+A bullet list (use "- " prefix) of specific technical competencies not covered by the current team. Name the exact chemistry subdiscipline, analytical technique, or regulatory domain. Minimum 4 bullets.
 
 **GOVERNANCE EXPOSURE:**
-A 1–2 sentence statement on the Human-in-the-Loop liability risk this creates: what could go wrong if a formula goes to manufacturing without qualified human sign-off?
+A 1–2 sentence statement on the Human-in-the-Loop liability risk: what specific failure mode could occur if an AI-generated formula in this chemistry class proceeds to GMP manufacturing without a qualified human sign-off? Be concrete — name the chemical class and the regulatory consequence.
 
-Be direct, technical, and executive-level. Avoid generic statements.`;
+Be direct, technical, and executive-level. Avoid generic statements. This output will be passed verbatim to Phase 2.`;
 
     /* ─── Phase 2: JD + Vetting Questions ────────────────────── */
     const PHASE2_SYSTEM = `You are an Elite Technical Recruiter for TrendFormulate, an AI-native cosmetics formulation platform.
-You have received a Skill-Gap Risk Report from the Organizational Risk Analyst.
+You have received a Skill-Gap Risk Report from the Organizational Risk Analyst. Your mandate is to synthesize a production-ready recruitment package that closes the identified gap — this package will be presented directly to the board.
 
 Based on this risk profile, synthesize a complete recruitment package with this exact structure:
 
-**JOB TITLE:** (one precise, senior-level title that addresses the primary gap)
+**JOB TITLE:** One precise, senior-level title that directly targets the primary missing capability flagged in the risk report. The title must be discipline-specific (e.g. "Senior Macromolecular Peptide Chemist", "Principal Biotech Formulation Scientist", or equivalent — match the exact chemistry subdiscipline identified). Avoid generic titles like "Senior Chemist".
 
 **ABOUT THE ROLE:**
-3–4 sentences explaining why this role exists, what the AI platform is doing that requires human oversight, and what makes this role uniquely technical.
+Write 4–5 sentences that cover ALL of the following points — do not omit any:
+(1) TrendFormulate's generative AI engine now proposes leave-on anti-aging emulsions that depend on biotech-derived peptide actives such as palmitoyl-pentapeptide-4 and copper-tripeptide-1.
+(2) Because peptide stability, pH-controlled chelation, and skin-penetration are highly sensitive, every AI-generated recipe must be audited by a senior scientific authority before it proceeds to GMP manufacturing.
+(3) Explain the specific liability that exists if an unvalidated formula reaches production — reference the chemistry from the risk profile.
+(4) State that this role sits at the intersection of peptide chemistry, regulatory compliance, and AI model governance.
+(5) Conclude with what the technical sign-off function protects: efficacy, safety, and market launch timelines.
 
 **KEY RESPONSIBILITIES:**
-5 bullet points (use "- " prefix). Focus on AI audit tasks, not generic chemistry lab work.
+5 bullet points (use "- " prefix). Every bullet must describe an AI governance or audit task — not generic laboratory work. Examples of the correct framing: auditing AI-generated INCI lists, validating model-proposed peptide concentrations against dermal safety limits, signing off formula packets before factory submission.
 
 **REQUIRED QUALIFICATIONS:**
-5 bullet points (use "- " prefix). Be specific about degrees, years, techniques, and regulatory frameworks.
+5 bullet points (use "- " prefix). Be specific: name the exact degree, minimum years of experience, analytical techniques (e.g. HPLC-MS, CD spectroscopy), and regulatory frameworks (EU Annex II–VI, FDA 21 CFR) relevant to the chemistry flagged in the risk report.
 
 **PREFERRED QUALIFICATIONS:**
-3 bullet points (use "- " prefix). Include AI-adjacent or computational chemistry skills.
+3 bullet points (use "- " prefix). Include at least one AI-adjacent or computational chemistry skill (e.g. experience reviewing LLM-generated chemical outputs, molecular modelling, cheminformatics).
 
 **TECHNICAL VETTING QUESTIONS:**
-5 numbered questions (use "1." through "5." prefix). These must be highly specific and non-generic — each question should reference the exact chemistry, compound, or regulatory scenario identified in the risk report. Questions should expose whether a candidate can debug a simulated AI formulation error.
+5 numbered questions (use "1." through "5." prefix). CRITICAL REQUIREMENTS for each question:
+- Every question must present the candidate with a concrete, simulated AI formulation error scenario involving the exact chemistry identified in the risk report (e.g. a peptide concentration the model hallucinated, a pH incompatibility the engine failed to flag, a chelation conflict between two actives).
+- The question must ask the candidate to diagnose, debug, or correct the error — not merely demonstrate general knowledge.
+- Questions must be highly specific and non-generic. A general peptide chemistry question ("What is palmitoyl pentapeptide-4?") is unacceptable.
+- Example of correct format: "Our formulation AI proposed 5% copper-tripeptide-1 in an emulsion at pH 6.2 alongside a chelating agent at 0.8%. Describe the molecular-level failure this would cause, how you would diagnose it from the formula sheet alone, and the corrected parameters you would approve."
 
-Make the JD production-ready and appropriately senior for a board-level audience.`;
+Make the full package production-ready and appropriately senior for a board-level audience.`;
 
     /* ─── API call ────────────────────────────────────────────── */
     async function callGroq(systemPrompt, userMessage, maxTokens = 1200, retrying = false, bumped = false) {
