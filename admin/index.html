@@ -929,10 +929,24 @@
     }
 
     function getScoreGrade(score) {
-      if (score >= 80) return { label: 'Waitlist Ready', cls: 'badge-success' };
-      if (score >= 55) return { label: 'High Intent',    cls: 'badge-warning' };
-      if (score >= 25) return { label: 'Qualifying',     cls: 'badge-accent'  };
-      return { label: 'Unqualified', cls: 'badge-muted' };
+      if (score >= 78) return { label: 'Waitlist Ready', cls: 'badge-success' };
+      if (score >= 45) return { label: 'High Intent',    cls: 'badge-warning' };
+      if (score >= 22) return { label: 'Qualifying',     cls: 'badge-accent'  };
+      return { label: 'Low Intent', cls: 'badge-muted' };
+    }
+
+    function getWaitlistEntries() {
+      try {
+        const raw = localStorage.getItem('tf_waitlist_entries');
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch(e) { return []; }
+    }
+
+    function removeWaitlistEntry(id) {
+      const entries = getWaitlistEntries().filter(e => e.id !== id);
+      localStorage.setItem('tf_waitlist_entries', JSON.stringify(entries));
+      renderDatabase();
     }
 
     function getPresenterProfiles() {
@@ -1003,14 +1017,15 @@
         leadScore = 0, exchangeCount = 0, guardrailCount = 0,
         currentStage = 'greeting',
         capturedName, capturedBrand, capturedEmail, capturedTimeline,
+        capturedProduct, capturedWebsite, capturedNotes, waitlistSubmitted,
         intentLog = [], updatedAt
       } = raw;
 
       const circumference = 219.9;
       const offset = circumference - (leadScore / 100) * circumference;
       let ringStroke = 'var(--accent)';
-      if (leadScore >= 70) ringStroke = 'var(--success)';
-      else if (leadScore >= 40) ringStroke = 'var(--warning)';
+      if (leadScore >= 78) ringStroke = 'var(--success)';
+      else if (leadScore >= 45) ringStroke = 'var(--warning)';
       const { label: gradeLabel, cls: gradeCls } = getScoreGrade(leadScore);
 
       const currentStageIdx = STAGES_LIST.indexOf(currentStage);
@@ -1083,9 +1098,22 @@
             <span class="value">${escHtml(capturedEmail || '—')}</span>
           </div>
           <div class="pv-stat-row">
+            <span class="label">Product</span>
+            <span class="value">${escHtml(capturedProduct || '—')}</span>
+          </div>
+          <div class="pv-stat-row">
             <span class="label">Launch timeline</span>
             <span class="value">${escHtml(capturedTimeline || '—')}</span>
           </div>
+          <div class="pv-stat-row">
+            <span class="label">Website / social</span>
+            <span class="value">${escHtml(capturedWebsite || '—')}</span>
+          </div>
+          <div class="pv-stat-row">
+            <span class="label">Notes</span>
+            <span class="value" style="max-width:55%;text-align:right;word-break:break-word;">${escHtml(capturedNotes || '—')}</span>
+          </div>
+          ${waitlistSubmitted ? `<div style="margin-top:0.5rem;"><span class="db-item-tag" style="background:var(--success-soft);border-color:rgba(94,158,71,0.3);color:var(--success);">On waitlist</span></div>` : ''}
         </div>
 
         <!-- Intent log -->
@@ -1117,13 +1145,33 @@
       renderPresenterGrid(profiles.find(p => p.profileId === activeProfileId));
     }
 
+    let lastWaitlistSig = '';
+
+    function getWaitlistSignature() {
+      const entries = getWaitlistEntries();
+      if (!entries.length) return '0';
+      const latest = entries[0];
+      return `${entries.length}:${latest.submittedAt || ''}:${latest.email || ''}:${latest.leadScore || 0}`;
+    }
+
     function tickPresenterState() {
       updateWaitlistCardStatus();
       if (presenterModalOpen) renderPresenterView();
+      const sig = getWaitlistSignature();
+      if (sig !== lastWaitlistSig) {
+        lastWaitlistSig = sig;
+        renderDatabase();
+      }
     }
 
     tickPresenterState();
     presenterPollTimer = setInterval(tickPresenterState, 2000);
+
+    window.addEventListener('storage', e => {
+      if (e.key === 'tf_waitlist_entries' || e.key === 'tf_waitlist_access' || e.key === 'tf_c1_results' || e.key === 'tf_saved_formulas') {
+        renderDatabase();
+      }
+    });
 
     /* ─── Presenter: validate waitlist access ────────────────── */
     function presenterValidate() {
@@ -1260,8 +1308,44 @@
         }).join('');
       }
 
+      /* ── 4. Waitlist Applications (persistent) ── */
+      const waitlist = getWaitlistEntries();
+      let wlBody = '';
+      if (!waitlist.length) {
+        wlBody = emptyState('No waitlist applications yet');
+      } else {
+        wlBody = waitlist.map(w => {
+          const title = w.brand || w.name || w.email;
+          const meta = [
+            w.email ? escHtml(w.email) : '',
+            w.leadScore != null ? `Score ${w.leadScore}` : '',
+            w.submittedAt ? timeAgo(w.submittedAt) : ''
+          ].filter(Boolean).join(' · ');
+          const tags = [];
+          if (w.product) tags.push(w.product);
+          if (w.timeline) tags.push(w.timeline);
+          if (w.website) tags.push(w.website);
+          return `
+            <div class="db-item">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+                <div class="db-item-name">${escHtml(title)}</div>
+                <button type="button" onclick="removeWaitlistEntry(${JSON.stringify(w.id)})" title="Remove entry" style="
+                  flex-shrink:0;font-size:0.65rem;color:var(--text-faint);background:transparent;
+                  border:none;cursor:pointer;padding:0.15rem 0.35rem;font-family:var(--font-body);"
+                  onmouseover="this.style.color='var(--error)';"
+                  onmouseout="this.style.color='var(--text-faint)';">✕</button>
+              </div>
+              <div class="db-item-meta">${meta}</div>
+              ${tags.length ? `<div style="margin-top:0.35rem;">${tags.map(t => `<span class="db-item-tag">${escHtml(t)}</span>`).join('')}</div>` : ''}
+              ${w.notes ? `<div class="db-item-meta" style="margin-top:0.35rem;font-style:italic;">${escHtml(w.notes)}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+
       grid.innerHTML = [
         makeCard('Waitlist Access', 'key-round', accessVal ? 'Granted' : 'No access', accessBody),
+        makeCard('Waitlist Applications', 'users', `${waitlist.length} applicant${waitlist.length !== 1 ? 's' : ''}`, wlBody),
         makeCard('Sentiment Results', 'message-circle', `${c1Data.length} comment${c1Data.length !== 1 ? 's' : ''}`, c1Body),
         makeCard('Saved Formulas', 'flask-conical', `${formulas.length} formula${formulas.length !== 1 ? 's' : ''}`, fBody),
       ].join('');
@@ -1270,6 +1354,7 @@
     }
 
     renderDatabase();
+    lastWaitlistSig = getWaitlistSignature();
   </script>
 </body>
 </html>

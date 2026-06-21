@@ -602,7 +602,8 @@
       margin-bottom: 0.625rem;
     }
     .lead-form-grid input,
-    .lead-form-full input {
+    .lead-form-full input,
+    .lead-form-full textarea {
       width: 100%;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -613,10 +614,21 @@
       outline: none;
       box-sizing: border-box;
       transition: border-color 0.15s;
+      font-family: var(--font-body);
     }
     .lead-form-grid input:focus,
-    .lead-form-full input:focus { border-color: var(--accent); }
+    .lead-form-full input:focus,
+    .lead-form-full textarea:focus { border-color: var(--accent); }
     .lead-form-full { margin-bottom: 0.625rem; }
+    .lead-form-full textarea { resize: vertical; min-height: 2.75rem; }
+    .lead-form-optional-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-faint);
+      margin: 0.5rem 0 0.5rem;
+    }
     .lead-submit-btn {
       width: 100%;
       font-size: 0.8125rem;
@@ -930,7 +942,7 @@
 YOUR THREE NON-NEGOTIABLE GOALS:
 1. QUALIFY: Determine within 2–3 exchanges whether the visitor is a real indie beauty founder with a launch timeline and a budget — not a student, journalist, or competitor doing market research.
 2. PROTECT: You must NEVER generate, outline, suggest, or hint at cosmetic formulas, ingredient ratios, INCI lists, or recipes of any kind in this chat. That capability is exclusively reserved for verified users inside the secure enterprise dashboard. Decline these requests firmly but professionally every single time.
-3. CONVERT: Collect the founder's full name, brand name, email address, and target launch timeline to add them to the priority waitlist.
+3. CONVERT: Collect the founder's email to add them to the priority waitlist. Name, brand, product category, launch timeline, and other details are helpful but optional — never block waitlist signup if only an email is provided.
 
 PLATFORM CONTEXT (for credibility, not for free formulations):
 - Real-time Safety Guardrails: cross-references all formulations against EU Annex II–VI and FDA 21 CFR 700–740 guidelines automatically.
@@ -956,7 +968,10 @@ RESPONSE RULES:
 - No bullet points, markdown, headers, or lists.
 - Always end your reply with exactly one focused follow-up question to advance qualification.
 - Tone: professional, consultative, slightly exclusive — the beta is scarce and valuable.
-- Never say "How can I help you today?" or use generic customer service openers.`;
+- Never say "How can I help you today?" or use generic customer service openers.
+- If the visitor gives a partial answer, acknowledge what they shared before asking for the next missing detail — never ignore information they already provided.
+- Never re-ask for details already captured in the FOUNDER PROFILE block below.
+- Ask for only one missing qualification field per turn (name, brand, product category, launch timeline, or email).`;
 
     // ─── Keyword fallback ──────────────────────────────────────────
     const INTENTS = [
@@ -1020,13 +1035,35 @@ RESPONSE RULES:
     }
 
     function buildSmartFallback() {
-      if (capturedBrand) {
-        return `I want to make sure I can get ${capturedBrand} the right access tier. Could you share your target launch timeline so I can complete your qualification?`;
+      const missing = [];
+      if (!capturedName) missing.push("your full name");
+      if (!capturedBrand) missing.push("your brand name");
+      if (!capturedProduct) missing.push("the product category you're developing");
+      if (!capturedTimeline) missing.push("your target launch timeline");
+      if (!capturedEmail) missing.push("the best email to reach you");
+      const greet = capturedName ? `Thanks, ${capturedName}.` : "Thanks for that.";
+      if (missing.length === 0) {
+        return `${greet} You're almost set for the priority waitlist — is there anything else about your launch I should note?`;
       }
-      if (capturedName) {
-        return `Thanks ${capturedName} — to move your application forward, could you tell me your brand name and the product you're developing?`;
+      if (missing.length === 1) {
+        return `${greet} To complete your waitlist application, could you share ${missing[0]}?`;
       }
-      return "I want to make sure I'm giving you the most relevant information. Could you tell me your brand name and what product category you're currently developing?";
+      return `${greet} To move your application forward, could you share ${missing[0]} and ${missing[1]}?`;
+    }
+
+    function buildSystemMessage() {
+      const fields = [];
+      if (capturedName) fields.push(`Name: ${capturedName}`);
+      if (capturedBrand) fields.push(`Brand: ${capturedBrand}`);
+      if (capturedProduct) fields.push(`Product category: ${capturedProduct}`);
+      if (capturedTimeline) fields.push(`Launch timeline: ${capturedTimeline}`);
+      if (capturedEmail) fields.push(`Email: ${capturedEmail}`);
+      if (capturedWebsite) fields.push(`Website/social: ${capturedWebsite}`);
+      if (capturedNotes) fields.push(`Notes: ${capturedNotes}`);
+      const profile = fields.length
+        ? `\n\nFOUNDER PROFILE (already captured — do not ask again):\n${fields.join("\n")}`
+        : "\n\nFOUNDER PROFILE: none captured yet.";
+      return SYSTEM_PROMPT + profile;
     }
 
     function getFallbackResponse(input) {
@@ -1046,15 +1083,17 @@ RESPONSE RULES:
     }
 
     const LEAD_SCORE_SIGNALS = [
-      { keywords: ["brand", "my brand", "called", "our brand", "company"], score: 18, label: "brand_mention" },
-      { keywords: ["launch", "timeline", "q1", "q2", "q3", "q4", "2025", "2026", "this year", "next year", "holiday", "spring"], score: 18, label: "timeline_mention" },
-      { keywords: ["eu", "fda", "compliance", "regulation", "legal"], score: 14, label: "compliance_concern" },
-      { keywords: ["budget", "afford", "price", "cost", "fee", "invest"], score: 10, label: "budget_signal" },
-      { keywords: ["serum", "moisturis", "spf", "sunscreen", "toner", "cleanser", "eye cream", "retinol", "bakuchiol", "niacinamide", "hyaluronic"], score: 12, label: "product_specificity" }
+      { keywords: ["founder", "co-founder", "ceo", "my brand", "our brand", "we're building", "we are building"], score: 8, label: "founder_signal" },
+      { keywords: ["launch", "timeline", "q1", "q2", "q3", "q4", "2025", "2026", "this year", "next year", "holiday", "spring", "months"], score: 8, label: "timeline_mention" },
+      { keywords: ["eu", "fda", "compliance", "regulation", "legal", "annex"], score: 6, label: "compliance_concern" },
+      { keywords: ["budget", "afford", "moq", "production run", "manufactur"], score: 5, label: "business_signal" },
+      { keywords: ["serum", "moisturis", "spf", "sunscreen", "toner", "cleanser", "eye cream", "retinol", "bakuchiol", "niacinamide", "hyaluronic", "skincare", "skin care", "cosmetic", "haircare", "body care"], score: 6, label: "product_specificity" },
+      { keywords: ["student", "homework", "assignment", "journalist", "article", "research project"], score: -12, label: "low_intent" }
     ];
 
-    const FORM_MIN_SCORE     = 55;
-    const FORM_MIN_EXCHANGES = 3;
+    const FORM_MIN_SCORE     = 38;
+    const FORM_MIN_EXCHANGES = 2;
+    const WAITLIST_STORAGE_KEY = 'tf_waitlist_entries';
 
     const QUICK_REPLIES_INITIAL = [
       "Does this guarantee my formula will be legal to sell in the EU?",
@@ -1072,6 +1111,8 @@ RESPONSE RULES:
     let conversationHistory = [];
     const signalHitCounts   = {};
     let capturedName = null, capturedBrand = null, capturedEmail = null, capturedTimeline = null;
+    let capturedProduct = null, capturedWebsite = null, capturedNotes = null;
+    let waitlistSubmitted = false;
     let currentStage = "greeting";
     let intentLog = [];
 
@@ -1115,16 +1156,43 @@ RESPONSE RULES:
       return String(str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
     }
 
-    // ─── Lead scoring (diminishing returns per signal category) ────
+    // ─── Lead scoring (field completion + conversation signals − penalties) ─
     function applyLeadScoreSignals(text) {
       const lower = normalizeInput(text);
       for (const sig of LEAD_SCORE_SIGNALS) {
         if (!sig.keywords.some(k => lower.includes(k))) continue;
         const hits = (signalHitCounts[sig.label] || 0) + 1;
         signalHitCounts[sig.label] = hits;
-        const multiplier = hits === 1 ? 1 : hits === 2 ? 0.4 : 0.2;
-        leadScore = Math.min(leadScore + Math.round(sig.score * multiplier), 100);
+        const multiplier = hits === 1 ? 1 : hits === 2 ? 0.45 : 0.15;
+        signalHitCounts[sig.label + '_pts'] = (signalHitCounts[sig.label + '_pts'] || 0) + Math.round(sig.score * multiplier);
       }
+      recalculateLeadScore();
+    }
+
+    function recalculateLeadScore() {
+      let score = 0;
+
+      if (capturedBrand) score += 24;
+      if (capturedName) score += 10;
+      if (capturedProduct) score += 16;
+      if (capturedTimeline) score += 16;
+      if (capturedEmail) score += 14;
+      if (capturedWebsite) score += 4;
+      if (capturedNotes) score += 3;
+
+      score += Math.min(exchangeCount * 5, 15);
+
+      let signalBonus = 0;
+      for (const sig of LEAD_SCORE_SIGNALS) {
+        signalBonus += signalHitCounts[sig.label + '_pts'] || 0;
+      }
+      score += Math.min(Math.max(signalBonus, -20), 22);
+
+      score -= Math.min(guardrailCount * 12, 36);
+
+      if (waitlistSubmitted) score = Math.max(score, 78);
+
+      leadScore = Math.max(0, Math.min(100, Math.round(score)));
     }
 
     // ─── Lead extraction from chat messages ────────────────────────
@@ -1167,11 +1235,30 @@ RESPONSE RULES:
         const m = text.match(pat);
         if (m && m[1].trim().length >= 2) { capturedName = m[1].trim(); break; }
       }
+
+      const productPatterns = [
+        /\b(?:developing|building|launching|working on|creating)\s+(?:a\s+)?([a-z][a-z\s\-]{2,30}?)(?:\s+product)?(?:\.|,|$)/i,
+        /\b(?:product category|category)(?:\s+is|:)?\s+([a-z][a-z\s\-]{2,30}?)(?:\.|,|$)/i,
+        /\b(skincare|skin care|serum|moisturis\w*|sunscreen|spf|toner|cleanser|eye cream|lip balm|shampoo|conditioner|cosmetic\w*)\b/i,
+      ];
+      for (const pat of productPatterns) {
+        const m = text.match(pat);
+        if (m && m[1].trim().length >= 3) { capturedProduct = m[1].trim(); break; }
+      }
+
+      const websiteMatch = text.match(/\b(?:https?:\/\/)?(?:www\.)?([a-z0-9][-a-z0-9]*\.[a-z]{2,}(?:\/[^\s]*)?)/i);
+      if (websiteMatch && !websiteMatch[0].includes('@')) {
+        capturedWebsite = websiteMatch[0].replace(/^https?:\/\//i, '');
+      }
+
+      recalculateLeadScore();
     }
 
     function maybeShowLeadForm() {
       if (leadFormShown) return;
-      if (exchangeCount >= FORM_MIN_EXCHANGES && leadScore >= FORM_MIN_SCORE) showLeadForm();
+      const readyByScore = exchangeCount >= FORM_MIN_EXCHANGES && leadScore >= FORM_MIN_SCORE;
+      const readyByEmail = !!capturedEmail && exchangeCount >= 1 && leadScore >= 30;
+      if (readyByScore || readyByEmail) showLeadForm();
     }
     function scrollToBottom() {
       setTimeout(() => { messagesArea.scrollTop = messagesArea.scrollHeight; }, 50);
@@ -1203,45 +1290,116 @@ RESPONSE RULES:
       leadContainer.innerHTML = `
         <div class="lead-form-bar">
           <div class="lead-form-title">Priority Waitlist Application</div>
-          <div class="lead-form-subtitle">Beta access is limited. Complete your application to reserve your spot.</div>
+          <div class="lead-form-subtitle">Only your email is required. Share as much or as little as you like — optional details help us prioritize your review.</div>
+          <div class="lead-form-full">
+            <input type="email" id="lead-email" placeholder="Work email (required)" value="${attrEsc(capturedEmail)}" />
+          </div>
+          <div class="lead-form-optional-label">Optional details</div>
           <div class="lead-form-grid">
             <input type="text" id="lead-name" placeholder="Full name" value="${attrEsc(capturedName)}" />
             <input type="text" id="lead-brand" placeholder="Brand name" value="${attrEsc(capturedBrand)}" />
           </div>
+          <div class="lead-form-grid">
+            <input type="text" id="lead-product" placeholder="Product category (e.g. vitamin C serum)" value="${attrEsc(capturedProduct)}" />
+            <input type="text" id="lead-timeline" placeholder="Launch timeline (e.g. Q3 2026)" value="${attrEsc(capturedTimeline)}" />
+          </div>
           <div class="lead-form-full">
-            <input type="email" id="lead-email" placeholder="Work email (founder@yourbrand.com)" value="${attrEsc(capturedEmail)}" />
+            <input type="text" id="lead-website" placeholder="Website or Instagram handle" value="${attrEsc(capturedWebsite)}" />
           </div>
           <div class="lead-form-full" style="margin-bottom:0.625rem;">
-            <input type="text" id="lead-timeline" placeholder="Launch timeline (e.g. Q3 2026, before the holidays)" value="${attrEsc(capturedTimeline)}" />
+            <textarea id="lead-notes" rows="2" placeholder="Anything else we should know (MOQ, target market, certifications…)">${attrEsc(capturedNotes)}</textarea>
           </div>
           <button class="lead-submit-btn" onclick="submitLead()">Apply for Early Access →</button>
         </div>
       `;
     }
 
+    function getWaitlistEntries() {
+      try {
+        const raw = localStorage.getItem(WAITLIST_STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch(e) { return []; }
+    }
+
+    function saveWaitlistEntry(entry) {
+      const entries = getWaitlistEntries();
+      const emailKey = (entry.email || '').toLowerCase().trim();
+      const idx = entries.findIndex(e => (e.email || '').toLowerCase().trim() === emailKey && emailKey);
+      const record = {
+        id: entry.id || ('wl_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7)),
+        name: entry.name || null,
+        brand: entry.brand || null,
+        email: entry.email,
+        product: entry.product || null,
+        timeline: entry.timeline || null,
+        website: entry.website || null,
+        notes: entry.notes || null,
+        leadScore: entry.leadScore ?? 0,
+        exchangeCount: entry.exchangeCount ?? 0,
+        guardrailCount: entry.guardrailCount ?? 0,
+        currentStage: entry.currentStage || 'converted',
+        profileId: entry.profileId || null,
+        intentLog: Array.isArray(entry.intentLog) ? entry.intentLog.slice(0, 30) : [],
+        submittedAt: entry.submittedAt || new Date().toISOString(),
+        status: entry.status || 'pending'
+      };
+      if (idx >= 0) entries[idx] = { ...entries[idx], ...record };
+      else entries.unshift(record);
+      localStorage.setItem(WAITLIST_STORAGE_KEY, JSON.stringify(entries));
+      return record;
+    }
+
     function submitLead() {
+      const emailEl    = document.getElementById('lead-email');
       const nameEl     = document.getElementById('lead-name');
       const brandEl    = document.getElementById('lead-brand');
-      const emailEl    = document.getElementById('lead-email');
+      const productEl  = document.getElementById('lead-product');
       const timelineEl = document.getElementById('lead-timeline');
+      const websiteEl  = document.getElementById('lead-website');
+      const notesEl    = document.getElementById('lead-notes');
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      let valid = true;
-      [nameEl, brandEl, timelineEl].forEach(el => {
-        if (!el.value.trim()) { el.style.borderColor = 'var(--error)'; valid = false; }
-        else el.style.borderColor = '';
+
+      [nameEl, brandEl, productEl, timelineEl, websiteEl, notesEl].forEach(el => {
+        if (el) el.style.borderColor = '';
       });
+
       if (!emailRegex.test(emailEl.value.trim())) {
-        emailEl.style.borderColor = 'var(--error)'; valid = false;
-      } else { emailEl.style.borderColor = ''; }
-      if (!valid) return;
+        emailEl.style.borderColor = 'var(--error)';
+        return;
+      }
+      emailEl.style.borderColor = '';
 
-      capturedName     = nameEl.value.trim();
-      capturedBrand    = brandEl.value.trim();
       capturedEmail    = emailEl.value.trim();
-      capturedTimeline = timelineEl.value.trim();
+      capturedName     = nameEl?.value.trim() || null;
+      capturedBrand    = brandEl?.value.trim() || null;
+      capturedProduct  = productEl?.value.trim() || null;
+      capturedTimeline = timelineEl?.value.trim() || null;
+      capturedWebsite  = websiteEl?.value.trim() || null;
+      capturedNotes    = notesEl?.value.trim() || null;
 
-      leadScore = Math.min(leadScore + 30, 100);
+      waitlistSubmitted = true;
+      recalculateLeadScore();
       advanceStage("converted");
+
+      const displayBrand = capturedBrand || capturedName || 'your brand';
+      saveWaitlistEntry({
+        name: capturedName,
+        brand: capturedBrand,
+        email: capturedEmail,
+        product: capturedProduct,
+        timeline: capturedTimeline,
+        website: capturedWebsite,
+        notes: capturedNotes,
+        leadScore,
+        exchangeCount,
+        guardrailCount,
+        currentStage,
+        profileId: getOrCreateProfileId(),
+        intentLog,
+        submittedAt: new Date().toISOString(),
+        status: 'pending'
+      });
       updatePresenterPanel();
 
       leadContainer.innerHTML = `
@@ -1249,7 +1407,7 @@ RESPONSE RULES:
           <div class="lead-captured">
             <i data-lucide="check-circle" style="width:18px;height:18px;flex-shrink:0;"></i>
             <div>
-              <strong style="display:block;color:var(--success);">Application received — ${escHtml(capturedBrand)}</strong>
+              <strong style="display:block;color:var(--success);">Application received — ${escHtml(displayBrand)}</strong>
               <span style="color:var(--text-muted);font-size:0.75rem;">Confirmation sent to ${escHtml(capturedEmail)}</span>
             </div>
           </div>
@@ -1261,7 +1419,7 @@ RESPONSE RULES:
       `;
       lucide.createIcons({ nodes: [leadContainer] });
 
-      const confirmMsg = `Your application for ${escHtml(capturedBrand)} has been received, ${escHtml(capturedName)}. You're on our priority waitlist — our team will review your profile and email ${escHtml(capturedEmail)} within 48 hours with next steps. Platform access is granted after approval. Is there anything else you'd like to know while you wait?`;
+      const confirmMsg = `Your priority waitlist application${capturedBrand ? ` for ${escHtml(capturedBrand)}` : ''} has been received${capturedName ? `, ${escHtml(capturedName)}` : ''}. Our team will review your profile and email ${escHtml(capturedEmail)} within 48 hours with next steps. Platform access is granted after approval. Is there anything else you'd like to know while you wait?`;
       setTimeout(() => {
         appendAgentMessage(confirmMsg);
         conversationHistory.push({ role: "assistant", content: confirmMsg.replace(/<[^>]+>/g, '') });
@@ -1279,23 +1437,57 @@ RESPONSE RULES:
     }
 
     // ─── Groq API call ─────────────────────────────────────────────
-    async function callGroq(messages, retrying = false) {
+    const GROQ_MAX_TOKENS = 512;
+    const GROQ_FETCH_MS   = 25000;
+
+    function extractGroqContent(choice) {
+      const msg = choice?.message;
+      if (!msg) return "";
+      const text = (msg.content || "").trim();
+      if (text) return text;
+      const reasoning = (msg.reasoning || "").trim();
+      return reasoning;
+    }
+
+    async function callGroq(messages, retrying = false, bumped = false, maxTokens = GROQ_MAX_TOKENS) {
       const headers = { "Content-Type": "application/json" };
       if (!ON_SERVER && typeof GROQ_API_KEY !== "undefined") {
         headers["Authorization"] = `Bearer ${GROQ_API_KEY}`;
       }
-      const response = await fetch(GROQ_ENDPOINT, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ model: GROQ_MODEL, temperature: 0.55, max_tokens: 220, messages })
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), GROQ_FETCH_MS);
+      let response;
+      try {
+        response = await fetch(GROQ_ENDPOINT, {
+          method: "POST",
+          headers,
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            temperature: 0.55,
+            max_completion_tokens: maxTokens,
+            reasoning_effort: "low",
+            reasoning_format: "hidden",
+            messages
+          })
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
       if (response.status === 429 && !retrying) {
         await new Promise(r => setTimeout(r, 2500));
-        return callGroq(messages, true);
+        return callGroq(messages, true, bumped, maxTokens);
       }
       if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
       const data = await response.json();
-      return data.choices[0].message.content.trim();
+      const choice = data.choices?.[0];
+      const content = extractGroqContent(choice);
+      if (!content) throw new Error("Empty response from Groq");
+      if (choice.finish_reason === "length" && !bumped) {
+        return callGroq(messages, retrying, true, Math.min(Math.round(maxTokens * 1.5), 768));
+      }
+      if (choice.finish_reason === "length") throw new Error("Response truncated");
+      return content;
     }
 
     // ─── Send flow ─────────────────────────────────────────────────
@@ -1319,7 +1511,7 @@ RESPONSE RULES:
       logIntent(intent.label, text.slice(0, 42) + (text.length > 42 ? '…' : ''), intent.guardrail);
 
       if (exchangeCount === 1) advanceStage("qualifying");
-      else if (exchangeCount === 3) advanceStage("pitching");
+      else if (exchangeCount >= 2) advanceStage("pitching");
 
       updatePresenterPanel();
       showTyping();
@@ -1332,7 +1524,7 @@ RESPONSE RULES:
       if (apiConfigured) {
         try {
           conversationHistory.push({ role: "user", content: text });
-          replyText = await callGroq([{ role: "system", content: SYSTEM_PROMPT }, ...conversationHistory]);
+          replyText = await callGroq([{ role: "system", content: buildSystemMessage() }, ...conversationHistory]);
           conversationHistory.push({ role: "assistant", content: replyText });
           isGuardrail = replyText.toLowerCase().includes("cannot generate") ||
                         replyText.toLowerCase().includes("not generate") ||
@@ -1394,7 +1586,8 @@ RESPONSE RULES:
         profileId,
         label,
         leadScore, exchangeCount, guardrailCount, currentStage,
-        capturedName, capturedBrand, capturedEmail, capturedTimeline,
+        capturedName, capturedBrand, capturedEmail, capturedTimeline, capturedProduct,
+        capturedWebsite, capturedNotes, waitlistSubmitted,
         intentLog,
         updatedAt: new Date().toISOString(),
         startedAt: profiles[profileId]?.startedAt || new Date().toISOString()
