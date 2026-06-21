@@ -1077,6 +1077,8 @@ RESPONSE RULES:
         gateHint = "\n\nWAITLIST STATUS: Closing question already asked — answer any follow-up, then confirm waitlist placement if they are done.";
       } else if (isReadyForWaitlistClose()) {
         gateHint = "\n\nWAITLIST STATUS: Qualification sufficient — ask if they have any other questions before waitlist signup (do not confirm placement yet).";
+      } else if (!capturedEmail) {
+        gateHint = "\n\nNEXT FIELD NEEDED: Email address — you MUST ask for the founder's email address this turn. Do NOT ask the closing waitlist question until email is captured.";
       } else if (!capturedName) {
         gateHint = "\n\nNEXT FIELD NEEDED: Full name — ask for the founder's full name this turn.";
       }
@@ -1410,9 +1412,25 @@ RESPONSE RULES:
     }
 
     function handleWaitlistGateAfterReply(replyText, userText) {
+      // If the LLM asked the closing question but email isn't captured yet, intercept
+      // and redirect to email collection instead.
+      const looksLikeClosingQuestion =
+        replyText.includes('anything else') || replyText.includes('other questions') ||
+        replyText.includes('priority waitlist') || replyText.includes('add you to');
+      if (!isValidEmail(capturedEmail) && looksLikeClosingQuestion && waitlistGateStatus === 'none') {
+        const greet = capturedName ? `Thanks, ${capturedName}.` : "Thanks for that.";
+        return `${greet} To complete your waitlist application, could you share the best email address to reach you?`;
+      }
+
       if (waitlistGateStatus === 'asked') {
         if (userDeclinesMoreQuestions(userText)) {
-          enrollWaitlist();
+          if (isValidEmail(capturedEmail)) {
+            enrollWaitlist();
+          } else {
+            // Email still missing — ask for it instead of enrolling
+            const greet = capturedName ? `Thanks, ${capturedName}.` : "Thanks for that.";
+            return `${greet} Before I add you to the waitlist, I just need the best email address to reach you.`;
+          }
           return replyText;
         }
         if (!replyText.includes('anything else') && !replyText.includes('other questions')) {
