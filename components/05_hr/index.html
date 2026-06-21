@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Automated Workforce Architect — TrendFormulate</title>
   <link rel="stylesheet" href="../../assets/style.css" />
+  <script src="../../assets/config.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <style>
     /* ── Architecture flow diagram ──────────────────────────── */
@@ -747,8 +748,12 @@
   <script>
     lucide.createIcons();
 
-    const API_ENDPOINT = '/api/groq';
-    const MODEL        = 'openai/gpt-oss-120b';
+    const GROQ_MODEL    = 'openai/gpt-oss-120b';
+    const GROQ_DIRECT   = 'https://api.groq.com/openai/v1/chat/completions';
+    const ON_SERVER     = window.location.protocol !== 'file:' &&
+                          window.location.hostname  !== 'localhost' &&
+                          window.location.hostname  !== '127.0.0.1';
+    const API_ENDPOINT  = ON_SERVER ? '/api/groq' : GROQ_DIRECT;
 
     /* ─── Helpers ─────────────────────────────────────────────── */
     function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -844,11 +849,15 @@ Make the full package production-ready and appropriately senior for a board-leve
 
     /* ─── API call ────────────────────────────────────────────── */
     async function callGroq(systemPrompt, userMessage, maxTokens = 1200, retrying = false, bumped = false) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (!ON_SERVER && typeof GROQ_API_KEY !== 'undefined') {
+        headers['Authorization'] = `Bearer ${GROQ_API_KEY}`;
+      }
       const res = await fetch(API_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
-          model: MODEL,
+          model: GROQ_MODEL,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user',   content: userMessage  }

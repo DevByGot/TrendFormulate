@@ -51,7 +51,7 @@ A 3-person indie beauty brand can compete with L'Oréal by compressing a 3–6 m
 
 | Real | Simulated / Mock |
 |------|------------------|
-| Groq LLM calls (when API key configured) | Lead capture has no backend — localStorage only |
+| Groq LLM calls (when API key configured) | Lead capture has no backend — localStorage only (`tf_waitlist_entries`, `tf_presenter_profiles`) |
 | CosIng-based compliance lookups (`cosing_db.js`) | Factory database (`factories.json`) |
 | Deterministic factory scoring algorithm | "Live" dashboard counters and trend alerts |
 | Chart.js financial modeling | Email demo confirmations (UI only) |
@@ -233,9 +233,10 @@ Widget: chat-bubble.js — Llama 3.3 70B (lighter sales on internal pages)
 | Key | Writer | Reader(s) | Schema |
 |-----|--------|-----------|--------|
 | `tf_waitlist_access` | `04_sales`, `admin` | `index.html` gate | String `'1'` = granted |
+| `tf_waitlist_entries` | `04_sales` chat (on enrollment) | `admin` Session Data grid | Array of completed waitlist applications (see §12) |
 | `tf_c1_results` | `01_sentiment` | `02_formulation`, `admin`, `chat-bubble` | Array of analysis objects (see §9) |
 | `tf_saved_formulas` | `02_formulation` via `TFFormulas` | `03_marketing`, `07_ops`, `index.html`, `admin` | Array of formula workspace entries (see §7) |
-| `tf_presenter_profiles` | `04_sales` chat | `admin` presenter modal | `{ [profileId]: LeadProfile }` |
+| `tf_presenter_profiles` | `04_sales` chat (live sessions) | `admin` presenter modal | `{ [profileId]: LeadProfile }` |
 
 ### sessionStorage
 
@@ -411,7 +412,7 @@ If `!hasApi`: use keyword/intent fallback + simulated typing delay (600–1300ms
 | C2 | Formulation Agent 1 | `openai/gpt-oss-120b` | 0.35 | 1800 → 4096 | 1 per formula generate | JSON INCI formula |
 | C2 | Formulation Agent 2 | — | — | — | 0 (deterministic) | PASS/CAUTION/FAIL audit |
 | C3 | Marketing Engine | `openai/gpt-oss-120b` | 0.7 | 1600 → 4096 | 1 per script generate | JSON TikTok script |
-| C4 | Sales / Forma waitlist | `llama-3.3-70b-versatile` | 0.55 | 220 | 1 per chat turn | Plain text (guardrailed) |
+| C4 | Sales / Forma waitlist | `llama-3.3-70b-versatile` | 0.55 | 512 → 768 | 1 per chat turn | Plain text (guardrailed) |
 | C5 | HR Phase 1 | `openai/gpt-oss-120b` | 0.55 | 1200 → 4096 | 1 per analysis run | Markdown risk report |
 | C5 | HR Phase 2 | `openai/gpt-oss-120b` | 0.55 | 2400 → 4096 | 1 per analysis run | Markdown JD package |
 | C7 | Ops Tier 1 profile | `llama-3.1-8b-instant` | 0.2 | 600 → 1024 | 1 per factory analysis | JSON mfg profile |
@@ -538,25 +539,38 @@ Target demographic: {demographic}
 
 ### C4 — Waitlist / Sales Gate (`04_sales`)
 
-**Purpose:** Public landing + **Forma** waitlist agent. Qualifies founders, blocks free formula generation, captures lead data.
+**Purpose:** Public landing + **Forma** waitlist agent. Qualifies founders conversationally, blocks free formula generation, auto-enrolls on waitlist after a closing gate — **no separate lead form**.
 
-**Messages:** Multi-turn chat history with system prompt first:
+**Messages:** Dynamic system prompt rebuilt each turn via `buildSystemMessage()`:
 ```javascript
-[{ role: "system", content: SYSTEM_PROMPT }, ...conversationHistory]
+[
+  { role: "system", content: SYSTEM_PROMPT + FOUNDER_PROFILE_BLOCK + WAITLIST_GATE_HINT },
+  ...conversationHistory
+]
 ```
 
 **SYSTEM_PROMPT — three non-negotiable goals:**
 1. **QUALIFY** — real indie founder with launch timeline/budget (not student/journalist/competitor)
 2. **PROTECT** — NEVER generate formulas, INCI lists, ingredient ratios, or recipes in chat
-3. **CONVERT** — collect name, brand, email, launch timeline for priority waitlist
+3. **CONVERT** — collect full name, brand, product category, launch timeline, and email through natural conversation; enroll only after asking whether they have other questions
+
+**Qualification field priority** (one field per turn, skip if already in FOUNDER PROFILE): full name → brand → product category → launch timeline → email.
+
+**Waitlist closing gate:** When name + email + timeline are captured and `exchangeCount >= 2`, append: *"Before I add you to our priority waitlist, is there anything else you'd like to know about TrendFormulate?"* Enrollment fires when user declines further questions (`userDeclinesMoreQuestions()`).
+
+**Dynamic gate hints** injected into system message: `NEXT FIELD NEEDED` (name / timeline / email) or `WAITLIST STATUS` (closing question pending / already asked).
 
 Also includes platform context (compliance guardrails, formulation engine, finance simulator, factory matching) and scripted responses for compliance/pricing/timeline/formula-request scenarios.
 
-**Response rules:** Max 2–3 sentences; no bullets/markdown; always end with one follow-up question; exclusive/scarce beta tone.
+**Response rules:** Max 2–3 sentences; no bullets/markdown; always end with one follow-up question; exclusive/scarce beta tone; never re-ask captured profile fields.
 
-**Fallback:** 10-intent `INTENTS` map with keyword matching; `freeload` intent has `guardrail: true` for recipe requests.
+**API call details:** Uses `max_completion_tokens` (not `max_tokens`); default 512, bump to 768 on truncation; 25s fetch timeout via `AbortController`; `extractGroqContent()` falls back to `message.reasoning` if `content` is empty.
 
-**Lead scoring:** Keyword signals (`brand`, `launch`, `eu/fda`, etc.) accumulate score; lead form at score ≥55 after ≥3 exchanges.
+**Fallback:** 10-intent `INTENTS` map + `buildSmartFallback()` for open questions; `freeload` intent has `guardrail: true` for recipe requests.
+
+**Lead scoring:** Hybrid field-completion + conversation signals (see §12). Score drives admin presenter ring; **does not** trigger a form — enrollment is conversational.
+
+**Persistence on enrollment:** `saveWaitlistEntry()` → `localStorage.tf_waitlist_entries` (deduped by email). Live session state → `tf_presenter_profiles`.
 
 ---
 
@@ -579,11 +593,13 @@ INPUT B — Active R&D Product Vector:
 {trend/formula textarea}
 ```
 
-**Output (markdown, not JSON):** `RISK LEVEL` (CRITICAL/HIGH/MEDIUM/LOW), `SKILL GAP SUMMARY`, `MISSING CAPABILITIES` (bullets), `GOVERNANCE EXPOSURE`
+**Output (markdown, not JSON):** `RISK LEVEL` (CRITICAL/HIGH/MEDIUM/LOW), `SKILL GAP SUMMARY` (must begin with `{LEVEL} RISK FLAGGED:`), `MISSING CAPABILITIES` (≥4 bullets), `GOVERNANCE EXPOSURE` (Human-in-the-Loop liability — name chemical class + regulatory consequence)
+
+**PHASE1_SYSTEM emphasis:** Frames TrendFormulate as hyper-lean with real skin-contact liability; output is passed verbatim to Phase 2.
 
 #### Phase 2 — Recruitment Package
 
-**PHASE2_SYSTEM:** Elite Technical Recruiter. Synthesize JD from Phase 1 risk report.
+**PHASE2_SYSTEM:** Elite Technical Recruiter. Synthesize board-ready JD from Phase 1 risk report. Title must be discipline-specific (e.g. "Senior Macromolecular Peptide Chemist"), not generic.
 
 **User message:**
 ```
@@ -592,9 +608,30 @@ SKILL-GAP RISK REPORT FROM PHASE 1:
 {phase1Raw output}
 ```
 
-**Output (markdown):** `JOB TITLE`, `ABOUT THE ROLE`, `KEY RESPONSIBILITIES`, `REQUIRED QUALIFICATIONS`, `PREFERRED QUALIFICATIONS`, `TECHNICAL VETTING QUESTIONS` (5 numbered, chemistry-specific)
+**Output (markdown):** `JOB TITLE`, `ABOUT THE ROLE` (5 mandatory points including peptide actives + HITL sign-off), `KEY RESPONSIBILITIES` (5 AI-governance bullets), `REQUIRED QUALIFICATIONS` (5), `PREFERRED QUALIFICATIONS` (3, ≥1 AI-adjacent), `TECHNICAL VETTING QUESTIONS` (5 numbered — each must present a simulated AI formulation error to diagnose, not generic trivia)
 
-Phase 2 runs automatically after Phase 1 completes in the same `runAnalysis()` call.
+Phase 2 runs automatically after Phase 1 completes in the same `runAnalysis()` call. **429 retry:** single 2.5s back-off (not exponential).
+
+---
+
+### C6 — Finance / Unit Economics (`06_finance`)
+
+**Purpose:** Illustrative COGS simulator — **no Groq calls**. Models per-formula token burn and scale economics for board narrative.
+
+**Fixed token estimates (not on sliders):**
+
+| Constant | Input | Output | Model priced |
+|----------|-------|--------|--------------|
+| `SENTIMENT_TOK` | 2,000 | 768 | Llama 70B (pipeline mode) |
+| `OPS_TOK` | 550 | 450 | Llama 8B |
+| `HR_TOK.phase1` | 900 | 900 | OSS 120B (excluded from COGS) |
+| `HR_TOK.phase2` | 650 | 1,800 | OSS 120B (excluded from COGS) |
+
+**Other constants:** `ROUTING_COST = $0.05` · `INFRA_FIXED = $2,000/mo` · `LEGACY_COST_PER_FORMULA = $15,000` · `MARGIN_TARGET = 50%` · `MARGIN_WARN = 30%`
+
+**Pipeline mode:** C1 + C7 fixed costs added to C2/C3 slider burn; HR shown in separate admin table at page bottom (`#adminHrSection`).
+
+**UI beyond sliders:** Token flow diagram · margin progress bar + pill · burn alert when margin &lt; 50% · Boardroom View overlay · scale + burn Chart.js charts.
 
 ---
 
@@ -657,7 +694,7 @@ Extract the manufacturing requirements profile.
 | C6 Finance | `simulate()` + Chart.js — illustrative token estimates |
 | `index.html` dashboard | Reads localStorage only |
 | `admin/index.html` | Polls presenter profiles + displays stored data |
-| Lead capture / waitlist storage | localStorage / sessionStorage only |
+| Lead capture / waitlist storage | localStorage (`tf_waitlist_entries`, `tf_presenter_profiles`) / sessionStorage only |
 
 ---
 
@@ -748,9 +785,9 @@ Runs before page render. No token → redirect to waitlist landing.
 
 ### Granting access
 
-1. **04_sales:** "Demo Access" button sets `tf_waitlist_access = '1'` → `../../index.html`
-2. **04_sales chat:** Lead form submission path (presenter can also validate from admin)
-3. **admin:** `presenterValidate()` sets the same key
+1. **04_sales:** "Demo Access" button sets `tf_waitlist_access = '1'` → `../../index.html` (via `location.replace`)
+2. **04_sales chat:** Completing waitlist enrollment saves to `tf_waitlist_entries` but does **not** auto-grant OS access — presenter must validate
+3. **admin:** **Validate Access** in presenter modal or **Grant access** in Session Data sets the same key
 4. **index.html:** "Reset Demo" button removes token → back to 04_sales
 
 ### Main dashboard (`index.html`) sections
@@ -1074,63 +1111,78 @@ Plain text with `[0-3s] HOOK:` style timestamps, product name, tone, demographic
 
 **Path:** `components/04_sales/index.html`  
 **This is the public entry point** — no access gate on this page.  
-**Model:** `llama-3.3-70b-versatile` · temp 0.55 · max 220 tokens per turn
+**Model:** `llama-3.3-70b-versatile` · temp 0.55 · max_completion_tokens 512 (→ 768 on truncation) · 25s fetch timeout
 
-> Full Forma waitlist `SYSTEM_PROMPT` (qualify / protect / convert): [§6 — C4 Sales](#c4--waitlist--sales-gate-04_sales)
+> Full Forma waitlist `SYSTEM_PROMPT`, gate flow, and `buildSystemMessage()`: [§6 — C4 Sales](#c4--waitlist--sales-gate-04_sales)
 
 ### Dual purpose
 
 1. **Marketing landing page** for TrendFormulate beta waitlist
-2. **Forma qualification chatbot** that gates access to the main OS
+2. **Forma qualification chatbot** that gates access to the main OS and auto-enrolls qualified founders
 
 ### Landing page sections
 
 | Section | Content |
 |---------|---------|
-| Navbar | Beta pill + "Demo Access" button (grants token immediately) |
+| Navbar | Beta pill + **Demo Access** button (grants `tf_waitlist_access` immediately via `window.location.replace`) |
 | Hero | Headline + subcopy + CTA opens chat modal |
-| Stats row | 4 hardcoded metrics (founders waitlisted, avg time-to-formula, etc.) |
-| How it works | 4 step cards (Detect → Formulate → Comply → Manufacture) |
-| Feature grid | 6 platform capabilities |
+| Stats row | **3** hardcoded metrics: 48h launch, 100% EU/FDA compliant, 0 labs needed |
+| How it works | 4 step cards: Detect trend → Generate formula → Build launch → Source factory |
 | CTA banner | "Join the waitlist" opens chat |
-| Trend ticker | Scrolling beauty trend headlines |
-| Footer | Links + copyright |
+| Trend ticker | Scrolling beauty trend headlines (glass skin +340%, bakuchiol, reef-safe SPF) |
+| Footer | Brand + copyright |
 
 ### Chat modal (`#chat-modal`)
 
 Full-screen overlay with:
-- Header: Forma avatar, "AI Waitlist Agent", online dot
-- Messages area (user right-aligned rose bubbles, agent left-aligned)
+- Header: Forma avatar, "Access & Qualification Agent", beta status pill
+- Messages area (user right-aligned rose bubbles, agent left-aligned; guardrail styling on formula blocks)
 - Typing indicator (3 bouncing dots)
-- Quick reply chips (contextual per exchange count)
-- Lead capture form (appears when qualified)
+- Quick reply chips (contextual per exchange count / waitlist gate state)
+- `#lead-form-container` — repurposed for **waitlist confirmation banner** after enrollment (not an input form)
 - Input bar + send button
 
-### Forma SYSTEM_PROMPT — three non-negotiable goals
+### Boot welcome message
 
-1. **QUALIFY** real indie founders (not students/journalists/competitors)
-2. **PROTECT** — NEVER generate formulas/INCI/recipes in chat (guardrail)
-3. **CONVERT** — collect name, brand, email, launch timeline
+On first open, Forma sends a fixed welcome asking for full name and brand name, then shows `QUICK_REPLIES_INITIAL` chips.
 
-Max 2-3 sentences per reply. No bullets/markdown. Always end with one follow-up question.
+### Qualification & enrollment flow
 
-### Lead scoring
-
-```javascript
-const FORM_MIN_SCORE = 55;
-const FORM_MIN_EXCHANGES = 3;
-
-const LEAD_SCORE_SIGNALS = [
-  { keywords: ["brand", "my brand", ...], score: 18, label: "brand_mention" },
-  { keywords: ["launch", "timeline", "q1", ...], score: 18, label: "timeline_mention" },
-  { keywords: ["eu", "fda", "compliance", ...], score: 14, label: "compliance_concern" },
-  { keywords: ["budget", "price", ...], score: 10, label: "budget_signal" },
-  { keywords: ["serum", "spf", "bakuchiol", ...], score: 12, label: "product_specificity" }
-];
+```
+greeting → qualifying → pitching → capturing → converted
+         ↓                              ↓
+   extractLeadFromMessage()      waitlistGateStatus:
+   (regex + validation)          none → asked → enrolled
 ```
 
-Diminishing returns: repeated signal labels score less on subsequent hits.  
-Lead form shown when `leadScore >= 55 && exchangeCount >= 3`.
+**Required before closing question:** valid name, valid email, timeline, `exchangeCount >= 2`.
+
+**Closing question:** `"Before I add you to our priority waitlist, is there anything else…?"`
+
+**Enrollment:** User says "no / that's all / add me" → `enrollWaitlist()` → saves to `tf_waitlist_entries` + shows confirmation banner. Does **not** grant dashboard access — presenter validates separately.
+
+### Field extraction (`extractLeadFromMessage`)
+
+Regex extractors for: email, timeline (Q1–Q4, seasons, "this year"), brand (`extractBrandFromMessage`), name (`extractNameFromMessage` + `isValidCapturedName`), product category, website/social (`extractWebsiteFromMessage` — excludes common email-provider domains).
+
+### Lead scoring (`recalculateLeadScore`)
+
+Field-completion weights:
+
+| Field | Points |
+|-------|--------|
+| Brand | 24 |
+| Product category | 16 |
+| Launch timeline | 16 |
+| Email | 14 |
+| Full name | 10 |
+| Website | 4 |
+| Notes | 3 |
+| Exchange bonus | up to +15 (5 per exchange) |
+
+Plus conversation signal bonuses from `LEAD_SCORE_SIGNALS` (capped +22 total, with diminishing returns per label). Penalties: guardrail triggers −12 each (max −36); low-intent keywords −12. Post-enrollment floor: score ≥ 78.
+
+**Admin grade mapping** (`getScoreGrade`): ≥78 Waitlist Ready · ≥45 High Intent · ≥22 Qualifying · else Low Intent.
 
 ### Intent fallback map (`INTENTS`)
 
@@ -1139,43 +1191,63 @@ Lead form shown when `leadScore >= 55 && exchangeCount >= 3`.
 - `compliance`, `pricing`, `timeline`, `factory`, `access`
 - `competitor`, `investor`, `how_it_works`, `greeting`
 
-### Presenter state persistence
+### Presenter state persistence (live sessions)
 
 ```javascript
 // sessionStorage
-tf_presenter_profile_id  // UUID per browser session
+tf_presenter_profile_id  // UUID per browser tab/session
 
-// localStorage
+// localStorage — live in-progress sessions (polled by admin every 2s)
 tf_presenter_profiles: {
   [profileId]: {
     leadScore, exchangeCount, guardrailCount,
     currentStage,  // greeting → qualifying → pitching → capturing → converted
     capturedName, capturedBrand, capturedEmail, capturedTimeline,
-    intentLog: [{ label, timestamp }],
+    capturedProduct, capturedWebsite, capturedNotes,
+    waitlistSubmitted, waitlistGateStatus,  // none | asked | enrolled
+    intentLog: [{ label, text, isGuardrail, ts }],
     startedAt, updatedAt, label
   }
 }
 ```
 
-Saved after every message exchange. Admin polls every 2s.
+### Waitlist applications (persistent enrollments)
+
+```javascript
+// localStorage
+tf_waitlist_entries: [
+  {
+    id, name, brand, email, product, timeline, website, notes,
+    leadScore, exchangeCount, guardrailCount, currentStage,
+    profileId, intentLog[], submittedAt, status  // 'pending'
+  }
+]
+```
+
+Deduped by email on save. Admin displays in Session Data grid with remove (✕) per entry.
 
 ### Pipeline stages
 
 `greeting` → `qualifying` → `pitching` → `capturing` → `converted`
 
+Stage advances: exchange 1 → qualifying; exchange ≥2 → pitching; enrollment → converted.
+
 ### grantDemoAccess()
 
 ```javascript
 localStorage.setItem('tf_waitlist_access', '1');
-window.location.href = '../../index.html';
+window.location.replace('../../index.html');
 ```
 
-### Initial quick replies
+### Contextual quick replies
 
-- "Does this guarantee my formula will be legal to sell in the EU?"
-- "Can you give me a quick recipe for a serum right now?" (tests guardrail)
-- "How much does it cost?"
-- "How fast can I get in?"
+| Exchange / state | Chips |
+|------------------|-------|
+| Initial | EU compliance, formula guardrail test, pricing, speed |
+| After 1 | Pricing, speed, formula request |
+| After 2 | EU compliance, "launching serum Q3 2026" |
+| Gate asked | "No, that's all", "I have one more question" |
+| ≥3 (default) | Pricing model, when will I hear back |
 
 ### Scripts loaded
 
@@ -1196,22 +1268,22 @@ window.location.href = '../../index.html';
 ### User flow
 
 1. Two pre-filled textareas: **Input A** (team roster) + **Input B** (R&D trend vector / active formulas)
-2. Architecture flow diagram shows: Input A + B → Phase 1 Risk → Phase 2 JD
+2. Architecture flow diagram + **4-step progress indicator** (Roster → Trend → Phase 1 → Phase 2)
 3. Click **Run Two-Phase AI Analysis**
-4. Animated scan log streams progress messages
-5. Phase 1 risk card renders (CRITICAL/HIGH/MEDIUM/LOW badge)
-6. Phase 2 JD card renders (title, about, responsibilities, qualifications, 5 vetting questions)
-7. Copy JD / Download `.txt` package
+4. **Execution log** (`#scan-log`) streams timestamped progress messages
+5. Phase 1 risk card renders (CRITICAL/HIGH/MEDIUM/LOW badge + governance exposure box)
+6. Chain connector pill → Phase 2 JD card (title, about, responsibilities, qualifications, 5 vetting questions)
+7. Copy JD / Download `.txt` package (Phase 1 + Phase 2 combined)
 
 ### Two-phase Groq chain
 
-**Phase 1 — PHASE1_SYSTEM:** Organizational Risk Analyst  
+**Phase 1 — PHASE1_SYSTEM:** Organizational Risk Analyst — Human-in-the-Loop liability framing  
 Input: team roster + product roadmap text  
-Output markdown sections: RISK LEVEL, SKILL GAP SUMMARY, MISSING CAPABILITIES, GOVERNANCE EXPOSURE
+Output markdown sections: RISK LEVEL, SKILL GAP SUMMARY (must open with `{LEVEL} RISK FLAGGED:`), MISSING CAPABILITIES (≥4 bullets), GOVERNANCE EXPOSURE
 
-**Phase 2 — PHASE2_SYSTEM:** Technical Recruiter  
+**Phase 2 — PHASE2_SYSTEM:** Elite Technical Recruiter — board-ready package  
 Input: Phase 1 raw output  
-Output: JOB TITLE, ABOUT THE ROLE, KEY RESPONSIBILITIES, REQUIRED/PREFERRED QUALIFICATIONS, TECHNICAL VETTING QUESTIONS (5 numbered)
+Output: JOB TITLE (discipline-specific), ABOUT THE ROLE (5 mandatory points), KEY RESPONSIBILITIES (AI-governance bullets), REQUIRED/PREFERRED QUALIFICATIONS, TECHNICAL VETTING QUESTIONS (5 simulated AI-error scenarios)
 
 ### API note
 
@@ -1219,7 +1291,9 @@ Output: JOB TITLE, ABOUT THE ROLE, KEY RESPONSIBILITIES, REQUIRED/PREFERRED QUAL
 
 ### Default demo textarea content
 
-Hardcoded example: 2 Junior Formulators missing peptide expertise while AI generates Matrixyl/peptide serums at scale.
+**Input A (roster):** 2 Junior Formulators — botanicals/water-based emulsions; no peptide/biotech/retinoid experience.
+
+**Input B (trend vector):** Platform generating Matrixyl 3000 + GHK-Cu peptide leave-on formulas requiring pH 4.5–5.5 calibration and chelation management.
 
 ### Export
 
@@ -1266,11 +1340,11 @@ effInput  = inputTok  * iterations
 effOutput = outputTok * iterations
 inCost    = (effInput  / 1_000_000) * tier.inPerM   // formulation 120B (pipeline mode)
 outCost   = formulaCost + marketCost                 // 120B formula + 120B marketing
-sentimentCost = fixed C1 comment classification (Llama 70B in pipeline mode)
-opsCost       = fixed C7 manufacturing profile (8B)
+sentimentCost = fixed C1 (SENTIMENT_TOK — Llama 70B in pipeline mode)
+opsCost       = fixed C7 (OPS_TOK — Llama 8B)
 tokenBurn = inCost + outCost + sentimentCost + opsCost
 cogsPerFormula = tokenBurn + ROUTING_COST  // ROUTING_COST = $0.05
-// HR (C5, 120B × 2 phases) shown in breakdown but excluded from cogsPerFormula
+// HR (C5, HR_TOK × 2 phases) shown in #adminHrSection, excluded from cogsPerFormula
 
 monthlyFormulas  = brands * avgFormulas
 monthlyRevenue   = brands * arpu
@@ -1281,7 +1355,19 @@ grossMarginPct   = grossProfit / monthlyRevenue * 100
 
 legacyMonthly = monthlyFormulas * LEGACY_COST_PER_FORMULA  // $15,000
 costMult      = LEGACY_COST_PER_FORMULA / cogsPerFormula
+opexMult      = legacyMonthly / totalMonthlyCOGS
 ```
+
+### Fixed token constants (pipeline breakdown)
+
+| Constant | Input | Output | Priced as |
+|----------|-------|--------|-----------|
+| `SENTIMENT_TOK` | 2,000 | 768 | Llama 70B |
+| `OPS_TOK` | 550 | 450 | Llama 8B |
+| `HR_TOK.phase1` | 900 | 900 | OSS 120B (excluded) |
+| `HR_TOK.phase2` | 650 | 1,800 | OSS 120B (excluded) |
+
+**Margin thresholds:** `MARGIN_TARGET = 50%` (green pill, burn chart reference line) · `MARGIN_WARN = 30%` (amber on progress bar)
 
 ### Per-formula cost breakdown (pipeline mode)
 
@@ -1289,7 +1375,7 @@ Grouped as **INPUT TOKENS** then **OUTPUT TOKENS** (one Tokens column + one Rate
 
 | Input line | Model | Notes |
 |------------|-------|-------|
-| C1 comment prompt | Llama 70B | Real sentiment AI call (pipeline); OSS 20B on comparison tier |
+| C1 comment prompt | Llama 70B | Real sentiment AI call (pipeline); OSS 20B on comparison tier only |
 | C2 trend payload | 120B | Context from C1 — not a separate call |
 | C2 CoSing constraints | 120B | `cosing_db.js` text in system prompt |
 | C7 mfg profile prompt | 8B | Formula + market context |
@@ -1310,10 +1396,17 @@ Token split on sliders (formulator only):
 
 ### KPI cards (top row)
 
-1. AI COGS per formula
-2. Gross margin %
+1. AI COGS per formula (token burn + $0.05 routing sublabel)
+2. Gross margin % (color vs 50% target)
 3. Monthly gross profit
-4. Cost vs legacy multiplier
+4. Cost vs legacy multiplier (+ opex multiplier sublabel)
+
+### UI elements
+
+- **Token flow diagram** — visual split: 60/40 input (trend vs CoSing), 65/35 output (formula vs marketing), iteration multiplier
+- **Per-formula breakdown table** — INPUT / OUTPUT token sections + $0 compliance row + grand total
+- **Margin progress bar** + pill (`✓ Target Met` / `✗ Below Target`) + burn alert when margin &lt; 50%
+- **Admin HR table** (`#adminHrSection`) — C5 Phase 1 + Phase 2 token lines, marked excluded from COGS
 
 ### Charts
 
@@ -1438,22 +1531,24 @@ HTML paragraph explaining why #1 wins given weights, profile, launch date math (
    - **Waitlist Agent** → opens presenter modal (live chat monitor)
    - **Workforce Architect** → `components/05_hr/index.html`
    - **Finance / CFO View** → `components/06_finance/index.html`
-3. **Session Data grid (3 live cards):**
-   - Waitlist Access status
-   - Sentiment Results (grouped by trend)
-   - Saved Formulas (name + compliance)
+3. **Session Data grid (4 live cards):**
+   - **Waitlist Access** — granted/revoked status + Grant/Revoke buttons
+   - **Waitlist Applications** — persistent enrollments from `tf_waitlist_entries` (remove ✕ per entry)
+   - **Sentiment Results** — grouped by trend from `tf_c1_results`
+   - **Saved Formulas** — name, hero INCI, claims, time ago
 4. **Quick links** to all 7 components
 
 ### Presenter modal (Waitlist Agent)
 
-Polls `tf_presenter_profiles` every 2 seconds.
+Polls `tf_presenter_profiles` every 2 seconds; also refreshes Session Data when `tf_waitlist_entries` signature changes.
 
-- Profile tabs for sessions active within last 30 minutes
+- Profile tabs for sessions active within last **30 minutes** (live dot if updated &lt; 2 min)
 - 3-column grid:
-  - **Score ring** (SVG arc, 0–100, letter grade A–F)
-  - **Lead data:** name, brand, email, timeline, stage, exchange count, guardrail count
-  - **Intent log:** last 30 detected intents with timestamps
-- **Validate Access** button: sets `tf_waitlist_access = '1'`
+  - **Score ring** (SVG arc, 0–100) + grade badge: Waitlist Ready (≥78) · High Intent (≥45) · Qualifying (≥22) · Low Intent
+  - **Lead data:** name, brand, email, product, timeline, website, notes, "On waitlist" tag if enrolled
+  - **Conversation log:** last 20 intents with guardrail tags
+- Pipeline stage stepper (greeting → converted)
+- **Validate Access** button: sets `tf_waitlist_access = '1'` (does not auto-grant on chat enrollment)
 
 ### Legacy migration
 
@@ -1461,9 +1556,10 @@ Polls `tf_presenter_profiles` every 2 seconds.
 
 ### Key functions
 
-- `renderDatabase()` — builds 3 db-cards from localStorage
-- `tickPresenterState()` — 2s polling loop
-- `getScoreGrade(score)` — A/B/C/D/F thresholds
+- `renderDatabase()` — builds 4 db-cards from localStorage
+- `tickPresenterState()` — 2s polling loop (profiles + waitlist signature)
+- `getScoreGrade(score)` — Waitlist Ready / High Intent / Qualifying / Low Intent thresholds
+- `removeWaitlistEntry(id)` — deletes from `tf_waitlist_entries`
 
 ---
 
@@ -1626,8 +1722,8 @@ Run in this exact order for maximum narrative impact:
 
 | Step | Page | Talking point |
 |------|------|---------------|
-| 1 | `04_sales` | "Public beta is closed. Forma qualifies real founders." Open chat, show guardrail on formula request. |
-| 2 | `04_sales` | Click **Demo Access** or complete qualification → enter OS. |
+| 1 | `04_sales` | "Public beta is closed. Forma qualifies real founders." Open chat, show guardrail on formula request, complete conversational enrollment. |
+| 2 | `04_sales` | Click **Demo Access** (or admin **Validate Access**) → enter OS. Chat enrollment alone does not grant access. |
 | 3 | `index.html` | "This is TrendFormulate OS — every department, one workspace." Show empty Products. |
 | 4 | `01_sentiment` | Run analysis on 15 comments. "We extract what consumers actually want." |
 | 5 | `02_formulation` | Pick top trend, generate recipe. "Agent 1 creates; Agent 2 audits against EU CosIng." Save formula. |
@@ -1648,7 +1744,9 @@ To fully reset data:
 localStorage.removeItem('tf_c1_results');
 localStorage.removeItem('tf_saved_formulas');
 localStorage.removeItem('tf_presenter_profiles');
+localStorage.removeItem('tf_waitlist_entries');
 localStorage.removeItem('tf_waitlist_access');
+sessionStorage.removeItem('tf_presenter_profile_id');
 ```
 
 ---
@@ -1678,15 +1776,15 @@ Use this ordered checklist to reconstruct the app from scratch.
 - [ ] **01_sentiment:** COMMENTS loader, Groq loop, KEYWORD_MAP, trend grouping, `tf_c1_results` save, export
 - [ ] **02_formulation:** Trend carousel, Agent 1 Groq (`buildFormulatorSystem` + `cosingBuildFormulatorConstraints`), Agent 2 CosIng, TFFormulas save, export
 - [ ] **03_marketing:** Formula dropdown, tone/demographic inputs, Groq script, storyboard, copy/print
-- [ ] **04_sales:** Landing page, chat modal, Forma prompt, scoring, presenter profiles, access grant
+- [ ] **04_sales:** Landing page, chat modal, Forma prompt + gate flow, field extraction, scoring, `tf_presenter_profiles` + `tf_waitlist_entries`, access grant
 - [ ] **05_hr:** Two-phase Groq, risk card, JD card, copy/download
-- [ ] **06_finance:** simulate(), sliders, KPIs, 2 Chart.js charts, Boardroom View
+- [ ] **06_finance:** simulate(), fixed token constants, sliders, KPIs, token flow diagram, margin bar, 2 Chart.js charts, admin HR table, Boardroom View
 - [ ] **07_ops:** Tier 1 Groq profile, Tier 2 scoring, Top 3 cards, narrative, print
 
 ### Phase 4 — Integration
 
 - [ ] Build `index.html` with access gate, 4 dept cards, Products workspace, modal, trend banner
-- [ ] Build `admin/index.html` with dept cards, session data grid, presenter modal
+- [ ] Build `admin/index.html` with dept cards, 4-card session data grid, presenter modal, waitlist entry management
 - [ ] Build `assets/chat-bubble.js` floating widget
 - [ ] Verify all `../../` relative paths from components
 - [ ] Verify `lucide.createIcons()` called after dynamic DOM updates
@@ -1770,7 +1868,8 @@ These are intentional or out of scope — do not expect them in the codebase:
 - No automated tests
 - HR component does not auto-read live trend/formula data
 - Finance simulator uses illustrative defaults, not live Groq token metering
-- `chat-bubble.js` `buildPrompt()` should use `f.lead_time_days` from `factories.json` (currently references nonexistent `f.delivery_days`)
+- `chat-bubble.js` `buildPrompt()` references `f.delivery_days` but `factories.json` uses `lead_time_days` — factory lead times may show as `undefined` in widget context
+- Finance pipeline breakdown table UI labels still say "(20B)" for C1 rows while pricing uses Llama 70B rates (cosmetic label mismatch in `06_finance`)
 
 ---
 
