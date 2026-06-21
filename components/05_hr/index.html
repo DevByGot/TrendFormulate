@@ -908,7 +908,10 @@ Make the full package production-ready and appropriately senior for a board-leve
       ];
       for (const re of patterns) {
         const m = text.match(re);
-        if (m && m[1] && m[1].trim()) return m[1].trim();
+        if (m && m[1] && m[1].trim()) {
+          // Strip markdown horizontal rules (---, ***, ===) the model may insert between sections
+          return m[1].trim().replace(/\n\s*[-*=]{2,}\s*$/gm, '').trim();
+        }
       }
       return '';
     }
